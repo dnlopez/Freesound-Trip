@@ -535,7 +535,7 @@ function continueInit()
     animate();
 
     //
-    loadSoundsFromFreesound("dogs");
+    loadResultsOfFreesoundSearchIntoSoundSites("dogs");
 }
 
 function onWindowResize()
@@ -658,16 +658,40 @@ function animate()
 
 init();
 
-function loadSoundsFromFreesound(i_nameQuery)
-{
-    // Working cURL example:
-    //  curl -H "Authorization: Token 3c5dd7395a593748acfcd7385372df519cdcaeab" 'https://freesound.org/apiv2/search/text/?&page=1&page_size=60&group_by_pack=0&fields=id,previews,namequery=dogs&format=json'
+// + Communication with Freesound {{{
 
+// Working cURL example:
+//  curl -H "Authorization: Token 3c5dd7395a593748acfcd7385372df519cdcaeab" 'https://freesound.org/apiv2/search/text/?&page=1&page_size=60&group_by_pack=0&fields=id,previews,namequery=dogs&format=json'
+// Example from Freesound Explorer:
+//  https://freesound.org/apiv2/search/text/?&page=1&page_size=60&group_by_pack=0&filter=duration:[0%20TO%205]&fields=id,previews,name,analysis,url,username,duration,tags,license&descriptors=lowlevel.mfcc.mean,sfx.tristimulus.mean,tonal.hpcp.mean&query=dogs&format=json
+
+function searchFreesound(i_nameQuery, i_onPage)
+// Params:
+//  i_nameQuery:
+//   (string)
+//  i_onPage:
+//   (function)
+{
+    searchFreesound_getPage(i_nameQuery, 1, 5, i_onPage);
+    // TODO: repeat till got all pages
+}
+
+function searchFreesound_getPage(i_nameQuery, i_pageNo, i_resultsPerPage, i_onPage)
+// Params:
+//  i_nameQuery:
+//   (string)
+//  i_pageNo:
+//   (integer number)
+//  i_resultsPerPage:
+//   (integer number)
+//  i_onPage:
+//   (function)
+{
     var queryUrl = 'https://freesound.org/apiv2/search/text/?';
     queryUrl += '&fields=id,name,previews,namequery=' + i_nameQuery;
     queryUrl += '&format=json';
-    queryUrl += '&page=1';
-    queryUrl += '&page_size=5';
+    queryUrl += '&page=' + i_pageNo.toString();
+    queryUrl += '&page_size=' + i_resultsPerPage.toString();
     queryUrl += '&group_by_pack=0';
 
     var xhr = new XMLHttpRequest();
@@ -677,21 +701,29 @@ function loadSoundsFromFreesound(i_nameQuery)
     xhr.onreadystatechange = function () {
         if (this.readyState == XMLHttpRequest.DONE)
         {
-            var results = xhr.response.results;  // TODO: defend against exception on this line if Freesound is inaccessible
-            for (var resultCount = results.length, resultNo = 0; resultNo < resultCount; ++resultNo)
-            {
-                var result = results[resultNo];
-
-                var url = result.previews["preview-lq-ogg"];
-                //console.log(url);
-
-                var soundSiteName = url + ', "' + result.name + '"';
-                loadSoundAndAddSoundSite(soundSiteName, url);
-            }
             //console.log(xhr.response);
+
+            var results = xhr.response.results;  // TODO: defend against exception on this line if Freesound is inaccessible
+            i_onPage(results);
         }
     };
     xhr.send();
+}
+
+function loadResultsOfFreesoundSearchIntoSoundSites(i_nameQuery)
+{
+    searchFreesound(i_nameQuery, function (i_results) {
+        for (var resultCount = i_results.length, resultNo = 0; resultNo < resultCount; ++resultNo)
+        {
+            var result = i_results[resultNo];
+
+            var url = result.previews["preview-lq-ogg"];
+            //console.log(url);
+
+            var soundSiteName = url + ', "' + result.name + '"';
+            loadSoundAndAddSoundSite(soundSiteName, url);
+        }
+    });
 }
 
 function fstest2()
@@ -702,5 +734,4 @@ function fstest2()
     var mediaElementAudioSourceNode = g_audioContext.createMediaElementSource(audioMediaElement);
 }
 
-// https://freesound.org/apiv2/search/text/?&page=1&page_size=60&group_by_pack=0&filter=duration:[0%20TO%205]&fields=id,previews,name,analysis,url,username,duration,tags,license&descriptors=lowlevel.mfcc.mean,sfx.tristimulus.mean,tonal.hpcp.mean&query=dogs&format=json
-// curl -H "Authorization: Token 3c5dd7395a593748acfcd7385372df519cdcaeab" 'https://freesound.org/apiv2/search/text/?&page=1&page_size=60&group_by_pack=0&fields=id,previews,namequery=dogs&format=json'
+// + }}}
