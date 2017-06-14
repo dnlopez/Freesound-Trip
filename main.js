@@ -79,8 +79,7 @@ g_audioContext = dan.snd.getAudioContext();
 // + Sound site {{{
 
 function SoundSite(i_audioContext, i_soundId, i_url,
-                   i_position, i_geometry, i_material,
-                   i_preloadSamples, i_onReady)
+                   i_position, i_geometry, i_material)
 // Params:
 //  i_audioContext:
 //   (AudioContext)
@@ -94,93 +93,10 @@ function SoundSite(i_audioContext, i_soundId, i_url,
 //   (THREE.Geometry)
 //  i_material:
 //   (THREE.Material)
-//  i_preloadSamples:
-//   (boolean)
-//  i_onReady:
-//   Either (function)
-//    Called back when the sound file has loaded and is ready to be played.
-//   or (null or undefined)
-//    Don't get a callback.
 {
     this.m_audioContext = i_audioContext;
-
     this.soundId = i_soundId;
-
-    //
-    var me = this;
-
-    if (i_preloadSamples)
-    {
-        // Load sound from URL
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", i_url);
-        xhr.responseType = "arraybuffer";
-        xhr.onreadystatechange = function () {
-            if (this.readyState == XMLHttpRequest.DONE)
-            {
-                g_audioContext.decodeAudioData(xhr.response, function (i_decodedBuffer)
-                // Params:
-                //  i_decodedBuffer:
-                //   (AudioBuffer)
-                {
-                    me.audioBuffer = i_decodedBuffer;
-
-                    // Save the sample count for later use maybe
-                    //me.sampleCount = i_decodedBuffer.length;
-
-                    // Make an AudioBufferSourceNode for playing the sound
-                    me.audioSourceNode = g_audioContext.createBufferSource();  // (AudioBufferSourceNode)
-                    me.audioSourceNode.buffer = i_decodedBuffer;
-
-                    // Make a GainNode for volume control
-                    me.gainNode = me.m_audioContext.createGain();
-                    me.audioSourceNode.connect(me.gainNode);
-
-                    //
-                    me.gainNode.connect(me.m_audioContext.destination);
-
-                    //
-                    if (i_onReady)
-                        i_onReady();
-
-                    // PROTOTYPE: Start the sound playing in an endless loop (though muted)
-                    me.audioSourceNode.loop = true;
-                    me.audioSourceNode.loopStart = 0;
-                    //console.log(me.sampleCount / i_decodedBuffer.sampleRate);
-                    //me.audioSourceNode.loopEnd = me.sampleCount / i_decodedBuffer.sampleRate;
-                    me.gainNode.gain.value = 0;
-                    me.start();
-                });
-            }
-        };
-        xhr.send();
-    }
-    else
-    {
-        me.audioMediaElement = new Audio(i_url);
-
-        // Create a MediaElementAudioSourceNode to draw from the above Audio node
-        me.audioSourceNode = g_audioContext.createMediaElementSource(this.audioMediaElement);
-
-        // Make a GainNode for volume control
-        me.gainNode = me.m_audioContext.createGain();
-        me.audioSourceNode.connect(me.gainNode);
-
-        //
-        me.gainNode.connect(me.m_audioContext.destination);
-
-        //
-        if (i_onReady)
-            i_onReady();
-
-        // PROTOTYPE: Start the sound playing in an endless loop (though muted)
-        me.audioSourceNode.loop = true;
-        me.audioSourceNode.loopStart = 0;
-        //console.log(me.sampleCount / i_decodedBuffer.sampleRate);
-        //me.audioSourceNode.loopEnd = me.sampleCount / i_decodedBuffer.sampleRate;
-        me.gainNode.gain.value = 0;
-        me.start();
-    }
+    this.soundUrl = i_url;
 
     // Graphic object
     this.mesh = new THREE.Mesh(i_geometry, i_material);
@@ -188,10 +104,101 @@ function SoundSite(i_audioContext, i_soundId, i_url,
     this.mesh.position.y = Math.floor(Math.random() * 20) * 20 + 10;
     this.mesh.position.z = Math.floor(Math.random() * 20 - 10) * 20;
 
-    //this.mesh2 = new THREE.SphereGeometry(5, 32, 32);
-    //var material = new THREE.MeshBasicMaterial({color: 0xffff00});
-    //var sphere = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({color: 0xffff00}));
-    //scene.add(sphere);
+    this.rangeSphereGeometry = new THREE.SphereGeometry(k_distanceAtWhichSoundIsSilent, 32, 32);
+    var material = new THREE.MeshBasicMaterial({color: 0xffff88});
+    this.rangeSphereMesh = new THREE.Mesh(this.rangeSphereGeometry, material);
+    this.rangeSphereMesh.position.x = this.mesh.position.x;
+    this.rangeSphereMesh.position.y = this.mesh.position.y;
+    this.rangeSphereMesh.position.z = this.mesh.position.z;
+}
+
+SoundSite.prototype.loadSamplesIfNeededAndStartPlaying = function (i_onReady)
+// Params:
+//  i_onReady:
+//   Either (function)
+//    Called back when the sound file has loaded and is ready to be played.
+//   or (null or undefined)
+//    Don't get a callback.
+{
+    if (this.loadSamplesStarted)
+        return;
+    this.loadSamplesStarted = true;
+
+    console.log("loadSamplesIfNeededAndStartPlaying: " + this.soundId);
+
+    //
+    var me = this;
+
+    // Load sound from URL
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", this.soundUrl);
+    xhr.responseType = "arraybuffer";
+    xhr.onreadystatechange = function () {
+        if (this.readyState == XMLHttpRequest.DONE)
+        {
+            g_audioContext.decodeAudioData(xhr.response, function (i_decodedBuffer)
+            // Params:
+            //  i_decodedBuffer:
+            //   (AudioBuffer)
+            {
+                me.audioBuffer = i_decodedBuffer;
+
+                // Save the sample count for later use maybe
+                //me.sampleCount = i_decodedBuffer.length;
+
+                // Make an AudioBufferSourceNode for playing the sound
+                me.audioSourceNode = g_audioContext.createBufferSource();  // (AudioBufferSourceNode)
+                me.audioSourceNode.buffer = i_decodedBuffer;
+
+                // Make a GainNode for volume control
+                me.gainNode = me.m_audioContext.createGain();
+                me.audioSourceNode.connect(me.gainNode);
+
+                //
+                me.gainNode.connect(me.m_audioContext.destination);
+
+                //
+                if (i_onReady)
+                    i_onReady();
+
+                // PROTOTYPE: Start the sound playing in an endless loop (though muted)
+                me.audioSourceNode.loop = true;
+                me.audioSourceNode.loopStart = 0;
+                //console.log(me.sampleCount / i_decodedBuffer.sampleRate);
+                //me.audioSourceNode.loopEnd = me.sampleCount / i_decodedBuffer.sampleRate;
+                me.gainNode.gain.value = 0;
+                me.start();
+            });
+        }
+    };
+    xhr.send();
+}
+
+function loadSamples2()
+{
+    me.audioMediaElement = new Audio(i_url);
+
+    // Create a MediaElementAudioSourceNode to draw from the above Audio node
+    me.audioSourceNode = g_audioContext.createMediaElementSource(this.audioMediaElement);
+
+    // Make a GainNode for volume control
+    me.gainNode = me.m_audioContext.createGain();
+    me.audioSourceNode.connect(me.gainNode);
+
+    //
+    me.gainNode.connect(me.m_audioContext.destination);
+
+    //
+    if (i_onReady)
+        i_onReady();
+
+    // PROTOTYPE: Start the sound playing in an endless loop (though muted)
+    me.audioSourceNode.loop = true;
+    me.audioSourceNode.loopStart = 0;
+    //console.log(me.sampleCount / i_decodedBuffer.sampleRate);
+    //me.audioSourceNode.loopEnd = me.sampleCount / i_decodedBuffer.sampleRate;
+    me.gainNode.gain.value = 0;
+    me.start();
 }
 
 // + + Sound controls {{{
@@ -551,6 +558,10 @@ function animate()
         distances.push(closeness);  // for debugging
         soundSite.setGain(closeness);
         //soundSite.setGain(1.0);
+        if (closeness > 0)
+        {
+            soundSite.loadSamplesIfNeededAndStartPlaying();
+        }
     }
     //console.log(distances);
 
@@ -649,7 +660,7 @@ function loadSoundsFromFreesound(i_nameQuery)
     xhr.onreadystatechange = function () {
         if (this.readyState == XMLHttpRequest.DONE)
         {
-            var results = xhr.response.results;
+            var results = xhr.response.results;  // TODO: defend against exception on this line if Freesound is inaccessible
             for (var resultCount = results.length, resultNo = 0; resultNo < resultCount; ++resultNo)
             {
                 var result = results[resultNo];
