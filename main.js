@@ -78,6 +78,9 @@ g_audioContext = dan.snd.getAudioContext();
 
 // + Sound site {{{
 
+var k_distanceAtWhichSoundIsSilent = 200;
+var g_showSoundSiteRanges = false;
+
 function SoundSite(i_audioContext, i_soundId, i_url,
                    i_position, i_geometry, i_material)
 // Params:
@@ -106,6 +109,7 @@ function SoundSite(i_audioContext, i_soundId, i_url,
 
     this.rangeSphereGeometry = new THREE.SphereGeometry(k_distanceAtWhichSoundIsSilent, 32, 32);
     var material = new THREE.MeshBasicMaterial({color: 0xffff88});
+    material.wireframe = true;
     this.rangeSphereMesh = new THREE.Mesh(this.rangeSphereGeometry, material);
     this.rangeSphereMesh.position.x = this.mesh.position.x;
     this.rangeSphereMesh.position.y = this.mesh.position.y;
@@ -258,6 +262,7 @@ SoundSite.prototype.addGraphicObjectsToScene = function (i_scene)
 //  -
 {
     i_scene.add(this.mesh);
+    i_scene.add(this.rangeSphereMesh);
 };
 
 // + + }}}
@@ -352,7 +357,6 @@ function init()
 
 
     var onKeyDown = function (event) {
-
         switch (event.keyCode)
         {
         case 38: // up
@@ -378,11 +382,14 @@ function init()
             if (canJump === true) velocity.y += 350;
             canJump = false;
             break;
+
+        case 71: // g
+            g_showSoundSiteRanges = !g_showSoundSiteRanges;
+            break;
         }
     };
 
     var onKeyUp = function (event) {
-
         switch (event.keyCode)
         {
         case 38: // up
@@ -544,6 +551,9 @@ function animate()
 {
     requestAnimationFrame(animate);
 
+    // For each sound site, get distance from camera,
+    // and if close enough then load/start the sound playing if necessary,
+    // and adjust gain based on closeness
     distances.length = 0;
     for (var soundSiteCount = g_soundSites.length, soundSiteNo = 0; soundSiteNo < soundSiteCount; ++soundSiteNo)
     {
@@ -551,7 +561,6 @@ function animate()
 
         var distance = soundSite.getPosition().distanceTo(g_camera.position);
 
-        var k_distanceAtWhichSoundIsSilent = 200;
         var closeness = (k_distanceAtWhichSoundIsSilent - distance) / k_distanceAtWhichSoundIsSilent;
         closeness = Math.max(closeness, 0);
 
@@ -565,7 +574,8 @@ function animate()
     }
     //console.log(distances);
 
-    //
+    // Reset all cube colours to default,
+    // then find which are currently pointed at with the mouse, and colour them red and display textual info
     for (var soundSiteCount = g_soundSites.length, soundSiteNo = 0; soundSiteNo < soundSiteCount; ++soundSiteNo)
     {
         var soundSite = g_soundSites[soundSiteNo];
@@ -573,7 +583,6 @@ function animate()
 		soundSite.mesh.material.color.set(0xffffff);
     }
 
-    //
     g_raycaster.setFromCamera(new THREE.Vector2(g_mousePositionInViewport_normalized[0], -g_mousePositionInViewport_normalized[1]), g_camera);
 	var intersections = g_raycaster.intersectObjects(g_scene.children);
     var pointedAtMeshes = [];
@@ -594,6 +603,14 @@ function animate()
         message += pointedAtSoundSite.soundId + "\n";
     }
     document.body.querySelector("#infoText").innerText = message;
+
+    // Show/hide all range wireframes according to current setting
+    for (var soundSiteCount = g_soundSites.length, soundSiteNo = 0; soundSiteNo < soundSiteCount; ++soundSiteNo)
+    {
+        var soundSite = g_soundSites[soundSiteNo];
+
+		soundSite.rangeSphereMesh.visible = g_showSoundSiteRanges;
+    }
 
     //
     var time = performance.now();
