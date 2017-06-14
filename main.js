@@ -476,22 +476,36 @@ function test_loadLocalSounds()
     for (var soundSiteNo = 0; soundSiteNo < k_soundSiteCount; ++soundSiteNo)
     {
         var soundSiteName = "melody" + (soundSiteNo + 1).toString();
-        loadSoundAndAddSoundSite(soundSiteName, "/home/daniel/docs/hackspace/sic/3d_space/SOUNDS/" + soundSiteName + ".mp3");
+        loadSoundAndAddSoundSite(soundSiteName,
+                                 "/home/daniel/docs/hackspace/sic/3d_space/SOUNDS/" + soundSiteName + ".mp3", 
+                                 new THREE.Vector3(
+                                     Math.floor(Math.random() * 20 - 10) * 20,
+                                     Math.floor(Math.random() * 20) * 20 + 10,
+                                     Math.floor(Math.random() * 20 - 10) * 20)
+                                );
     }
 }
 
 function test_loadFreesoundSound()
 {
-    loadSoundAndAddSoundSite("freesound 242403_4165591", "https://www.freesound.org/data/previews/242/242403_4165591-lq.mp3");
+    loadSoundAndAddSoundSite("freesound 242403_4165591",
+                             "https://www.freesound.org/data/previews/242/242403_4165591-lq.mp3",
+                             new THREE.Vector3(
+                                 Math.floor(Math.random() * 20 - 10) * 20,
+                                 Math.floor(Math.random() * 20) * 20 + 10,
+                                 Math.floor(Math.random() * 20 - 10) * 20),
+                            );
 }
 
-function loadSoundAndAddSoundSite(i_soundSiteName, i_url,
+function loadSoundAndAddSoundSite(i_soundSiteName, i_url, i_position,
                                   i_onReady)
 // Params:
 //  i_soundSiteName:
 //   (string)
 //  i_url:
 //   (string)
+//  i_position:
+//   (THREE.Vector3)
 //  i_onReady:
 //   Either (function)
 //    Called back when the sound file has loaded and is ready to be played.
@@ -504,11 +518,7 @@ function loadSoundAndAddSoundSite(i_soundSiteName, i_url,
     soundSiteMaterial.color.setHSL(Math.random() * 0.2 + 0.5, 0.75, Math.random() * 0.25 + 0.75);
 
     //
-    var soundSite = new SoundSite(g_audioContext, i_soundSiteName, i_url,
-                                  new THREE.Vector3(
-                                      Math.floor(Math.random() * 20 - 10) * 20,
-                                      Math.floor(Math.random() * 20) * 20 + 10,
-                                      Math.floor(Math.random() * 20 - 10) * 20),
+    var soundSite = new SoundSite(g_audioContext, i_soundSiteName, i_url, i_position,
                                   g_soundSiteGeometry, soundSiteMaterial,
                                   true,
                                   i_onReady);
@@ -721,7 +731,13 @@ function loadResultsOfFreesoundSearchIntoSoundSites(i_nameQuery)
             //console.log(url);
 
             var soundSiteName = url + ', "' + result.name + '"';
-            loadSoundAndAddSoundSite(soundSiteName, url);
+            loadSoundAndAddSoundSite(soundSiteName,
+                                     url,
+                                     new THREE.Vector3(
+                                         Math.floor(Math.random() * 20 - 10) * 20,
+                                         Math.floor(Math.random() * 20) * 20 + 10,
+                                         Math.floor(Math.random() * 20 - 10) * 20)
+                                    );
         }
     });
 }
