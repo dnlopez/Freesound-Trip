@@ -331,9 +331,29 @@ function init()
 {
     g_camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1000);
 
+    // Make a scene graph
     g_scene = new THREE.Scene();
+
+    // Add fog
     g_scene.fog = new THREE.Fog(0xffffff, 0, 750);
 
+    // Load a skybox and apply it to the scene as background
+    var cubeTextureLoader = new THREE.CubeTextureLoader();
+    cubeTextureLoader.setPath('textures/cube/skybox/');
+    var cubeTexture = cubeTextureLoader.load([
+        'px.jpg', 'nx.jpg',
+        'py.jpg', 'ny.jpg',
+        'pz.jpg', 'nz.jpg',
+    ]);
+    //cubeTextureLoader.setPath('textures/cube/MilkyWay/');
+    //var cubeTexture = cubeTextureLoader.load([
+    //    'dark-s_px.jpg', 'dark-s_nx.jpg',
+    //    'dark-s_py.jpg', 'dark-s_ny.jpg',
+    //    'dark-s_pz.jpg', 'dark-s_nz.jpg',
+    //]);
+    g_scene.background = cubeTexture;
+
+    //
     var light = new THREE.HemisphereLight(0xeeeeff, 0x777788, 0.75);
     light.position.set(0.5, 1, 0.75);
     g_scene.add(light);
