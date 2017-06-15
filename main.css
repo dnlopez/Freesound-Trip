@@ -13,7 +13,8 @@ body {
     top: 4px;
     left: 4px;
 
-    color: red;
+    color: #ff0000;
+    text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
     font-weight: bold;
 
     background-color: transparent;

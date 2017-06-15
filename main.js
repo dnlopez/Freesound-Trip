@@ -584,6 +584,7 @@ function animate()
     // For each sound site, get distance from camera,
     // and if close enough then load/start the sound playing if necessary,
     // and adjust gain based on closeness
+    var currentlyPlayingSites = [];
     distances.length = 0;
     for (var soundSiteCount = g_soundSites.length, soundSiteNo = 0; soundSiteNo < soundSiteCount; ++soundSiteNo)
     {
@@ -599,6 +600,7 @@ function animate()
         //soundSite.setGain(1.0);
         if (closeness > 0)
         {
+            currentlyPlayingSites.push([soundSite.soundId, closeness]);
             soundSite.loadSamplesIfNeededAndStartPlaying();
         }
     }
@@ -624,15 +626,41 @@ function animate()
 	}
     var pointedAtSoundSites = findSoundSitesOwningMeshes(pointedAtMeshes);
 
+    // + Debug info text {{{
+
     var message = "";
+
+    // Which site(s) are playing due to player proximity
+    if (currentlyPlayingSites.length > 0)
+    {
+        message += "Currently playing:\n";
+        for (var currentlyPlayingSiteCount = currentlyPlayingSites.length, currentlyPlayingSiteNo = 0; currentlyPlayingSiteNo < currentlyPlayingSiteCount; ++currentlyPlayingSiteNo)
+        {
+            var currentlyPlayingSite = currentlyPlayingSites[currentlyPlayingSiteNo];
+
+            message += " " + dan.roundToDecimalPlaces(currentlyPlayingSite[1], 3).toString() + ": " + currentlyPlayingSite[0] + "\n";
+        }
+    }
+
+    // Which site(s) mouse is pointing at
+    var mousePointingAtMessage = "";
     for (var pointedAtSoundSiteCount = pointedAtSoundSites.length, pointedAtSoundSiteNo = 0; pointedAtSoundSiteNo < pointedAtSoundSiteCount; ++pointedAtSoundSiteNo)
     {
         var pointedAtSoundSite = pointedAtSoundSites[pointedAtSoundSiteNo];
 
 		pointedAtSoundSite.mesh.material.color.set(0xff0000);
-        message += pointedAtSoundSite.soundId + "\n";
+        mousePointingAtMessage += pointedAtSoundSite.soundId + "\n";
     }
+    if (mousePointingAtMessage != "")
+    {
+        message += "Mouse pointing at:\n";
+        message += " " + mousePointingAtMessage + "\n";
+    }
+
+    //
     document.body.querySelector("#infoText").innerText = message;
+
+    // + }}}
 
     // Show/hide all range wireframes according to current setting
     for (var soundSiteCount = g_soundSites.length, soundSiteNo = 0; soundSiteNo < soundSiteCount; ++soundSiteNo)
