@@ -481,6 +481,76 @@ function init()
     continueInit();
 }
 
+var g_kdTree = null;
+
+function buildTreeOfSoundSites()
+{
+    /*
+    // + k-d tree {{{
+    // To make the nearest neighbour search faster
+
+    // Get sound site positions in flat array
+    var soundSitePositions = new Float32Array(g_soundSites.length * 3);
+    for (var soundSiteCount = g_soundSites.length, soundSiteNo = 0; soundSiteNo < soundSiteCount; ++soundSiteNo)
+    {
+        var soundSite = g_soundSites[soundSiteNo];
+
+        var soundSitePosition = soundSite.getPosition();
+        soundSitePositions[soundSiteNo*3 + 0] = soundSitePosition.x;
+        soundSitePositions[soundSiteNo*3 + 1] = soundSitePosition.y;
+        soundSitePositions[soundSiteNo*3 + 2] = soundSitePosition.z;
+    }
+
+    // Time the tree creation because it takes a while
+    var measureStart = new Date().getTime();
+
+    // Create k-d tree over all our world-space points in 3D with an appropriate distance-measuring function
+    var distanceFunction = function (a, b)
+    // Calculate straight-line distance but don't bother with square root, which isn't needed for comparions
+    {
+        return Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2) + Math.pow(a[2] - b[2], 2);
+    };
+    g_kdTree = new THREE.TypedArrayUtils.Kdtree(soundSitePositions, distanceFunction, 3);
+
+    console.log('TIME building kdtree', new Date().getTime() - measureStart);
+
+    // + }}}
+    */
+
+    // + k-d tree {{{
+    // To make the nearest neighbour search faster
+
+    // Get sound site positions in flat array
+    var soundSitePositions = [];
+    for (var soundSiteCount = g_soundSites.length, soundSiteNo = 0; soundSiteNo < soundSiteCount; ++soundSiteNo)
+    {
+        var soundSite = g_soundSites[soundSiteNo];
+
+        var soundSitePosition = soundSite.getPosition()
+        soundSitePositions.push({
+            soundSite: soundSite,
+            x: soundSitePosition.x,
+            y: soundSitePosition.y,
+            z: soundSitePosition.z
+        });
+    }
+
+    // Time the tree creation because it takes a while
+    var measureStart = new Date().getTime();
+
+    // Create k-d tree over all our world-space points in 3D with an appropriate distance-measuring function
+    var distanceFunction = function (a, b)
+    // Calculate straight-line distance but don't bother with square root, which isn't needed for comparions
+    {
+        return Math.sqrt(Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2) + Math.pow(a[2] - b[2], 2));
+    };
+    g_kdTree = new kdTree(soundSitePositions, distanceFunction, ["x", "y", "z"]);
+
+    console.log('TIME building kdtree', new Date().getTime() - measureStart);
+
+    // + }}}
+}
+
 function test_loadLocalSounds()
 {
     // Create sound sites
@@ -561,11 +631,13 @@ function continueInit()
     //
     window.addEventListener("resize", onWindowResize, false);
 
-    // Trigger first frame
-    animate();
-
     //
-    loadResultsOfFreesoundSearchIntoSoundSites("dogs");
+    loadResultsOfFreesoundSearchIntoSoundSites("dogs", function () {
+        buildTreeOfSoundSites();
+
+        // Trigger first frame
+        animate();
+    });
 }
 
 function onWindowResize()
@@ -581,11 +653,13 @@ function animate()
 {
     requestAnimationFrame(animate);
 
+    // + Set gain of sound sites based on camera proximity {{{
+
     // For each sound site, get distance from camera,
     // and if close enough then load/start the sound playing if necessary,
     // and adjust gain based on closeness
     var currentlyPlayingSites = [];
-    distances.length = 0;
+    /*
     for (var soundSiteCount = g_soundSites.length, soundSiteNo = 0; soundSiteNo < soundSiteCount; ++soundSiteNo)
     {
         var soundSite = g_soundSites[soundSiteNo];
@@ -595,7 +669,6 @@ function animate()
         var closeness = (k_distanceAtWhichSoundIsSilent - distance) / k_distanceAtWhichSoundIsSilent;
         closeness = Math.max(closeness, 0);
 
-        distances.push(closeness);  // for debugging
         soundSite.setGain(closeness);
         //soundSite.setGain(1.0);
         if (closeness > 0)
@@ -604,7 +677,34 @@ function animate()
             soundSite.loadSamplesIfNeededAndStartPlaying();
         }
     }
-    //console.log(distances);
+    */
+    // Get 3 nearest points to g_camera.position
+    // 'maxDistance' is squared because we use the manhattan distance and no square root was applied in the distance function
+    var nearestNeighbours = g_kdTree.nearest([g_camera.position.x, g_camera.position.y, g_camera.position.z], 5);
+    for (var nearestNeighbourCount = nearestNeighbours.length, nearestNeighbourNo = 0; nearestNeighbourNo < nearestNeighbourCount; ++nearestNeighbourNo)
+    {
+        var nearestNeighbour = nearestNeighbours[nearestNeighbourNo];
+
+        var kdNode = nearestNeighbour[0];
+
+        var soundSite = kdNode.soundSite;
+        var distance = soundSite.getPosition().distanceTo(g_camera.position);  // nearestNeighbour[1] seems to be NaN for some reason
+
+        var closeness = (k_distanceAtWhichSoundIsSilent - distance) / k_distanceAtWhichSoundIsSilent;
+        closeness = Math.max(closeness, 0);
+
+        soundSite.setGain(closeness);
+        //soundSite.setGain(1.0);
+        if (closeness > 0)
+        {
+            currentlyPlayingSites.push([soundSite.soundId, closeness]);
+            soundSite.loadSamplesIfNeededAndStartPlaying();
+        }
+    }
+
+    // + }}}
+
+    // + Mouse picking {{{
 
     // Reset all cube colours to default,
     // then find which are currently pointed at with the mouse, and colour them red and display textual info
@@ -625,6 +725,8 @@ function animate()
         pointedAtMeshes.push(intersection.object);
 	}
     var pointedAtSoundSites = findSoundSitesOwningMeshes(pointedAtMeshes);
+
+    // + }}}
 
     // + Debug info text {{{
 
@@ -768,7 +870,7 @@ function searchFreesound_getPage(i_nameQuery, i_pageNo, i_resultsPerPage, i_onPa
     xhr.send();
 }
 
-function loadResultsOfFreesoundSearchIntoSoundSites(i_nameQuery)
+function loadResultsOfFreesoundSearchIntoSoundSites(i_nameQuery, i_onDone)
 {
     searchFreesound(i_nameQuery, function (i_results) {
         for (var resultCount = i_results.length, resultNo = 0; resultNo < resultCount; ++resultNo)
@@ -787,6 +889,10 @@ function loadResultsOfFreesoundSearchIntoSoundSites(i_nameQuery)
                                          Math.floor(Math.random() * 20 - 10) * 20)
                                     );
         }
+
+        //
+        if (i_onDone)
+            i_onDone();
     });
 }
 
