@@ -463,7 +463,7 @@ function init()
     var floorMaterial = new THREE.MeshBasicMaterial({ vertexColors: THREE.VertexColors });
 
     var floorMesh = new THREE.Mesh(floorGeometry, floorMaterial);
-    g_scene.add(floorMesh);
+    //g_scene.add(floorMesh);
 
     // PROTOTYPE:
     // Create a box geometry that will be shared by all the sound sites
