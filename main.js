@@ -74,6 +74,211 @@ if (havePointerLock)
 
 g_audioContext = dan.snd.getAudioContext();
 
+function Sequencer()
+{
+    this.playing = false;
+    // (boolean)
+
+    this.sequenceLength = 64;
+    this.tempo = 120;
+
+    this.contextBufferTime = 0.1;
+    // (float number)
+    // Delay to add to the start time of scheduled sounds before sending them to the AudioContext.
+    // If just trigger notes immediately from the JavaScript (set this to 0) then the timing is
+    // audibly irregular.
+
+    this.currentBeatNo = 0;
+    // (integer number)
+
+    this.currentBeatStartedAtTime;
+    // The AudioContext currentTime at the time the current beat is/was instructed to
+    // start playing (includes delay for browser jitter compensation)
+
+    //
+    this.tick = this.tick.bind(this);
+}
+
+Sequencer.prototype.start = function ()
+// Start playing
+{
+    // Flag that we're playing
+    this.playing = true;
+
+    // Set transport position to the start and get a logical time for it
+    this.currentBeatNo = 0;
+    this.currentBeatStartTime = g_audioContext.currentTime + this.contextBufferTime;
+
+    //
+    this.tick();
+};
+
+Sequencer.prototype.stop = function ()
+{
+    this.playing = false;
+};
+
+Sequencer.prototype.tick = function ()
+{
+    if (!this.playing)
+        return;
+
+    var beatPeriod = 60.0/this.tempo;
+    var nextBeatStartTime = this.currentBeatStartTime + beatPeriod;
+
+    // If the time for the next beat has nearly arrived
+    if (g_audioContext.currentTime + this.contextBufferTime >= nextBeatStartTime)
+    {
+        // Advance the overall beat counter
+        ++this.currentBeatNo;
+        if (this.currentBeatNo >= this.sequenceLength)
+            this.currentBeatNo = 0;
+
+        console.log("sequencer beat: " + this.currentBeatNo.toString());
+
+        // For each sound site [TODO: that is currently playing or newly close]
+        for (var soundSiteNo = 0; soundSiteNo < g_soundSites.length; ++soundSiteNo)
+        {
+            var soundSite = g_soundSites[soundSiteNo];
+
+            if (soundSite.sequence[this.currentBeatNo] === true)
+            {
+                // Choose gain according to distance
+                var distance = soundSite.getPosition().distanceTo(g_camera.position);
+
+                var closeness = (k_distanceAtWhichSoundIsSilent - distance) / k_distanceAtWhichSoundIsSilent;
+                closeness = Math.max(closeness, 0);
+
+                if (closeness > 0)
+                {
+                    if (!soundSite.audioBuffer)
+                    {
+                        soundSite.loadSamplesIfNeededAndStartPlaying();  // TODO: "AndStartPlaying" is no longer applicable
+                        // TODO: still trigger the first sound if it loads in time
+                    }
+                    else
+                    {
+                        playNote(soundSite.audioBuffer, closeness, nextBeatStartTime);
+                    }
+                }
+            }
+        }
+
+        // For each part, advance its beat cursor
+        /*
+        var parts = g_song.parts;
+        for (var partNo = 0; partNo < parts.length; ++partNo)
+        {
+            var part = parts[partNo];
+
+            var wrapped = part.currentBeat.advanceToNextBeat();
+
+            // This commented line...
+            //part.linearCurrentBeat.advanceToNextBeat();
+            // ... replaced with this equivalent for efficiency
+            if (wrapped)
+                part.linearCurrentBeat.beatNo = 0;
+            else
+                ++part.linearCurrentBeat.beatNo;
+
+            //
+            part.currentNote = -1;
+        }
+        */
+
+        // Take on the next beat start time as current
+        this.currentBeatStartTime = nextBeatStartTime;
+    }
+
+    // Do this again ASAP
+    setTimeout(this.tick, 0);
+};
+
+
+function playNote(i_buffer,
+                  //i_pan, i_panPositionX, i_panPositionY, i_panPositionZ,
+                  //i_sendGain,
+                  i_mainGain,
+                  //i_cutoff, i_resonance,
+                  i_startTime)
+// Params:
+//  i_buffer:
+//   (AudioBuffer)
+//  i_pan:
+//   (bool)
+//  i_panPositionX, i_panPositionY, i_panPositionZ:
+//   (float number)
+//   Coordinates in 3D space
+//  i_sendGain:
+//   (float number)
+//   Gain for wet mix (including reverb)
+//  i_mainGain:
+//   (float number)
+//   Gain for dry mix (skipping reverb)
+//  i_cutoff:
+//   (float number)
+//   Filter cutoff frequency
+//  i_resonance:
+//   (float number)
+//   Filter Q value
+//  i_startTime:
+//   (float number)
+//   Time at which to start note, in seconds, relative to now.
+{
+    // Create the note
+    var voice = g_audioContext.createBufferSource();  // (AudioBufferSourceNode)
+    voice.buffer = i_buffer;
+
+    //
+
+    /*
+    // Connect to filter
+    //var hasBiquadFilter = g_audioContext.createBiquadFilter;
+    //var filter = hasBiquadFilter ? g_audioContext.createBiquadFilter() : g_audioContext.createLowPass2Filter();
+    var filter;
+    if (g_audioContext.createBiquadFilter) {
+        filter = g_audioContext.createBiquadFilter();
+        filter.frequency.value = i_cutoff;
+        filter.Q.value = i_resonance; // this is actually resonance in dB
+    }
+    else {
+        filter = g_audioContext.createLowPass2Filter();
+        filter.cutoff.value = i_cutoff;
+        filter.resonance.value = i_resonance;
+    }
+    voice.connect(filter);
+
+    // Optionally, connect to a panner
+    var finalNode;
+    if (i_pan) {
+        var panner = g_audioContext.createPanner();
+        panner.panningModel = "HRTF";
+        panner.setPosition(i_panPositionX, i_panPositionY, i_panPositionZ);
+        filter.connect(panner);
+        finalNode = panner;
+    }
+    else {
+        finalNode = filter;
+    }
+    */
+
+    // Connect to dry mix
+    var dryGainNode = g_audioContext.createGain();
+    dryGainNode.gain.value = i_mainGain;
+    voice.connect(dryGainNode);
+    dryGainNode.connect(g_audioContext.destination);
+
+    /*
+    // Connect to wet mix
+    var wetGainNode = g_audioContext.createGain();
+    wetGainNode.gain.value = i_sendGain;
+    finalNode.connect(wetGainNode);
+    wetGainNode.connect(g_convolver);
+    */
+
+    voice.start(i_startTime);
+}
+
 // + }}}
 
 // + Sound site {{{
@@ -101,19 +306,39 @@ function SoundSite(i_audioContext, i_soundId, i_url,
     this.soundId = i_soundId;
     this.soundUrl = i_url;
 
+    // Sequence
+    this.sequence = [
+        true, false, false, false,
+        true, false, false, false,
+        true, false, false, false,
+        true, false, false, false,
+        true, false, false, false,
+        true, false, false, false,
+        true, false, false, false,
+        true, false, false, false,
+        true, false, false, false,
+        true, false, false, false,
+        true, false, false, false,
+        true, false, false, false,
+        true, false, false, false,
+        true, false, false, false,
+        true, false, false, false,
+        true, false, false, false
+    ];
+
     // Graphic object
     this.mesh = new THREE.Mesh(i_geometry, i_material);
     this.mesh.position.x = Math.floor(Math.random() * 20 - 10) * 20;
     this.mesh.position.y = Math.floor(Math.random() * 20) * 20 + 10;
     this.mesh.position.z = Math.floor(Math.random() * 20 - 10) * 20;
 
-    this.rangeSphereGeometry = new THREE.SphereGeometry(k_distanceAtWhichSoundIsSilent, 32, 32);
-    var material = new THREE.MeshBasicMaterial({color: 0xffff88});
-    material.wireframe = true;
-    this.rangeSphereMesh = new THREE.Mesh(this.rangeSphereGeometry, material);
-    this.rangeSphereMesh.position.x = this.mesh.position.x;
-    this.rangeSphereMesh.position.y = this.mesh.position.y;
-    this.rangeSphereMesh.position.z = this.mesh.position.z;
+    //this.rangeSphereGeometry = new THREE.SphereGeometry(k_distanceAtWhichSoundIsSilent, 32, 32);
+    //var material = new THREE.MeshBasicMaterial({color: 0xffff88});
+    //material.wireframe = true;
+    //this.rangeSphereMesh = new THREE.Mesh(this.rangeSphereGeometry, material);
+    //this.rangeSphereMesh.position.x = this.mesh.position.x;
+    //this.rangeSphereMesh.position.y = this.mesh.position.y;
+    //this.rangeSphereMesh.position.z = this.mesh.position.z;
 }
 
 SoundSite.prototype.loadSamplesIfNeededAndStartPlaying = function (i_onReady)
@@ -165,13 +390,13 @@ SoundSite.prototype.loadSamplesIfNeededAndStartPlaying = function (i_onReady)
                 if (i_onReady)
                     i_onReady();
 
-                // PROTOTYPE: Start the sound playing in an endless loop (though muted)
-                me.audioSourceNode.loop = true;
-                me.audioSourceNode.loopStart = 0;
-                //console.log(me.sampleCount / i_decodedBuffer.sampleRate);
-                //me.audioSourceNode.loopEnd = me.sampleCount / i_decodedBuffer.sampleRate;
-                me.gainNode.gain.value = 0;
-                me.start();
+                //// PROTOTYPE: Start the sound playing in an endless loop (though muted)
+                //me.audioSourceNode.loop = true;
+                //me.audioSourceNode.loopStart = 0;
+                ////console.log(me.sampleCount / i_decodedBuffer.sampleRate);
+                ////me.audioSourceNode.loopEnd = me.sampleCount / i_decodedBuffer.sampleRate;
+                //me.gainNode.gain.value = 0;
+                //me.start();
             });
         }
     };
@@ -262,7 +487,7 @@ SoundSite.prototype.addGraphicObjectsToScene = function (i_scene)
 //  -
 {
     i_scene.add(this.mesh);
-    i_scene.add(this.rangeSphereMesh);
+    //i_scene.add(this.rangeSphereMesh);
 };
 
 // + + }}}
@@ -327,8 +552,12 @@ function body_onMouseMove(i_event)
                                             g_mousePositionInViewport[1] / boundingClientRect.height * 2 - 1];
 }
 
+var g_sequencer;
+
 function init()
 {
+    g_sequencer = new Sequencer();
+
     g_camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1000);
 
     // Make a scene graph
@@ -587,8 +816,9 @@ function test_loadFreesoundSound()
                             );
 }
 
-function loadSoundAndAddSoundSite(i_soundSiteName, i_url, i_position,
-                                  i_onReady)
+function loadSoundAndAddSoundSite(i_soundSiteName, i_url, i_position)
+// Add a sound site, given a URL and position.
+//
 // Params:
 //  i_soundSiteName:
 //   (string)
@@ -596,11 +826,6 @@ function loadSoundAndAddSoundSite(i_soundSiteName, i_url, i_position,
 //   (string)
 //  i_position:
 //   (THREE.Vector3)
-//  i_onReady:
-//   Either (function)
-//    Called back when the sound file has loaded and is ready to be played.
-//   or (null or undefined)
-//    Don't get a callback.
 {
     // PROTOTYPE:
     // Create a material to be used by the next sound site, with random colour
@@ -610,8 +835,7 @@ function loadSoundAndAddSoundSite(i_soundSiteName, i_url, i_position,
     //
     var soundSite = new SoundSite(g_audioContext, i_soundSiteName, i_url, i_position,
                                   g_soundSiteGeometry, soundSiteMaterial,
-                                  true,
-                                  i_onReady);
+                                  true);
     g_soundSites.push(soundSite);
 
     //
@@ -632,12 +856,25 @@ function continueInit()
     window.addEventListener("resize", onWindowResize, false);
 
     //
+    /*
     loadResultsOfFreesoundSearchIntoSoundSites("dogs", function () {
         buildTreeOfSoundSites();
 
-        // Trigger first frame
-        animate();
+        startMainLoop();
     });
+    */
+    loadPreviewSoundsIntoSoundSites();
+
+    buildTreeOfSoundSites();
+    startMainLoop();
+}
+
+function startMainLoop()
+{
+    g_sequencer.start();
+
+    // Trigger first frame
+    animate();
 }
 
 function onWindowResize()
@@ -648,18 +885,16 @@ function onWindowResize()
     g_renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
-var distances = [];
-function animate()
+function setGainOfSoundSitesByCameraProximity()
 {
-    requestAnimationFrame(animate);
-
-    // + Set gain of sound sites based on camera proximity {{{
-
     // For each sound site, get distance from camera,
     // and if close enough then load/start the sound playing if necessary,
     // and adjust gain based on closeness
     var currentlyPlayingSites = [];
+
     /*
+    // Implementation: find neighbours by brutely iterating through every sound site
+
     for (var soundSiteCount = g_soundSites.length, soundSiteNo = 0; soundSiteNo < soundSiteCount; ++soundSiteNo)
     {
         var soundSite = g_soundSites[soundSiteNo];
@@ -678,6 +913,9 @@ function animate()
         }
     }
     */
+
+    // Implementation: find neighbours by querying kd tree
+
     // Get 3 nearest points to g_camera.position
     // 'maxDistance' is squared because we use the manhattan distance and no square root was applied in the distance function
     var nearestNeighbours = g_kdTree.nearest([g_camera.position.x, g_camera.position.y, g_camera.position.z], 5);
@@ -702,7 +940,15 @@ function animate()
         }
     }
 
-    // + }}}
+    return currentlyPlayingSites;
+}
+
+var distances = [];
+function animate()
+{
+    requestAnimationFrame(animate);
+
+    //var currentlyPlayingSites = setGainOfSoundSitesByCameraProximity();
 
     // + Mouse picking {{{
 
@@ -729,7 +975,7 @@ function animate()
     // + }}}
 
     // + Debug info text {{{
-
+    /*
     var message = "";
 
     // Which site(s) are playing due to player proximity
@@ -761,16 +1007,18 @@ function animate()
 
     //
     document.body.querySelector("#infoText").innerText = message;
-
+    */
     // + }}}
 
     // Show/hide all range wireframes according to current setting
+    /*
     for (var soundSiteCount = g_soundSites.length, soundSiteNo = 0; soundSiteNo < soundSiteCount; ++soundSiteNo)
     {
         var soundSite = g_soundSites[soundSiteNo];
 
 		soundSite.rangeSphereMesh.visible = g_showSoundSiteRanges;
     }
+    */
 
     //
     var time = performance.now();
