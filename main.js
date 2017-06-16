@@ -792,41 +792,75 @@ function continueInit()
     });
     */
 
+    // + Load sounds {{{
+
     var particleCount = previewSoundIds.length;
 
     g_bufferGeometry_positions = new Float32Array(particleCount * 3);
     g_bufferGeometry_alphas = new Float32Array(particleCount);
 
-
-    //loadPreviewSoundsIntoSoundSites();
-    for (var previewSoundIdCount = previewSoundIds.length, previewSoundIdNo = 0;
-         previewSoundIdNo < previewSoundIdCount;
-         ++previewSoundIdNo)
+    function loadPreviewSoundsIntoSoundSites()
     {
-        var previewSoundId = previewSoundIds[previewSoundIdNo];
-        //console.log(previewSoundId);
+        for (var previewSoundIdCount = previewSoundIds.length, previewSoundIdNo = 0;
+             previewSoundIdNo < previewSoundIdCount;
+             ++previewSoundIdNo)
+        {
+            var previewSoundId = previewSoundIds[previewSoundIdNo];
+            //console.log(previewSoundId);
+
+            //
+            //loadSoundAndAddSoundSite(...) replacement
+            var soundSite = new SoundSite(g_audioContext, previewSoundId.toString(), "previews/" + previewSoundId.toString() + ".mp3",
+                                          new THREE.Vector3(
+                                              Math.floor(Math.random() * 20 - 10) * 20,
+                                              Math.floor(Math.random() * 20) * 20 + 10,
+                                              Math.floor(Math.random() * 20 - 10) * 20),
+                                          g_soundSites.length, g_bufferGeometry_positions, g_bufferGeometry_alphas);
+            g_soundSites.push(soundSite);
+
+            //
+            //soundSite.addGraphicObjectsToScene(g_scene);
+        }
+    }
+    //loadPreviewSoundsIntoSoundSites();
+
+    load27kCollection(onGotPoints);
+
+    // + }}}
+}
+
+function onGotPoints(i_points)
+{
+    var soundCount = 0;
+    for (var soundId in i_points)
+    {
+        var sound = i_points[soundId];
+
+        var coordinateExpansionFactor = 20;
 
         //
-        //loadSoundAndAddSoundSite(...) replacement
-        var soundSite = new SoundSite(g_audioContext, previewSoundId.toString(), "previews/" + previewSoundId.toString() + ".mp3",
-                                      new THREE.Vector3(
-                                          Math.floor(Math.random() * 20 - 10) * 20,
-                                          Math.floor(Math.random() * 20) * 20 + 10,
-                                          Math.floor(Math.random() * 20 - 10) * 20),
+        var soundSite = new SoundSite(g_audioContext, soundId.toString(), "previews/" + soundId.toString() + ".mp3",
+                                      new THREE.Vector3(sound.x * coordinateExpansionFactor, sound.y * coordinateExpansionFactor, sound.z * coordinateExpansionFactor),
+                                      //sound.r, sound.g, sound.b,
+                                      //sound.onset_times?
+                                      //sound.r?
                                       g_soundSites.length, g_bufferGeometry_positions, g_bufferGeometry_alphas);
         g_soundSites.push(soundSite);
 
-        //
-        //soundSite.addGraphicObjectsToScene(g_scene);
+        ++soundCount;
+        if (soundCount >= 300)
+            break;
     }
 
+
+    //
     buildTreeOfSoundSites();
 
     // + Create custom shader for points, that draws from crate texture {{{
 
     var textureLoader = new THREE.TextureLoader();
 
-    var imagePreviewTexture = textureLoader.load('textures/crate.gif');
+    var imagePreviewTexture = textureLoader.load("textures/crate.gif");
     imagePreviewTexture.minFilter = THREE.LinearMipMapLinearFilter;
     imagePreviewTexture.magFilter = THREE.LinearFilter;
     var pointShaderMaterial = new THREE.ShaderMaterial({
@@ -1158,3 +1192,23 @@ function fstest2()
 }
 
 // + }}}
+
+function load27kCollection(i_onDone)
+{
+    var queryUrl = '27k_collection/27k_collection.json';
+
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", queryUrl);
+    xhr.responseType = "json";
+    //xhr.setRequestHeader("Authorization", "Token S6iCeqkOguD4uIKGwmgzrxW7XwTznx4PMj6HrPp4");
+    xhr.onreadystatechange = function () {
+        if (this.readyState == XMLHttpRequest.DONE)
+        {
+            //console.log(xhr.response);
+
+            var results = xhr.response;
+            i_onDone(results);
+        }
+    };
+    xhr.send();
+}
