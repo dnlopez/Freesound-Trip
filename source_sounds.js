@@ -27395,21 +27395,3 @@ var previewSoundIds = [
 //    100029,
 //    100030
 //]
-
-function loadPreviewSoundsIntoSoundSites()
-{
-    for (var previewSoundIdCount = previewSoundIds.length, previewSoundIdNo = 0;
-         previewSoundIdNo < previewSoundIdCount && previewSoundIdNo < 1000;
-         ++previewSoundIdNo)
-    {
-        var previewSoundId = previewSoundIds[previewSoundIdNo];
-        console.log(previewSoundId);
-
-        loadSoundAndAddSoundSite(previewSoundId.toString(), "previews/" + previewSoundId.toString() + ".mp3",
-                                 new THREE.Vector3(
-                                     Math.floor(Math.random() * 20 - 10) * 20,
-                                     Math.floor(Math.random() * 20) * 20 + 10,
-                                     Math.floor(Math.random() * 20 - 10) * 20),
-                                );
-    }
-}

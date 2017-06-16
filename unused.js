@@ -70,3 +70,34 @@ loadWavetable = function (i_sampleId, i_url, i_onLoad)
 //    wavetablePlayer.play(wavetables["melody1"].samples, 1);
 //});
 */
+
+// + Floor {{{
+
+in init()
+
+    // Floor
+    var floorGeometry = new THREE.PlaneGeometry(2000, 2000, 100, 100);
+    floorGeometry.rotateX(-Math.PI / 2);
+
+    for (var vertexCount = floorGeometry.vertices.length, vertexNo = 0; vertexNo < vertexCount; ++vertexNo)
+    {
+        var vertex = floorGeometry.vertices[vertexNo];
+        vertex.x += Math.random() * 20 - 10;
+        vertex.y = -5;
+        vertex.z += Math.random() * 20 - 10;
+    }
+
+    for (var faceCount = floorGeometry.faces.length, faceNo = 0; faceNo < faceCount; ++faceNo)
+    {
+        var face = floorGeometry.faces[faceNo];
+        face.vertexColors[0] = new THREE.Color().setHSL(Math.random() * 0.3 + 0.5, 0.75, Math.random() * 0.25 + 0.75);
+        face.vertexColors[1] = new THREE.Color().setHSL(Math.random() * 0.3 + 0.5, 0.75, Math.random() * 0.25 + 0.75);
+        face.vertexColors[2] = new THREE.Color().setHSL(Math.random() * 0.3 + 0.5, 0.75, Math.random() * 0.25 + 0.75);
+    }
+
+    var floorMaterial = new THREE.MeshBasicMaterial({ vertexColors: THREE.VertexColors });
+
+    var floorMesh = new THREE.Mesh(floorGeometry, floorMaterial);
+    //g_scene.add(floorMesh);
+
+// + }}}

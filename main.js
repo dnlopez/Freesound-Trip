@@ -5,70 +5,7 @@ var g_controls;
 
 var g_raycaster;
 
-// http://www.html5rocks.com/en/tutorials/pointerlock/intro/
-/*
-var blocker = document.getElementById("blocker");
-var instructions = document.getElementById("instructions");
-
-var havePointerLock = "pointerLockElement" in document || "mozPointerLockElement" in document || "webkitPointerLockElement" in document;
-if (havePointerLock)
-{
-    var element = document.body;
-
-    var pointerlockchange = function (event)
-    {
-        if (document.pointerLockElement === element || document.mozPointerLockElement === element || document.webkitPointerLockElement === element)
-        {
-            g_controlsEnabled = true;
-            g_controls.enabled = true;
-
-            blocker.style.display = "none";
-        }
-        else
-        {
-            g_controls.enabled = false;
-
-            blocker.style.display = "-webkit-box";
-            blocker.style.display = "-moz-box";
-            blocker.style.display = "box";
-
-            instructions.style.display = "";
-
-        }
-
-    };
-
-    var pointerlockerror = function (event) {
-
-        instructions.style.display = "";
-
-    };
-
-    // Hook pointer lock state change events
-    document.addEventListener("pointerlockchange", pointerlockchange, false);
-    document.addEventListener("mozpointerlockchange", pointerlockchange, false);
-    document.addEventListener("webkitpointerlockchange", pointerlockchange, false);
-
-    document.addEventListener("pointerlockerror", pointerlockerror, false);
-    document.addEventListener("mozpointerlockerror", pointerlockerror, false);
-    document.addEventListener("webkitpointerlockerror", pointerlockerror, false);
-
-    instructions.addEventListener("click", function (event) {
-
-        instructions.style.display = "none";
-
-        // Ask the browser to lock the pointer
-        element.requestPointerLock = element.requestPointerLock || element.mozRequestPointerLock || element.webkitRequestPointerLock;
-        element.requestPointerLock();
-
-    }, false);
-
-} else {
-
-    instructions.innerHTML = "Your browser doesn\"t seem to support Pointer Lock API";
-
-}
-*/
+//var k_particleCount = 200000;
 
 // + Audio {{{
 
@@ -120,6 +57,7 @@ Sequencer.prototype.stop = function ()
 
 Sequencer.prototype.tick = function ()
 {
+    return;
     if (!this.playing)
         return;
 
@@ -287,7 +225,8 @@ var k_distanceAtWhichSoundIsSilent = 200;
 var g_showSoundSiteRanges = false;
 
 function SoundSite(i_audioContext, i_soundId, i_url,
-                   i_position, i_geometry, i_material)
+                   i_position,
+                   i_soundSiteNo, o_vertexAttribute_positions, o_vertexAttribute_alphas)
 // Params:
 //  i_audioContext:
 //   (AudioContext)
@@ -297,16 +236,20 @@ function SoundSite(i_audioContext, i_soundId, i_url,
 //   (string)
 //  i_position:
 //   (THREE.Vector3)
-//  i_geometry:
-//   (THREE.Geometry)
-//  i_material:
-//   (THREE.Material)
+//  i_soundSiteNo:
+//   (integer number)
+//  o_vertexAttribute_positions:
+//   (array of float number)
+//  o_vertexAttribute_alphas:
+//   (array of float number)
 {
     this.m_audioContext = i_audioContext;
     this.soundId = i_soundId;
     this.soundUrl = i_url;
+    this.soundSiteNo = i_soundSiteNo;
 
     // Sequence
+    //this.sequence = bjorklund(64, 3);
     this.sequence = [
         true, false, false, false,
         true, false, false, false,
@@ -326,11 +269,16 @@ function SoundSite(i_audioContext, i_soundId, i_url,
         true, false, false, false
     ];
 
-    // Graphic object
-    this.mesh = new THREE.Mesh(i_geometry, i_material);
-    this.mesh.position.x = Math.floor(Math.random() * 20 - 10) * 20;
-    this.mesh.position.y = Math.floor(Math.random() * 20) * 20 + 10;
-    this.mesh.position.z = Math.floor(Math.random() * 20 - 10) * 20;
+    //// Graphic object
+    //this.mesh = new THREE.Mesh(i_geometry, i_material);
+    //this.mesh.position.x = positionX;
+    //this.mesh.position.y = positionY;
+    //this.mesh.position.z = positionZ;
+
+    o_vertexAttribute_positions[i_soundSiteNo*3 + 0] = i_position.x;
+    o_vertexAttribute_positions[i_soundSiteNo*3 + 1] = i_position.y;
+    o_vertexAttribute_positions[i_soundSiteNo*3 + 2] = i_position.z;
+    o_vertexAttribute_alphas[i_soundSiteNo] = 1.0;
 
     //this.rangeSphereGeometry = new THREE.SphereGeometry(k_distanceAtWhichSoundIsSilent, 32, 32);
     //var material = new THREE.MeshBasicMaterial({color: 0xffff88});
@@ -499,12 +447,18 @@ SoundSite.prototype.getPosition = function ()
 //  (THREE.Vector3)
 {
     // Use 'position' in the graphic object as the canonical store of the SoundSite's position for now
-    return this.mesh.position;
+    return new THREE.Vector3(
+        g_bufferGeometry_positions[this.soundSiteNo*3 + 0],
+        g_bufferGeometry_positions[this.soundSiteNo*3 + 1],
+        g_bufferGeometry_positions[this.soundSiteNo*3 + 2]
+    );
 };
 
 // + + SoundSite instances {{{
 
 var g_soundSites = [];
+var g_soundSites_flatVertices = null;  // (Float32Array)
+var g_soundSites_alphas = null;  // (Float32Array)
 
 function findSoundSitesOwningMeshes(i_meshes)
 {
@@ -669,31 +623,6 @@ function init()
     g_raycaster = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(0, - 1, 0), 0, 1000);
     //g_raycaster = new THREE.Raycaster();
 
-    // Floor
-    var floorGeometry = new THREE.PlaneGeometry(2000, 2000, 100, 100);
-    floorGeometry.rotateX(-Math.PI / 2);
-
-    for (var vertexCount = floorGeometry.vertices.length, vertexNo = 0; vertexNo < vertexCount; ++vertexNo)
-    {
-        var vertex = floorGeometry.vertices[vertexNo];
-        vertex.x += Math.random() * 20 - 10;
-        vertex.y = -5;
-        vertex.z += Math.random() * 20 - 10;
-    }
-
-    for (var faceCount = floorGeometry.faces.length, faceNo = 0; faceNo < faceCount; ++faceNo)
-    {
-        var face = floorGeometry.faces[faceNo];
-        face.vertexColors[0] = new THREE.Color().setHSL(Math.random() * 0.3 + 0.5, 0.75, Math.random() * 0.25 + 0.75);
-        face.vertexColors[1] = new THREE.Color().setHSL(Math.random() * 0.3 + 0.5, 0.75, Math.random() * 0.25 + 0.75);
-        face.vertexColors[2] = new THREE.Color().setHSL(Math.random() * 0.3 + 0.5, 0.75, Math.random() * 0.25 + 0.75);
-    }
-
-    var floorMaterial = new THREE.MeshBasicMaterial({ vertexColors: THREE.VertexColors });
-
-    var floorMesh = new THREE.Mesh(floorGeometry, floorMaterial);
-    //g_scene.add(floorMesh);
-
     // PROTOTYPE:
     // Create a box geometry that will be shared by all the sound sites
     g_soundSiteGeometry = new THREE.BoxGeometry(20, 20, 20);
@@ -749,7 +678,7 @@ function buildTreeOfSoundSites()
     // + k-d tree {{{
     // To make the nearest neighbour search faster
 
-    // Get sound site positions in flat array
+    // Get sound site positions in array of objects
     var soundSitePositions = [];
     for (var soundSiteCount = g_soundSites.length, soundSiteNo = 0; soundSiteNo < soundSiteCount; ++soundSiteNo)
     {
@@ -834,8 +763,7 @@ function loadSoundAndAddSoundSite(i_soundSiteName, i_url, i_position)
 
     //
     var soundSite = new SoundSite(g_audioContext, i_soundSiteName, i_url, i_position,
-                                  g_soundSiteGeometry, soundSiteMaterial,
-                                  true);
+                                  g_soundSites.length, g_bufferGeometry_positions, g_bufferGeometry_alphas);
     g_soundSites.push(soundSite);
 
     //
@@ -863,9 +791,86 @@ function continueInit()
         startMainLoop();
     });
     */
-    loadPreviewSoundsIntoSoundSites();
+
+    var particleCount = previewSoundIds.length;
+
+    g_bufferGeometry_positions = new Float32Array(particleCount * 3);
+    g_bufferGeometry_alphas = new Float32Array(particleCount);
+
+
+    //loadPreviewSoundsIntoSoundSites();
+    for (var previewSoundIdCount = previewSoundIds.length, previewSoundIdNo = 0;
+         previewSoundIdNo < previewSoundIdCount;
+         ++previewSoundIdNo)
+    {
+        var previewSoundId = previewSoundIds[previewSoundIdNo];
+        //console.log(previewSoundId);
+
+        //
+        //loadSoundAndAddSoundSite(...) replacement
+        var soundSite = new SoundSite(g_audioContext, previewSoundId.toString(), "previews/" + previewSoundId.toString() + ".mp3",
+                                      new THREE.Vector3(
+                                          Math.floor(Math.random() * 20 - 10) * 20,
+                                          Math.floor(Math.random() * 20) * 20 + 10,
+                                          Math.floor(Math.random() * 20 - 10) * 20),
+                                      g_soundSites.length, g_bufferGeometry_positions, g_bufferGeometry_alphas);
+        g_soundSites.push(soundSite);
+
+        //
+        //soundSite.addGraphicObjectsToScene(g_scene);
+    }
 
     buildTreeOfSoundSites();
+
+    // + Create custom shader for points, that draws from crate texture {{{
+
+    var textureLoader = new THREE.TextureLoader();
+
+    var imagePreviewTexture = textureLoader.load('textures/crate.gif');
+    imagePreviewTexture.minFilter = THREE.LinearMipMapLinearFilter;
+    imagePreviewTexture.magFilter = THREE.LinearFilter;
+    var pointShaderMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+            u_texture1: { value: imagePreviewTexture },
+            u_zoom: { value: 9.0 }
+        },
+        vertexShader: document.getElementById('vertexshader').textContent,
+        fragmentShader: document.getElementById('fragmentshader').textContent,
+        transparent: true
+    });
+
+    // + }}}
+
+    // + Create points in a BufferGeometry {{{
+
+    // Make a THREE.BufferGeometry that contains 'position' and 'alpha' vertex attributes,
+    // with the components of those things split and flattened into typed arrays
+
+    g_bufferGeometry = new THREE.BufferGeometry();
+
+    g_bufferGeometry.addAttribute('position', new THREE.BufferAttribute(g_bufferGeometry_positions, 3));
+    g_bufferGeometry.addAttribute('alpha', new THREE.BufferAttribute(g_bufferGeometry_alphas, 1));
+
+    // Make a renderable THREE.Points object that uses the above buffer geometry
+    var points = new THREE.Points(g_bufferGeometry, pointShaderMaterial);
+
+    /*
+    // Fill attributes with random or default values
+    for (var pointNo = 0; pointNo < particleCount; ++pointNo)
+    {
+        g_bufferGeometry_positions[pointNo * 3 + 0] = Math.random() * 1000;
+        g_bufferGeometry_positions[pointNo * 3 + 1] = Math.random() * 1000;
+        g_bufferGeometry_positions[pointNo * 3 + 2] = Math.random() * 1000;
+
+        g_bufferGeometry_alphas[pointNo] = 1.0;
+    }
+    */
+
+    // Add point objects to scene
+    g_scene.add(points);
+
+    // + }}}
+
     startMainLoop();
 }
 
@@ -951,7 +956,7 @@ function animate()
     //var currentlyPlayingSites = setGainOfSoundSitesByCameraProximity();
 
     // + Mouse picking {{{
-
+    /*
     // Reset all cube colours to default,
     // then find which are currently pointed at with the mouse, and colour them red and display textual info
     for (var soundSiteCount = g_soundSites.length, soundSiteNo = 0; soundSiteNo < soundSiteCount; ++soundSiteNo)
@@ -971,7 +976,7 @@ function animate()
         pointedAtMeshes.push(intersection.object);
 	}
     var pointedAtSoundSites = findSoundSitesOwningMeshes(pointedAtMeshes);
-
+    */
     // + }}}
 
     // + Debug info text {{{

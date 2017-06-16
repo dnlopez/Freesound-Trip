@@ -6,6 +6,33 @@
         <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 
         <link rel="stylesheet" type="text/css" href="main.css">
+
+        <script type="x-shader/x-vertex" id="vertexshader">
+            //uniform float u_zoom;
+            attribute float alpha;
+
+            varying float v_alpha;
+
+            void main()
+            {
+                v_alpha = 1.0 - alpha;
+                vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                gl_PointSize = 4.0 * (300.0 / -mvPosition.z);
+                gl_Position = projectionMatrix * mvPosition;
+            }
+        </script>
+
+        <script type="x-shader/x-fragment" id="fragmentshader">
+            varying float v_alpha;
+
+            uniform sampler2D u_texture1;
+
+            void main()
+            {
+                gl_FragColor = texture2D(u_texture1, gl_PointCoord);
+                gl_FragColor.r = (1.0 - gl_FragColor.r) * v_alpha + gl_FragColor.r;
+            }
+        </script>
     </head>
     <body>
         <script type="text/javascript" src="ext_js/kdTree.js"></script>
