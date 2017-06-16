@@ -138,8 +138,31 @@ Sequencer.prototype.tick = function ()
 
         console.log("sequencer beat: " + this.currentBeatNo.toString());
 
+        // Get nearest points to g_camera.position
+        var nearestNeighbours = g_kdTree.nearest([g_camera.position.x, g_camera.position.y, g_camera.position.z], 5);
+        for (var nearestNeighbourCount = nearestNeighbours.length, nearestNeighbourNo = 0; nearestNeighbourNo < nearestNeighbourCount; ++nearestNeighbourNo)
+        {
+            var nearestNeighbour = nearestNeighbours[nearestNeighbourNo];
+
+            var kdNode = nearestNeighbour[0];
+
+            var soundSite = kdNode.soundSite;
+            var distance = soundSite.getPosition().distanceTo(g_camera.position);  // nearestNeighbour[1] seems to be NaN for some reason
+
+            var closeness = (k_distanceAtWhichSoundIsSilent - distance) / k_distanceAtWhichSoundIsSilent;
+            closeness = Math.max(closeness, 0);
+
+            soundSite.setGain(closeness);
+            //soundSite.setGain(1.0);
+            if (closeness > 0)
+            {
+                currentlyPlayingSites.push([soundSite.soundId, closeness]);
+                soundSite.loadSamplesIfNeededAndStartPlaying();
+            }
+        }
+        /*
         // For each sound site [TODO: that is currently playing or newly close]
-        for (var soundSiteNo = 0; soundSiteNo < g_soundSites.length; ++soundSiteNo)
+        for (var soundSiteCount = g_soundSites.length, soundSiteNo = 0; soundSiteNo < soundSiteCount; ++soundSiteNo)
         {
             var soundSite = g_soundSites[soundSiteNo];
 
@@ -165,6 +188,7 @@ Sequencer.prototype.tick = function ()
                 }
             }
         }
+        */
 
         // For each part, advance its beat cursor
         /*
@@ -343,7 +367,7 @@ var g_showSoundSiteRanges = false;
 
 function SoundSite(i_audioContext, i_soundId, i_url,
                    i_position,
-                   i_soundSiteNo, o_vertexAttribute_positions, o_vertexAttribute_alphas)
+                   i_soundSiteNo, o_vertexAttribute_positions, o_vertexAttribute_alphas, o_vertexAttribute_colours, o_vertexAttribute_spriteUvs)
 // Params:
 //  i_audioContext:
 //   (AudioContext)
@@ -412,6 +436,13 @@ function SoundSite(i_audioContext, i_soundId, i_url,
     o_vertexAttribute_positions[i_soundSiteNo*3 + 2] = i_position.z;
     o_vertexAttribute_alphas[i_soundSiteNo] = 1.0;
 
+    o_vertexAttribute_colours[i_soundSiteNo*4 + 0] = 1.0;
+    o_vertexAttribute_colours[i_soundSiteNo*4 + 1] = 0.0;
+    o_vertexAttribute_colours[i_soundSiteNo*4 + 2] = 1.0;
+    o_vertexAttribute_colours[i_soundSiteNo*4 + 3] = 1.0;
+
+    o_vertexAttribute_spriteUvs[i_soundSiteNo*2 + 0] = 0.0;
+    o_vertexAttribute_spriteUvs[i_soundSiteNo*2 + 1] = 0.0;
     //this.rangeSphereGeometry = new THREE.SphereGeometry(k_distanceAtWhichSoundIsSilent, 32, 32);
     //var material = new THREE.MeshBasicMaterial({color: 0xffff88});
     //material.wireframe = true;
@@ -968,6 +999,7 @@ function continueInit()
     g_assetLoader = new dan.loaders.AssetLoader();
 
     loadWithLog(g_assetLoader, g_assetLoader.loadTexture, "textures/crate.gif", "crate");
+    loadWithLog(g_assetLoader, g_assetLoader.loadTexture, "sprites/shapes.png", "shapes");
     loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/27k_collection.json", "points");
     loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/tag_summary.json", "tag_summary");
     loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/tags_to_ids.json", "tags_to_ids");
@@ -986,6 +1018,8 @@ function assetLoader_onAll()
 
     g_bufferGeometry_positions = new Float32Array(particleCount * 3);
     g_bufferGeometry_alphas = new Float32Array(particleCount);
+    g_bufferGeometry_colours = new Float32Array(particleCount * 4);
+    g_bufferGeometry_spriteUvs = new Float32Array(particleCount * 2);
 
 
     var soundCount = 0;
@@ -1001,7 +1035,7 @@ function assetLoader_onAll()
                                       //sound.r, sound.g, sound.b,
                                       //sound.onset_times?
                                       //sound.r?
-                                      g_soundSites.length, g_bufferGeometry_positions, g_bufferGeometry_alphas);
+                                      g_soundSites.length, g_bufferGeometry_positions, g_bufferGeometry_alphas, g_bufferGeometry_colours, g_bufferGeometry_spriteUvs);
         g_soundSites.push(soundSite);
 
         ++soundCount;
@@ -1017,7 +1051,7 @@ function assetLoader_onAll()
 
     //var imagePreviewTexture = g_assetLoader.loadTexture("textures/crate.gif", "crate").asset;
     //var imagePreviewTexture = textureLoader.load("textures/crate.gif");
-    var imagePreviewTexture = g_assetLoader.loaded["crate"];
+    var imagePreviewTexture = g_assetLoader.loaded["shapes"];
     imagePreviewTexture.minFilter = THREE.LinearMipMapLinearFilter;
     imagePreviewTexture.magFilter = THREE.LinearFilter;
     var pointShaderMaterial = new THREE.ShaderMaterial({
@@ -1041,6 +1075,8 @@ function assetLoader_onAll()
 
     g_bufferGeometry.addAttribute('position', new THREE.BufferAttribute(g_bufferGeometry_positions, 3));
     g_bufferGeometry.addAttribute('alpha', new THREE.BufferAttribute(g_bufferGeometry_alphas, 1));
+    g_bufferGeometry.addAttribute('a_colour', new THREE.BufferAttribute(g_bufferGeometry_colours, 4));
+    g_bufferGeometry.addAttribute('a_spriteUv', new THREE.BufferAttribute(g_bufferGeometry_spriteUvs, 2));
 
     // Make a renderable THREE.Points object that uses the above buffer geometry
     var points = new THREE.Points(g_bufferGeometry, pointShaderMaterial);
