@@ -121,9 +121,11 @@ Sequencer.prototype.stop = function ()
 
 Sequencer.prototype.tick = function ()
 {
-    return;
     if (!this.playing)
         return;
+
+    if (g_soundSites.length > 20000)
+        debugger;
 
     var beatPeriod = 60.0/this.tempo;
     var nextBeatStartTime = this.currentBeatStartTime + beatPeriod;
@@ -138,8 +140,11 @@ Sequencer.prototype.tick = function ()
 
         console.log("sequencer beat: " + this.currentBeatNo.toString());
 
+        var closestSites = "";
+
+        /*
         // Get nearest points to g_camera.position
-        var nearestNeighbours = g_kdTree.nearest([g_camera.position.x, g_camera.position.y, g_camera.position.z], 5);
+        var nearestNeighbours = g_kdTree.nearest([g_camera.position.x, g_camera.position.y, g_camera.position.z], 1);
         for (var nearestNeighbourCount = nearestNeighbours.length, nearestNeighbourNo = 0; nearestNeighbourNo < nearestNeighbourCount; ++nearestNeighbourNo)
         {
             var nearestNeighbour = nearestNeighbours[nearestNeighbourNo];
@@ -149,17 +154,90 @@ Sequencer.prototype.tick = function ()
             var soundSite = kdNode.soundSite;
             var distance = soundSite.getPosition().distanceTo(g_camera.position);  // nearestNeighbour[1] seems to be NaN for some reason
 
+            // Choose gain according to distance
             var closeness = (k_distanceAtWhichSoundIsSilent - distance) / k_distanceAtWhichSoundIsSilent;
+
             closeness = Math.max(closeness, 0);
 
             soundSite.setGain(closeness);
             //soundSite.setGain(1.0);
             if (closeness > 0)
             {
-                currentlyPlayingSites.push([soundSite.soundId, closeness]);
-                soundSite.loadSamplesIfNeededAndStartPlaying();
+                if (!soundSite.audioBuffer)
+                {
+                    soundSite.loadSamplesIfNeededAndStartPlaying();  // TODO: "AndStartPlaying" is no longer applicable
+                    // TODO: still trigger the first sound if it loads in time
+                }
+                else
+                {
+                    closestSites += soundSite.soundId + ": " + soundSite.soundUrl + "\n";
+                    playNote(soundSite.audioBuffer, closeness, nextBeatStartTime);
+                }
             }
         }
+
+        */
+
+        // For each sound site [TODO: that is currently playing or newly close]
+        var soundSiteDistances = [];
+        for (var soundSiteCount = g_soundSites.length, soundSiteNo = 0; soundSiteNo < soundSiteCount; ++soundSiteNo)
+        {
+            var soundSite = g_soundSites[soundSiteNo];
+
+            var d = soundSite.getPosition().distanceTo(g_camera.position);
+            // HACK
+            if (d === undefined || d == 0)
+                continue;
+
+            soundSiteDistances.push({
+                soundSite: soundSite,
+                distance: soundSite.getPosition().distanceTo(g_camera.position)
+            });
+        }
+
+        // Sort the above
+        soundSiteDistances = soundSiteDistances.sort(function (i_a, i_b) {
+            if (i_a.distance < i_b.distance)
+                return -1;
+            else if (i_a.distance > i_b.distance)
+                return 1;
+            else
+                return 0;
+        });
+
+        // For the closest few
+        for (var soundSiteDistanceCount = Math.max(soundSiteDistances.length, 5), soundSiteDistanceNo = 0; soundSiteDistanceNo < soundSiteDistanceCount; ++soundSiteDistanceNo)
+        {
+            var soundSiteDistance = soundSiteDistances[soundSiteDistanceNo];
+
+            var soundSite = soundSiteDistance.soundSite;
+            var distance = soundSiteDistance.distance;
+
+            if (soundSite.sequence[this.currentBeatNo] === 1 || soundSite.sequence[this.currentBeatNo] === true)
+            {
+                // Choose gain according to distance
+                var distance = soundSite.getPosition().distanceTo(g_camera.position);
+
+                var closeness = (k_distanceAtWhichSoundIsSilent - distance) / k_distanceAtWhichSoundIsSilent;
+                closeness = Math.max(closeness, 0);
+
+                if (closeness > 0)
+                {
+                    if (!soundSite.audioBuffer)
+                    {
+                        soundSite.loadSamplesIfNeededAndStartPlaying();  // TODO: "AndStartPlaying" is no longer applicable
+                        // TODO: still trigger the first sound if it loads in time
+                    }
+                    else
+                    {
+                        closestSites += soundSite.soundId + ": " + soundSite.soundUrl + ", " + soundSite.sequence.toString() + "\n";
+                        playNote(soundSite.audioBuffer, closeness, nextBeatStartTime);
+                    }
+                }
+            }
+        }
+
+        document.body.querySelector("#infoText").innerText = closestSites;
         /*
         // For each sound site [TODO: that is currently playing or newly close]
         for (var soundSiteCount = g_soundSites.length, soundSiteNo = 0; soundSiteNo < soundSiteCount; ++soundSiteNo)
@@ -362,7 +440,7 @@ function map01ToRange(i_value,
 
 // + Sound site {{{
 
-var k_distanceAtWhichSoundIsSilent = 200;
+var k_distanceAtWhichSoundIsSilent = 300;
 var g_showSoundSiteRanges = false;
 
 function SoundSite(i_audioContext, i_soundId, i_url,
@@ -393,8 +471,8 @@ function SoundSite(i_audioContext, i_soundId, i_url,
     var localRandom = new Math.seedrandom(this.soundId);
 
     // Sequence
-    /*
     //this.sequence = bjorklund(64, 3);
+    /*
     this.sequence = [
         true, false, false, false,
         true, false, false, false,
@@ -673,6 +751,9 @@ var g_sequencer;
 
 function init()
 {
+    g_tagsStr = dan.getParameterValueFromQueryString("tags");
+    var tags = g_tagsStr.split("+");
+
     g_sequencer = new Sequencer();
 
     g_camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1000);
@@ -1000,7 +1081,8 @@ function continueInit()
 
     loadWithLog(g_assetLoader, g_assetLoader.loadTexture, "textures/crate.gif", "crate");
     loadWithLog(g_assetLoader, g_assetLoader.loadTexture, "sprites/shapes.png", "shapes");
-    loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/27k_collection.json", "points");
+    //loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/27k_collection.json", "points");
+    loadWithLog(g_assetLoader, g_assetLoader.loadJson, "http://54.153.93.131:5000/tsne?tags=" + g_tagsStr, "points");
     loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/tag_summary.json", "tag_summary");
     loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/tags_to_ids.json", "tags_to_ids");
 
@@ -1014,7 +1096,6 @@ function assetLoader_onAll()
     // + Load sounds {{{
 
     var particleCount = Object.keys(g_assetLoader.loaded["points"]).length;
-    particleCount = 300;
 
     g_bufferGeometry_positions = new Float32Array(particleCount * 3);
     g_bufferGeometry_alphas = new Float32Array(particleCount);
@@ -1023,14 +1104,16 @@ function assetLoader_onAll()
 
 
     var soundCount = 0;
-    for (var soundId in g_assetLoader.loaded["points"])
+
+    for (var soundNo in g_assetLoader.loaded["points"])
     {
-        var sound = g_assetLoader.loaded["points"][soundId];
+        var sound = g_assetLoader.loaded["points"][soundNo];
 
         var coordinateExpansionFactor = 20;
 
         //
-        var soundSite = new SoundSite(g_audioContext, soundId.toString(), "previews/" + soundId.toString() + ".mp3",
+        
+        var soundSite = new SoundSite(g_audioContext, soundNo.toString(), "previews/" + sound.id + ".mp3",
                                       new THREE.Vector3(sound.x * coordinateExpansionFactor, sound.y * coordinateExpansionFactor, sound.z * coordinateExpansionFactor),
                                       //sound.r, sound.g, sound.b,
                                       //sound.onset_times?
@@ -1040,6 +1123,10 @@ function assetLoader_onAll()
 
         ++soundCount;
     }
+
+
+    if (g_soundSites.length > 20000)
+        debugger;
 
 
     //

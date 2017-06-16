@@ -586,6 +586,8 @@ dan.loaders.AssetLoader.prototype.loadJson = function (i_url, i_key)
         if (xhr.readyState == 4)
         {
             // Get the deferred for resolving or rejecting later
+            if (!(i_key in self.loading))  // HACK
+                return;
             var deferred = self.loading[i_key].deferred;
 
             // If successful
