@@ -792,49 +792,74 @@ function continueInit()
     });
     */
 
-    // + Load sounds {{{
+    // + Asset loading {{{
 
-    var particleCount = previewSoundIds.length;
-
-    g_bufferGeometry_positions = new Float32Array(particleCount * 3);
-    g_bufferGeometry_alphas = new Float32Array(particleCount);
-
-    function loadPreviewSoundsIntoSoundSites()
+    function loaderLog(i_msg)
     {
-        for (var previewSoundIdCount = previewSoundIds.length, previewSoundIdNo = 0;
-             previewSoundIdNo < previewSoundIdCount;
-             ++previewSoundIdNo)
-        {
-            var previewSoundId = previewSoundIds[previewSoundIdNo];
-            //console.log(previewSoundId);
+        console.log("loaderLog: " + i_msg);
+        return;
 
-            //
-            //loadSoundAndAddSoundSite(...) replacement
-            var soundSite = new SoundSite(g_audioContext, previewSoundId.toString(), "previews/" + previewSoundId.toString() + ".mp3",
-                                          new THREE.Vector3(
-                                              Math.floor(Math.random() * 20 - 10) * 20,
-                                              Math.floor(Math.random() * 20) * 20 + 10,
-                                              Math.floor(Math.random() * 20 - 10) * 20),
-                                          g_soundSites.length, g_bufferGeometry_positions, g_bufferGeometry_alphas);
-            g_soundSites.push(soundSite);
-
-            //
-            //soundSite.addGraphicObjectsToScene(g_scene);
-        }
+        var $loaderLog = $("#loaderLog");
+        var loaderLog = $loaderLog[0];
+        var atBottom = loaderLog.scrollTop + loaderLog.offsetHeight == loaderLog.scrollHeight;
+        $loaderLog.val($loaderLog.val() + i_msg);
+        if (atBottom)
+            $loaderLog[0].scrollTop = 99999999999;
+        forceRedraw($loaderLog[0]);
+        //document.getElementById('parentOfElementToBeRedrawn').style.display = 'none';
+        //document.getElementById('parentOfElementToBeRedrawn').style.display = 'block';
     }
-    //loadPreviewSoundsIntoSoundSites();
+    //
+    var assetEventCount = 0;
+    var assetEventDoneCount = 0;
 
-    load27kCollection(onGotPoints);
+    function loadWithLog(i_loaderObject, i_loadMethod, i_url, i_key)
+    {
+        ++assetEventCount;
+
+        i_loadMethod.call(i_loaderObject, i_url, i_key).promise.then(function (i_asset, i_url, i_key) {
+            ++assetEventDoneCount;
+            var assetEventDoneNote = "(" + assetEventDoneCount.toString() + "/" + assetEventCount.toString() + ")";
+            //setProgress(assetEventDoneCount / assetEventCount);
+
+            loaderLog("\n" + assetEventDoneNote + " Loaded " + i_url);
+        },
+        function (i_errorDescription, i_url, i_key) {
+            ++assetEventDoneCount;
+            var assetEventDoneNote = "(" + assetEventDoneCount.toString() + "/" + assetEventCount.toString() + ")";
+            //setProgress(assetEventDoneCount / assetEventCount);
+
+            loaderLog("\n" + assetEventDoneNote + " FAILED to load " + i_url + ", error description: " + i_errorDescription);
+        });
+    }
+
+    g_assetLoader = new dan.loaders.AssetLoader();
+
+    loadWithLog(g_assetLoader, g_assetLoader.loadTexture, "textures/crate.gif", "crate");
+    loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/27k_collection.json", "points");
+    loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/tag_summary.json", "tag_summary");
+    loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/tags_to_ids.json", "tags_to_ids");
+
+    g_assetLoader.all().then(assetLoader_onAll);
 
     // + }}}
 }
 
-function onGotPoints(i_points)
+function assetLoader_onAll()
 {
+    // + Load sounds {{{
+
+    var particleCount = Object.keys(g_assetLoader.loaded["points"]).length;
+    particleCount = 300;
+
+    g_bufferGeometry_positions = new Float32Array(particleCount * 3);
+    g_bufferGeometry_alphas = new Float32Array(particleCount);
+
+
     var soundCount = 0;
-    for (var soundId in i_points)
+    for (var soundId in g_assetLoader.loaded["points"])
     {
-        var sound = i_points[soundId];
+        var sound = g_assetLoader.loaded["points"][soundId];
 
         var coordinateExpansionFactor = 20;
 
@@ -848,25 +873,25 @@ function onGotPoints(i_points)
         g_soundSites.push(soundSite);
 
         ++soundCount;
-        if (soundCount >= 300)
-            break;
     }
 
 
     //
     buildTreeOfSoundSites();
 
+
+
     // + Create custom shader for points, that draws from crate texture {{{
 
-    var textureLoader = new THREE.TextureLoader();
-
-    var imagePreviewTexture = textureLoader.load("textures/crate.gif");
+    //var imagePreviewTexture = g_assetLoader.loadTexture("textures/crate.gif", "crate").asset;
+    //var imagePreviewTexture = textureLoader.load("textures/crate.gif");
+    var imagePreviewTexture = g_assetLoader.loaded["crate"];
     imagePreviewTexture.minFilter = THREE.LinearMipMapLinearFilter;
     imagePreviewTexture.magFilter = THREE.LinearFilter;
     var pointShaderMaterial = new THREE.ShaderMaterial({
         uniforms: {
             u_texture1: { value: imagePreviewTexture },
-            u_zoom: { value: 9.0 }
+            u_zoom: { value: 9.0 }  // not used
         },
         vertexShader: document.getElementById('vertexshader').textContent,
         fragmentShader: document.getElementById('fragmentshader').textContent,
@@ -1192,23 +1217,3 @@ function fstest2()
 }
 
 // + }}}
-
-function load27kCollection(i_onDone)
-{
-    var queryUrl = '27k_collection/27k_collection.json';
-
-    var xhr = new XMLHttpRequest();
-    xhr.open("GET", queryUrl);
-    xhr.responseType = "json";
-    //xhr.setRequestHeader("Authorization", "Token S6iCeqkOguD4uIKGwmgzrxW7XwTznx4PMj6HrPp4");
-    xhr.onreadystatechange = function () {
-        if (this.readyState == XMLHttpRequest.DONE)
-        {
-            //console.log(xhr.response);
-
-            var results = xhr.response;
-            i_onDone(results);
-        }
-    };
-    xhr.send();
-}
