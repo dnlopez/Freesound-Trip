@@ -7,6 +7,70 @@ var g_raycaster;
 
 //var k_particleCount = 200000;
 
+Array.prototype.rotate = (function() {
+    // save references to array functions to make lookup faster
+    var push = Array.prototype.push,
+        splice = Array.prototype.splice;
+
+    return function(count) {
+        var len = this.length >>> 0, // convert to uint
+            count = count >> 0; // convert to int
+
+        // convert count to value in range [0, len[
+        count = ((count % len) + len) % len;
+
+        // use splice.call() instead of this.splice() to make function generic
+        push.apply(this, splice.call(this, 0, count));
+        return this;
+    };
+})();
+
+function generateSequence(i_length, i_oneEveryNSteps, i_individualHitChance, i_maxJitter, i_offset)
+// Params:
+//  i_length:
+//   (integer number)
+//  i_oneEveryNSteps:
+//   (number)
+//  i_individualHitChance:
+//   (float number)
+//  i_maxJitter:
+//   (float number)
+//  i_offset:
+//   (integer number)
+{
+    //
+    var sequence = new Array(i_length);
+    for (var elementNo = 0; elementNo < sequence.length; ++elementNo)
+    {
+        sequence[elementNo] = 0;
+    }
+
+    //
+    if (i_oneEveryNSteps == 0)
+        return sequence;
+
+    //
+    for (var elementNo = 0; elementNo < sequence.length; elementNo += i_oneEveryNSteps)
+    {
+        var intElementNo = Math.round(elementNo);
+
+        if (Math.random() < i_individualHitChance)
+        {
+            var jitterAmount = Math.round((Math.random() * 2 - 1) * i_maxJitter);
+
+            var jitteredElementNo = dan.clockMod(intElementNo + jitterAmount, sequence.length);
+
+            sequence[jitteredElementNo] = 1;
+        }
+    }
+
+    //
+    sequence = sequence.rotate(-i_offset);
+
+    //
+    return sequence;
+}
+
 // + Audio {{{
 
 g_audioContext = dan.snd.getAudioContext();
@@ -219,6 +283,59 @@ function playNote(i_buffer,
 
 // + }}}
 
+function lowTendingRandom(i_power, i_linearRandomGeneratorFunc)
+// Params:
+//  i_power:
+//   (number)
+//  i_linearRandomGeneratorFunc:
+//   (function)
+//   Function has:
+//    Params:
+//     -
+//    Returns:
+//     (float number)
+//     In half-open range [0 .. 1)
+//
+// FIXME:
+//  If i_power is high, 
+{
+    if (i_linearRandomGeneratorFunc === null || i_linearRandomGeneratorFunc === undefined)
+        i_linearRandomGeneratorFunc = Math.random;
+
+    return Math.pow(i_linearRandomGeneratorFunc(), i_power);
+}
+
+function highTendingRandom(i_power, i_linearRandomGeneratorFunc)
+// Params:
+//  i_power:
+//   (number)
+//  i_linearRandomGeneratorFunc:
+//   (function)
+//   Function has:
+//    Params:
+//     -
+//    Returns:
+//     (float number)
+//     In half-open range [0 .. 1)
+{
+    return 1 - Number.EPSILON - lowTendingRandom(i_power, i_linearRandomGeneratorFunc);
+}
+
+function map01ToRange(i_value,
+                      i_toStart, i_toEnd)
+// Params:
+//  i_value:
+//   (number)
+//  i_toStart, i_toEnd
+//   (number)
+//
+// Returns:
+//  (float number)
+//  In half-open range [i_toStart .. i_toEnd)
+{
+    return (i_value * (i_toEnd - i_toStart)) + i_toStart;
+};
+
 // + Sound site {{{
 
 var k_distanceAtWhichSoundIsSilent = 200;
@@ -248,7 +365,11 @@ function SoundSite(i_audioContext, i_soundId, i_url,
     this.soundUrl = i_url;
     this.soundSiteNo = i_soundSiteNo;
 
+    //
+    var localRandom = new Math.seedrandom(this.soundId);
+
     // Sequence
+    /*
     //this.sequence = bjorklund(64, 3);
     this.sequence = [
         true, false, false, false,
@@ -268,6 +389,17 @@ function SoundSite(i_audioContext, i_soundId, i_url,
         true, false, false, false,
         true, false, false, false
     ];
+    */
+
+    var sequence_oneEveryNSteps = Math.pow(2, Math.floor(map01ToRange(highTendingRandom(3, localRandom), 1, 7)));
+
+    var sequence_individualHitChance = 0.8;
+
+    var sequence_maxJitter = map01ToRange(lowTendingRandom(3, localRandom), 0, 3);
+
+    var sequence_offset = map01ToRange(lowTendingRandom(3, localRandom), 0, 2);
+
+    this.sequence = generateSequence(64, sequence_oneEveryNSteps, sequence_individualHitChance, sequence_maxJitter, sequence_offset);
 
     //// Graphic object
     //this.mesh = new THREE.Mesh(i_geometry, i_material);
