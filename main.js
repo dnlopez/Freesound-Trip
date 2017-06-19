@@ -1380,7 +1380,7 @@ function animate()
 
     prevTime = time;
 
-	g_controls.movementSpeed = 300;
+	g_controls.movementSpeed = 150;
 	g_controls.update(delta);
 
     g_renderer.render(g_scene, g_camera);
