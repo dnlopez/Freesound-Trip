@@ -1068,14 +1068,14 @@ function continueInit()
             var assetEventDoneNote = "(" + assetEventDoneCount.toString() + "/" + assetEventCount.toString() + ")";
             //setProgress(assetEventDoneCount / assetEventCount);
 
-            loaderLog("\n" + assetEventDoneNote + " Loaded " + i_url);
+            loaderLog(assetEventDoneNote + " Loaded " + i_url);
         },
         function (i_errorDescription, i_url, i_key) {
             ++assetEventDoneCount;
             var assetEventDoneNote = "(" + assetEventDoneCount.toString() + "/" + assetEventCount.toString() + ")";
             //setProgress(assetEventDoneCount / assetEventCount);
 
-            loaderLog("\n" + assetEventDoneNote + " FAILED to load " + i_url + ", error description: " + i_errorDescription);
+            loaderLog(assetEventDoneNote + " FAILED to load " + i_url + ", error description: " + i_errorDescription);
         });
     }
 

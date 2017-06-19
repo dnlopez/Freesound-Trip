@@ -57,7 +57,7 @@ dan.loaders.AssetLoader.prototype.loadTexture = function (i_url, i_key, i_mappin
             self.loaded[i_key] = i_texture;
 
             // Finally resolve the promise
-            deferred.resolve(i_texture);
+            deferred.resolve(i_texture, i_url, i_key);
         },
         // i_onError
         function (i_texture) {
