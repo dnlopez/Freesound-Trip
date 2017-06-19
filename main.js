@@ -443,7 +443,8 @@ function map01ToRange(i_value,
 var k_distanceAtWhichSoundIsSilent = 300;
 var g_showSoundSiteRanges = false;
 
-function SoundSite(i_audioContext, i_soundId, i_url,
+function SoundSite(i_audioContext, i_sound,
+                   i_soundId, i_url,
                    i_position,
                    i_soundSiteNo, o_vertexAttribute_positions, o_vertexAttribute_alphas, o_vertexAttribute_colours, o_vertexAttribute_spriteUvs)
 // Params:
@@ -514,9 +515,9 @@ function SoundSite(i_audioContext, i_soundId, i_url,
     o_vertexAttribute_positions[i_soundSiteNo*3 + 2] = i_position.z;
     o_vertexAttribute_alphas[i_soundSiteNo] = 1.0;
 
-    o_vertexAttribute_colours[i_soundSiteNo*4 + 0] = 1.0;
-    o_vertexAttribute_colours[i_soundSiteNo*4 + 1] = 0.0;
-    o_vertexAttribute_colours[i_soundSiteNo*4 + 2] = 1.0;
+    o_vertexAttribute_colours[i_soundSiteNo*4 + 0] = i_sound.r;
+    o_vertexAttribute_colours[i_soundSiteNo*4 + 1] = i_sound.g;
+    o_vertexAttribute_colours[i_soundSiteNo*4 + 2] = i_sound.b;
     o_vertexAttribute_colours[i_soundSiteNo*4 + 3] = 1.0;
 
     o_vertexAttribute_spriteUvs[i_soundSiteNo*2 + 0] = 0.0;
@@ -1114,7 +1115,8 @@ function assetLoader_onAll()
 
         //
         
-        var soundSite = new SoundSite(g_audioContext, soundNo.toString(), "previews/" + sound.id + ".mp3",
+        var soundSite = new SoundSite(g_audioContext, sound,
+                                      soundNo.toString(), "previews/" + sound.id + ".mp3",
                                       new THREE.Vector3(sound.x * coordinateExpansionFactor, sound.y * coordinateExpansionFactor, sound.z * coordinateExpansionFactor),
                                       //sound.r, sound.g, sound.b,
                                       //sound.onset_times?
