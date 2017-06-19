@@ -237,7 +237,7 @@ Sequencer.prototype.tick = function ()
             }
         }
 
-        document.body.querySelector("#infoText").innerText = closestSites;
+        //document.body.querySelector("#infoText").innerText = closestSites;
         /*
         // For each sound site [TODO: that is currently playing or newly close]
         for (var soundSiteCount = g_soundSites.length, soundSiteNo = 0; soundSiteNo < soundSiteCount; ++soundSiteNo)
