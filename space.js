@@ -1,3 +1,6 @@
+var k_previewsSoundsFolderUrl = "previews/";
+//http://www.freesound.org/data/previews/0/205_23-lq.ogg
+
 var g_camera;
 var g_scene;
 var g_renderer;
@@ -5,7 +8,7 @@ var g_controls;
 
 var g_raycaster;
 
-//var k_particleCount = 200000;
+// + Generating sequences {{{
 
 Array.prototype.rotate = (function() {
     // save references to array functions to make lookup faster
@@ -37,8 +40,12 @@ function generateSequence(i_length, i_oneEveryNSteps, i_individualHitChance, i_m
 //   (float number)
 //  i_offset:
 //   (integer number)
+//
+// Returns:
+//  (array of integer number)
+//  The length of the array is i_length, and each element is either a 0 or 1.
 {
-    //
+    // Initialize array of desired length and fill with zeroes
     var sequence = new Array(i_length);
     for (var elementNo = 0; elementNo < sequence.length; ++elementNo)
     {
@@ -71,6 +78,8 @@ function generateSequence(i_length, i_oneEveryNSteps, i_individualHitChance, i_m
     return sequence;
 }
 
+// + }}}
+
 // + Audio {{{
 
 g_audioContext = dan.snd.getAudioContext();
@@ -81,7 +90,10 @@ function Sequencer()
     // (boolean)
 
     this.sequenceLength = 64;
+
     this.tempo = 120;
+    // (float number)
+    // In beats per minute
 
     this.contextBufferTime = 0.1;
     // (float number)
@@ -127,6 +139,8 @@ Sequencer.prototype.tick = function ()
     if (g_soundSites.length > 20000)
         debugger;
 
+    // Convert beats per minute to seconds per beat,
+    // then get the start time of the next beat
     var beatPeriod = 60.0/this.tempo;
     var nextBeatStartTime = this.currentBeatStartTime + beatPeriod;
 
@@ -1117,7 +1131,7 @@ function assetLoader_onAll()
         //
         
         var soundSite = new SoundSite(g_audioContext, sound,
-                                      soundNo.toString(), "previews/" + sound.id + ".mp3",
+                                      soundNo.toString(), k_previewsSoundsFolderUrl + sound.id + ".mp3",
                                       new THREE.Vector3(sound.x * coordinateExpansionFactor, sound.y * coordinateExpansionFactor, sound.z * coordinateExpansionFactor),
                                       //sound.r, sound.g, sound.b,
                                       //sound.onset_times?
@@ -1473,6 +1487,38 @@ function fstest2()
 
     // Create a MediaElementAudioSourceNode to draw from the above Audio node
     var mediaElementAudioSourceNode = g_audioContext.createMediaElementSource(audioMediaElement);
+}
+
+function freesound_getPreviewUrl(i_soundId, i_onDone)
+// Get the URL of a Freesound preview in low-quality MP3 format.
+//
+// Params:
+//  i_soundId:
+//   (integer number)
+//  i_onDone:
+//   (function)
+//   Function has:
+//    Params:
+//     i_url:
+//      (string)
+{
+    var queryUrl = 'https://freesound.org/apiv2/sounds/';
+    queryUrl += i_soundId.toString() + "/?";
+    queryUrl += '&fields=id,previews';
+
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", queryUrl);
+    xhr.responseType = "json";
+    xhr.setRequestHeader("Authorization", "Token S6iCeqkOguD4uIKGwmgzrxW7XwTznx4PMj6HrPp4");
+    xhr.onreadystatechange = function () {
+        if (this.readyState == XMLHttpRequest.DONE)
+        {
+            //console.log(xhr.response);
+
+            i_onDone(xhr.response["previews"]["preview-lq-mp3"]);
+        }
+    };
+    xhr.send();
 }
 
 // + }}}
