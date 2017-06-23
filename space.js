@@ -739,6 +739,57 @@ function findSoundSitesOwningMeshes(i_meshes)
 
 // + }}}
 
+// + Scrolling log {{{
+
+function ScrollingLog()
+{
+    this.rootDomElement = document.createElement("div");
+    this.rootDomElement.setAttribute("id", "scrollingLog");
+
+    this.rootDomElement.style.position = "fixed";
+    this.rootDomElement.style.top = "0";
+    this.rootDomElement.style.bottom = "0";
+    this.rootDomElement.style.left = "0";
+    this.rootDomElement.style.right = "0";
+    //this.rootDomElement.style.border = "3px solid red";
+    this.rootDomElement.style.padding = "4px";
+    this.rootDomElement.style.color = "#f00";
+    this.rootDomElement.style.textShadow = "1px 1px 1px rgba(0, 0, 0, 0.5)";
+    this.rootDomElement.style.fontWeight = "bold";
+    this.rootDomElement.style.backgroundColor = "transparent";
+    //this.rootDomElement.style.overflowY = "scroll";
+
+    // Show first element at bottom
+    this.rootDomElement.style.display = "flex";
+    this.rootDomElement.style.flexDirection = "column-reverse";
+
+    // Time in seconds for each log element to remain visible for
+    this.timeout = 3;
+}
+
+ScrollingLog.prototype.getRootDomElement = function ()
+{
+    return this.rootDomElement;
+};
+
+ScrollingLog.prototype.addText = function (i_text)
+{
+    // Create and append text element
+    var logContainer = document.createElement("div");
+    logContainer.appendChild(document.createTextNode(i_text));
+    this.rootDomElement.insertBefore(logContainer, this.rootDomElement.firstChild);
+
+    // Scroll to bottom
+    this.rootDomElement.scrollTop = this.rootDomElement.scrollHeight;
+
+    // Remove element after timeout has elapsed
+    var me = this;
+    setTimeout(function () {
+        me.rootDomElement.removeChild(logContainer);
+    }, this.timeout * 1000);
+};
+
+// + }}}
 
 var controlsEnabled = false;
 
@@ -804,6 +855,20 @@ function init()
     var infoTextDiv = document.createElement("div");
     infoTextDiv.setAttribute("id", "infoText");
     document.body.appendChild(infoTextDiv);
+
+    g_scrollingLog = new ScrollingLog();
+    document.body.appendChild(g_scrollingLog.getRootDomElement());
+    /*
+    var n = 0;
+    function addTestLog()
+    {
+        g_scrollingLog.addText("hello " + n.toString());
+        ++n;
+        if (n < 50)
+            setTimeout(addTestLog, 50);
+    }
+    addTestLog();
+    */
 
     g_viewportDiv = document.createElement("div");
     document.body.appendChild(g_viewportDiv);
@@ -1057,17 +1122,7 @@ function continueInit()
     function loaderLog(i_msg)
     {
         console.log("loaderLog: " + i_msg);
-        return;
-
-        var $loaderLog = $("#loaderLog");
-        var loaderLog = $loaderLog[0];
-        var atBottom = loaderLog.scrollTop + loaderLog.offsetHeight == loaderLog.scrollHeight;
-        $loaderLog.val($loaderLog.val() + i_msg);
-        if (atBottom)
-            $loaderLog[0].scrollTop = 99999999999;
-        forceRedraw($loaderLog[0]);
-        //document.getElementById('parentOfElementToBeRedrawn').style.display = 'none';
-        //document.getElementById('parentOfElementToBeRedrawn').style.display = 'block';
+        g_scrollingLog.addText(i_msg);
     }
     //
     var assetEventCount = 0;
