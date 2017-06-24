@@ -1,5 +1,24 @@
-var k_previewsSoundsFolderUrl = "previews/";
-//http://www.freesound.org/data/previews/0/205_23-lq.ogg
+
+// + Configuration {{{
+
+var k_soundSource = "index";
+// (str)
+// One of
+//  "pattern"
+//  "index"
+
+var k_soundSource_pattern = "nobackup/previews/*.mp3";
+// (str)
+// Only applicable when k_soundSource == "pattern".
+// Template to generate sound URLs. "*" will be replaced with the sound ID.
+
+var k_soundSource_indexUrl = "metadata/freesound_index.json";
+// (str)
+// Only applicable when k_soundSource == "index".
+// URL of the index file.
+
+// + }}}
+
 
 var g_camera;
 var g_scene;
@@ -1157,6 +1176,8 @@ function continueInit()
     //loadWithLog(g_assetLoader, g_assetLoader.loadJson, "http://ec2-54-215-134-50.us-west-1.compute.amazonaws.com:5000/tsne?tags=" + g_tagsStr, "points");
     loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/tag_summary.json", "tag_summary");
     loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/tags_to_ids.json", "tags_to_ids");
+    if (k_soundSource == "index")
+        loadWithLog(g_assetLoader, g_assetLoader.loadJson, k_soundSource_indexUrl, "sound_index");
 
     g_assetLoader.all().then(assetLoader_onAll);
 
@@ -1174,27 +1195,33 @@ function assetLoader_onAll()
     g_bufferGeometry_colours = new Float32Array(particleCount * 4);
     g_bufferGeometry_spriteUvs = new Float32Array(particleCount * 2);
 
-
-    var soundCount = 0;
-
-    for (var soundNo in g_assetLoader.loaded["points"])
+    //
+    var coordinateExpansionFactor = 20;
+    for (var pointCount = g_assetLoader.loaded["points"].length, pointNo = 0; pointNo < pointCount; ++pointNo)
     {
-        var sound = g_assetLoader.loaded["points"][soundNo];
-
-        var coordinateExpansionFactor = 20;
+        var point = g_assetLoader.loaded["points"][pointNo];
 
         //
-        
-        var soundSite = new SoundSite(g_audioContext, sound,
-                                      soundNo.toString(), k_previewsSoundsFolderUrl + sound.id + ".mp3",
-                                      new THREE.Vector3(sound.x * coordinateExpansionFactor, sound.y * coordinateExpansionFactor, sound.z * coordinateExpansionFactor),
-                                      //sound.r, sound.g, sound.b,
-                                      //sound.onset_times?
-                                      //sound.r?
+        var soundUrl;
+        switch (k_soundSource)
+        {
+        case "pattern":
+            soundUrl = k_soundSource_pattern.replace("*", point.id);
+            break;
+        case "index":
+            soundUrl = g_assetLoader["loaded"]["sound_index"][point.id]["url"];
+            break;
+        }
+
+        //
+        var soundSite = new SoundSite(g_audioContext, point,
+                                      pointNo.toString(), soundUrl,
+                                      new THREE.Vector3(point.x * coordinateExpansionFactor, point.y * coordinateExpansionFactor, point.z * coordinateExpansionFactor),
+                                      //point.r, point.g, point.b,
+                                      //point.onset_times?
+                                      //point.r?
                                       g_soundSites.length, g_bufferGeometry_positions, g_bufferGeometry_alphas, g_bufferGeometry_colours, g_bufferGeometry_spriteUvs);
         g_soundSites.push(soundSite);
-
-        ++soundCount;
     }
 
 
