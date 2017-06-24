@@ -1439,6 +1439,7 @@ function assetLoader_onAll()
     // + }}}
 
     g_scrollingLog.addText("... ready!");
+    g_scrollingLog.resetEntryTimeouts();
     startMainLoop();
 }
 
