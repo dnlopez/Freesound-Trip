@@ -409,6 +409,8 @@ function playNote(i_buffer,
     voice.connect(dryGainNode);
     dryGainNode.connect(g_audioContext.destination);
 
+    if (g_audioRecorder !== null)
+        dryGainNode.connect(g_audioRecorder.mediaStreamDestination);
     /*
     // Connect to wet mix
     var wetGainNode = g_audioContext.createGain();
@@ -419,6 +421,54 @@ function playNote(i_buffer,
 
     voice.start(i_startTime);
 }
+
+// + }}}
+
+// + Audio recording {{{
+
+function AudioRecorder()
+{
+    this.mediaStreamDestination = g_audioContext.createMediaStreamDestination();
+    this.blobs = [];
+}
+
+AudioRecorder.prototype.start = function ()
+{
+    this.mediaRecorder = new MediaRecorder(this.mediaStreamDestination.stream);
+
+    var me = this;
+    this.mediaRecorder.ondataavailable = function (i_event) {
+        me.blobs.push(i_event.data);
+    };
+
+    this.mediaRecorder.start();
+}
+
+AudioRecorder.prototype.stop = function ()
+{
+    var me = this;
+    this.mediaRecorder.onstop = function (i_event) {
+        var blob = new Blob(me.blobs, { "type": "audio/ogg; codecs=opus" });
+        var url = URL.createObjectURL(blob);
+
+        debugger;
+
+        //var audioElement = new Audio();
+        //audioElement.src = URL.createObjectURL(blob);
+
+        var aElement = document.createElement("a");
+        document.body.appendChild(aElement);
+        //aElement.style = "display: none";
+        aElement.href = url;
+        aElement.download = "recording.opus";
+        aElement.click();
+        URL.revokeObjectURL(url);
+    };
+
+    this.mediaRecorder.stop();
+}
+
+var g_audioRecorder = null;
 
 // + }}}
 
@@ -942,6 +992,20 @@ function init()
 
         case 71: // g
             g_showSoundSiteRanges = !g_showSoundSiteRanges;
+            break;
+
+        case 67: // c
+            if (g_audioRecorder === null)
+            {
+                g_scrollingLog.addText("Starting audio capture. Press C again to stop/save.");
+                g_audioRecorder = new AudioRecorder();
+                g_audioRecorder.start();
+            }
+            else
+            {
+                g_audioRecorder.stop();
+                g_audioRecorder = null;
+            }
             break;
         }
     };
