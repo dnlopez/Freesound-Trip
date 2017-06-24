@@ -103,14 +103,18 @@ function generateSequence(i_length, i_oneEveryNSteps, i_individualHitChance, i_m
 
 g_audioContext = dan.snd.getAudioContext();
 
-function Sequencer()
+function Sequencer(i_tempo)
+// Params:
+//  i_tempo:
+//   (float number)
+//   In beats per minute
 {
     this.playing = false;
     // (boolean)
 
     this.sequenceLength = 64;
 
-    this.tempo = 120;
+    this.tempo = i_tempo;
     // (float number)
     // In beats per minute
 
@@ -839,7 +843,13 @@ function init()
     g_tagsStr = dan.getParameterValueFromQueryString("tags");
     var tags = g_tagsStr.split("+");
 
-    g_sequencer = new Sequencer();
+    var tempo = dan.getParameterValueFromQueryString("bpm");
+    if (tempo != "")
+        tempo = parseInt(tempo);
+    else
+        tempo = 120;
+
+    g_sequencer = new Sequencer(tempo);
 
     g_camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1000);
 
