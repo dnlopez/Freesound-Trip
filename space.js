@@ -814,6 +814,8 @@ function findSoundSitesOwningMeshes(i_meshes)
 
 // + Scrolling log {{{
 
+// + + Construction {{{
+
 function ScrollingLog()
 {
     this.rootDomElement = document.createElement("div");
@@ -836,30 +838,107 @@ function ScrollingLog()
     this.rootDomElement.style.display = "flex";
     this.rootDomElement.style.flexDirection = "column-reverse";
 
-    // Time in seconds for each log element to remain visible for
+    // Default time in seconds for each log element to remain visible for
     this.timeout = 3;
+
+    //
+    this.entries = [];
 }
+
+// + + }}}
+
+// + + Root DOM element {{{
 
 ScrollingLog.prototype.getRootDomElement = function ()
 {
     return this.rootDomElement;
 };
 
-ScrollingLog.prototype.addText = function (i_text)
+// + + }}}
+
+// + + Add entries {{{
+
+ScrollingLog.prototype.addText = function (i_text, i_timeout)
+// Params:
+//  i_text:
+//   (string)
+//  i_timeout:
+//   Either (float number)
+//    Time in seconds from now after which the log element should be removed (by removeTimedOutEntries()).
+//    Infinity: Don't automatically remove.
+//   or (null or undefined)
+//    Use the default timeout (as set in constructor).
 {
-    // Create and append text element
-    var logContainer = document.createElement("div");
-    logContainer.appendChild(document.createTextNode(i_text));
-    this.rootDomElement.insertBefore(logContainer, this.rootDomElement.firstChild);
+    // Apply default arguments
+    if (i_timeout === null || i_timeout === undefined)
+        i_timeout = this.timeout;
 
-    // Scroll to bottom
+    // Create DOM element, containing text
+    var domElement = document.createElement("div");
+    domElement.appendChild(document.createTextNode(i_text));
+
+    // Create an entry, with its timeout
+    this.entries.push([performance.now() / 1000 + i_timeout, domElement]);
+
+    // Add DOM element
+    // and scroll to bottom
+    this.rootDomElement.insertBefore(domElement, this.rootDomElement.firstChild);
     this.rootDomElement.scrollTop = this.rootDomElement.scrollHeight;
+};
 
-    // Remove element after timeout has elapsed
-    var me = this;
-    setTimeout(function () {
-        me.rootDomElement.removeChild(logContainer);
-    }, this.timeout * 1000);
+// + + }}}
+
+ScrollingLog.prototype.resetEntryTimeouts = function (i_timeout)
+// Params:
+//  i_timeout:
+//   Either (float number)
+//    Time in seconds from now after which all existing log elements should be removed (by removeTimedOutEntries()).
+//    Infinity: Don't automatically remove.
+//   or (null or undefined)
+//    Use the default timeout (as set in constructor).
+{
+    // Apply default arguments
+    if (i_timeout === null || i_timeout === undefined)
+        i_timeout = this.timeout;
+
+    //
+    for (var entryCount = this.entries.length, entryNo = 0; entryNo < entryCount; ++entryNo)
+    {
+        this.entries[entryNo][0] = performance.now() / 1000 + i_timeout;
+    }
+};
+
+ScrollingLog.prototype.removeTimedOutEntries = function ()
+// Typically to be called from the animation loop.
+{
+    var currentTime = performance.now() / 1000;
+    var entryNo = 0;
+    while (entryNo < this.entries.length)
+    {
+        var entry = this.entries[entryNo];
+
+        if (currentTime >= entry[0])
+        {
+            this.rootDomElement.removeChild(entry[1]);
+            this.entries.splice(entryNo, 1);
+        }
+        else
+        {
+            ++entryNo;
+        }
+    }
+};
+
+ScrollingLog.prototype.removeAllEntries = function ()
+{
+    // Clear entries array
+    this.entries.length = 0;
+
+    // Remove log elements from DOM
+    while (this.rootDomElement.lastChild)
+    {
+        this.rootDomElement.removeChild(this.rootDomElement.lastChild);
+    }
 };
 
 // + }}}
@@ -1359,6 +1438,7 @@ function assetLoader_onAll()
 
     // + }}}
 
+    g_scrollingLog.addText("... ready!");
     startMainLoop();
 }
 
@@ -1555,6 +1635,8 @@ function animate()
 	g_controls.update(delta);
 
     g_renderer.render(g_scene, g_camera);
+
+    g_scrollingLog.removeTimedOutEntries();
 }
 
 init();
