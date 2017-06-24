@@ -1244,7 +1244,6 @@ function continueInit()
     g_assetLoader = new dan.loaders.AssetLoader();
 
     g_scrollingLog.addText("Loading...");
-    loadWithLog(g_assetLoader, g_assetLoader.loadTexture, "textures/crate.gif", "crate");
     loadWithLog(g_assetLoader, g_assetLoader.loadTexture, "sprites/shapes.png", "shapes");
     //loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/27k_collection.json", "points");
     loadWithLog(g_assetLoader, g_assetLoader.loadJson, "http://54.215.134.50:5000/tsne?tags=" + g_tagsStr, "points");
