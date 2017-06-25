@@ -674,8 +674,31 @@ function SoundSite(i_audioContext, i_sound,
     o_vertexAttribute_colours[i_soundSiteNo*4 + 2] = i_sound.b;
     o_vertexAttribute_colours[i_soundSiteNo*4 + 3] = 1.0;
 
-    o_vertexAttribute_spriteUvs[i_soundSiteNo*2 + 0] = 0.0;
-    o_vertexAttribute_spriteUvs[i_soundSiteNo*2 + 1] = 0.0;
+    var firstFamily = g_assetLoader.loaded["freesound_tags_indexed"][this.soundId]["families"][0];
+    switch (firstFamily)
+    {
+    case "human":
+        o_vertexAttribute_spriteUvs[i_soundSiteNo*2 + 0] = 0.0;
+        o_vertexAttribute_spriteUvs[i_soundSiteNo*2 + 1] = 0.0;
+        break;
+    case "objects":
+        o_vertexAttribute_spriteUvs[i_soundSiteNo*2 + 0] = 0.5;
+        o_vertexAttribute_spriteUvs[i_soundSiteNo*2 + 1] = 0.0;
+        break;
+    case "scifi":
+        o_vertexAttribute_spriteUvs[i_soundSiteNo*2 + 0] = 0.0;
+        o_vertexAttribute_spriteUvs[i_soundSiteNo*2 + 1] = 0.5;
+        break;
+    case "animals":
+        o_vertexAttribute_spriteUvs[i_soundSiteNo*2 + 0] = 0.5;
+        o_vertexAttribute_spriteUvs[i_soundSiteNo*2 + 1] = 0.5;
+        break;
+    default:
+        o_vertexAttribute_spriteUvs[i_soundSiteNo*2 + 0] = 0.0;
+        o_vertexAttribute_spriteUvs[i_soundSiteNo*2 + 1] = 0.0;
+        break;
+    }
+
     //this.rangeSphereGeometry = new THREE.SphereGeometry(k_distanceAtWhichSoundIsSilent, 32, 32);
     //var material = new THREE.MeshBasicMaterial({color: 0xffff88});
     //material.wireframe = true;
@@ -1415,8 +1438,9 @@ function continueInit()
     loadWithLog(g_assetLoader, g_assetLoader.loadJson, "http://54.215.134.50:5000/tsne?tags=" + g_tagsStr, "points");
     //loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/tsne_splash.json", "points");
     //loadWithLog(g_assetLoader, g_assetLoader.loadJson, "http://ec2-54-215-134-50.us-west-1.compute.amazonaws.com:5000/tsne?tags=" + g_tagsStr, "points");
-    loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/tag_summary.json", "tag_summary");
-    loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/tags_to_ids.json", "tags_to_ids");
+    //loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/tag_summary.json", "tag_summary");
+    //loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/tags_to_ids.json", "tags_to_ids");
+    loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/freesound_tags_indexed.json", "freesound_tags_indexed");
     if (k_soundSource == "index")
         loadWithLog(g_assetLoader, g_assetLoader.loadJson, k_soundSource_indexUrl, "sound_index");
 
