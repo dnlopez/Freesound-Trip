@@ -1413,6 +1413,7 @@ function continueInit()
     loadWithLog(g_assetLoader, g_assetLoader.loadTexture, "sprites/shapes.png", "shapes");
     //loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/27k_collection.json", "points");
     loadWithLog(g_assetLoader, g_assetLoader.loadJson, "http://54.215.134.50:5000/tsne?tags=" + g_tagsStr, "points");
+    //loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/tsne_splash.json", "points");
     //loadWithLog(g_assetLoader, g_assetLoader.loadJson, "http://ec2-54-215-134-50.us-west-1.compute.amazonaws.com:5000/tsne?tags=" + g_tagsStr, "points");
     loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/tag_summary.json", "tag_summary");
     loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/tags_to_ids.json", "tags_to_ids");
