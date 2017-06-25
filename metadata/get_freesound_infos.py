@@ -86,5 +86,5 @@ def indexSoundInfosById(i_soundInfos):
         for soundInfo in i_soundInfos
     }
 
-soundIndex = indexSoundInfosById(soundInfos)
-open("freesound_index.json", "w").write(json.dumps(soundIndex))
+soundInfosIndexed = indexSoundInfosById(soundInfos)
+open("freesound_infos_indexed.json", "w").write(json.dumps(soundInfosIndexed))

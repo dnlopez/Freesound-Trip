@@ -12,7 +12,7 @@ var k_soundSource_pattern = "nobackup/previews/*.mp3";
 // Only applicable when k_soundSource == "pattern".
 // Template to generate sound URLs. "*" will be replaced with the sound ID.
 
-var k_soundSource_indexUrl = "metadata/freesound_index.json";
+var k_soundSource_indexUrl = "metadata/freesound_infos_indexed.json";
 // (str)
 // Only applicable when k_soundSource == "index".
 // URL of the index file.
