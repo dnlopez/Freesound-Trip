@@ -598,13 +598,13 @@ var k_distanceAtWhichSoundIsSilent = 300;
 var g_showSoundSiteRanges = false;
 
 function SoundSite(i_audioContext, i_sound,
-                   i_soundId, i_url,
+                   i_soundSiteNo, i_url,
                    i_position,
                    i_soundSiteNo, o_vertexAttribute_positions, o_vertexAttribute_alphas, o_vertexAttribute_colours, o_vertexAttribute_spriteUvs)
 // Params:
 //  i_audioContext:
 //   (AudioContext)
-//  i_soundId:
+//  i_soundSiteNo:
 //   (string)
 //  i_url:
 //   (string)
@@ -618,7 +618,7 @@ function SoundSite(i_audioContext, i_sound,
 //   (array of float number)
 {
     this.m_audioContext = i_audioContext;
-    this.soundId = i_soundId;
+    this.soundId = i_sound.id;
     this.soundUrl = i_url;
     this.soundSiteNo = i_soundSiteNo;
 
