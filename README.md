@@ -1,29 +1,39 @@
-Freesound Trip
-==============
-Journey through Freesound space from the controls of your Free-Funk mothership.
-
----
-#### Move
-  - W / S / A / D: forward / backward / leftward / rightward
-  - R / F: up / down
-#### Rotate
-  - Arrow keys or mouse click+drag
-#### Roll
-  - Q / E
-
-#### Record audio
-  - C
-
----
-Created by the Audio Commons team of the Sónar Innovation Challenge 2017
-
-- Emilio Molina
-- Mónica Rikić
-- CJ Carr
-- Lefteris Stamellos
-- Daniel Lopez
-
-with mentors
-- Dmitry Bogdanov
-- Eduardo Fonseca
-- Xavier Favory
+<h1>Freesound Trip</h1>
+<p>Journey through Freesound space from the controls of your Free-Funk mothership.</p>
+<hr>
+<h4>Move</h4>
+<ul>
+  <li>W / S / A / D: forward / backward / leftward / rightward</li>
+  <li>R / F: up / down</li>
+</ul>
+<h4>Rotate</h4>
+<ul>
+  <li>Arrow keys or mouse click+drag</li>
+</ul>
+<h4>Roll</h4>
+<ul>
+  <li>Q / E</li>
+</ul>
+<h4>Record audio</h4>
+<ul>
+  <li>C</li>
+</ul>
+<h4>Show current sounds</h4>
+<ul>
+  <li>P: itemize the sequencer's current output, specific to your current position in space, in relation to all of the sound sites
+</ul>
+<hr>
+<p>Created by the Audio Commons team of the Sónar Innovation Challenge 2017</p>
+<ul>
+  <li>Emilio Molina</li>
+  <li>Mónica Rikić</li>
+  <li>CJ Carr</li>
+  <li>Lefteris Stamellos</li>
+  <li>Daniel Lopez</li>
+</ul>
+<p>with mentors</p>
+<ul>
+  <li>Dmitry Bogdanov</li>
+  <li>Eduardo Fonseca</li>
+  <li>Xavier Favory</li>
+</ul>

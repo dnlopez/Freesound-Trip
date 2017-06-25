@@ -335,6 +335,73 @@ Sequencer.prototype.tick = function ()
     setTimeout(this.tick, 0);
 };
 
+Sequencer.prototype.save = function ()
+{
+    var notes = [];
+
+    // Convert beats per minute to seconds per beat,
+    // then get the start time of the next beat
+    var beatPeriod = 60.0/this.tempo;
+    var nextBeatStartTime = this.currentBeatStartTime + beatPeriod;
+
+    for (var beatNo = 0; beatNo < this.sequenceLength; ++beatNo)
+    {
+        var closestSites = "";
+
+        // For each sound site [TODO: that is currently playing or newly close]
+        var soundSiteDistances = [];
+        for (var soundSiteCount = g_soundSites.length, soundSiteNo = 0; soundSiteNo < soundSiteCount; ++soundSiteNo)
+        {
+            var soundSite = g_soundSites[soundSiteNo];
+
+            var d = soundSite.getPosition().distanceTo(g_camera.position);
+            // HACK
+            if (d === undefined || d == 0)
+                continue;
+
+            soundSiteDistances.push({
+                soundSite: soundSite,
+                distance: soundSite.getPosition().distanceTo(g_camera.position)
+            });
+        }
+
+        // Sort the above
+        soundSiteDistances = soundSiteDistances.sort(function (i_a, i_b) {
+            if (i_a.distance < i_b.distance)
+                return -1;
+            else if (i_a.distance > i_b.distance)
+                return 1;
+            else
+                return 0;
+        });
+
+        // For the closest few [shouldn't the next line be Math.min?...]
+        for (var soundSiteDistanceCount = Math.max(soundSiteDistances.length, 5), soundSiteDistanceNo = 0; soundSiteDistanceNo < soundSiteDistanceCount; ++soundSiteDistanceNo)
+        {
+            var soundSiteDistance = soundSiteDistances[soundSiteDistanceNo];
+
+            var soundSite = soundSiteDistance.soundSite;
+            var distance = soundSiteDistance.distance;
+
+            if (soundSite.sequence[beatNo] === 1 || soundSite.sequence[beatNo] === true)
+            {
+                // Choose gain according to distance
+                var distance = soundSite.getPosition().distanceTo(g_camera.position);
+
+                var closeness = (k_distanceAtWhichSoundIsSilent - distance) / k_distanceAtWhichSoundIsSilent;
+                closeness = Math.max(closeness, 0);
+
+                if (closeness > 0)
+                {
+                    closestSites += soundSite.soundId + ": " + soundSite.soundUrl + ", " + soundSite.sequence.toString() + "\n";
+                    notes.push([beatNo, soundSite.soundId, closeness]);
+                }
+            }
+        }
+    }
+
+    return notes;
+};
 
 function playNote(i_buffer,
                   //i_pan, i_panPositionX, i_panPositionY, i_panPositionZ,
@@ -834,6 +901,8 @@ function ScrollingLog()
     this.rootDomElement.style.backgroundColor = "transparent";
     //this.rootDomElement.style.overflowY = "scroll";
 
+    this.rootDomElement.style.pointerEvents = "none";
+
     // Show first element at bottom
     this.rootDomElement.style.display = "flex";
     this.rootDomElement.style.flexDirection = "column-reverse";
@@ -1033,7 +1102,7 @@ function init()
     document.body.addEventListener("mousemove", body_onMouseMove);
 
     //g_controls = new THREE.PointerLockControls(g_camera);
-    g_controls = new THREE.FlyControls(g_camera);
+    g_controls = new THREE.FlyControls(g_camera, g_viewportDiv);
     g_controls.movementSpeed = 1000;
     g_controls.domElement = g_viewportDiv;
     g_controls.rollSpeed = Math.PI / 4;
@@ -1086,6 +1155,24 @@ function init()
                 g_audioRecorder = null;
             }
             break;
+
+        case 80: // p
+            event.preventDefault();
+            dan.gui.html.PopupTextarea(
+                [70, 70], "%", "Current sequence:",
+                "// This is a JSON array,\n" +
+                "// where each element is itself an array with elements:\n" +
+                "//  0: (integer number) sequencer pattern step number, in range [0 .. " + (g_sequencer.sequenceLength - 1).toString() + ")\n" +
+                "//  1: (string) Freesound sound ID\n" +
+                "//  2: (float number) gain of sound, in range [0 .. 1]\n" +
+                "\n" +
+                JSON.stringify(g_sequencer.save()).replace("[[", "[\n[").replace("]]", "]\n]").replace(/\],\[/g, "], ["),
+                [
+                    ["OK", function (i_buttonNo, i_value, i_event) {
+                        return true;
+                    }, [13, 27]],
+                ],
+                true);
         }
     };
 
