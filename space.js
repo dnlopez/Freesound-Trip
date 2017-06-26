@@ -1316,68 +1316,6 @@ function buildTreeOfSoundSites()
     // + }}}
 }
 
-function test_loadLocalSounds()
-{
-    // Create sound sites
-    var k_soundSiteCount = 8;
-    var readyCount = 0;
-    function soundSite_onReady()
-    {
-        ++readyCount;
-        if (readyCount == k_soundSiteCount)
-        {
-        }
-    }
-    for (var soundSiteNo = 0; soundSiteNo < k_soundSiteCount; ++soundSiteNo)
-    {
-        var soundSiteName = "melody" + (soundSiteNo + 1).toString();
-        loadSoundAndAddSoundSite(soundSiteName,
-                                 "/home/daniel/docs/hackspace/sic/3d_space/SOUNDS/" + soundSiteName + ".mp3", 
-                                 new THREE.Vector3(
-                                     Math.floor(Math.random() * 20 - 10) * 20,
-                                     Math.floor(Math.random() * 20) * 20 + 10,
-                                     Math.floor(Math.random() * 20 - 10) * 20)
-                                );
-    }
-}
-
-function test_loadFreesoundSound()
-{
-    loadSoundAndAddSoundSite("freesound 242403_4165591",
-                             "https://www.freesound.org/data/previews/242/242403_4165591-lq.mp3",
-                             new THREE.Vector3(
-                                 Math.floor(Math.random() * 20 - 10) * 20,
-                                 Math.floor(Math.random() * 20) * 20 + 10,
-                                 Math.floor(Math.random() * 20 - 10) * 20),
-                            );
-}
-
-function loadSoundAndAddSoundSite(i_soundSiteName, i_url, i_position)
-// Add a sound site, given a URL and position.
-//
-// Params:
-//  i_soundSiteName:
-//   (string)
-//  i_url:
-//   (string)
-//  i_position:
-//   (THREE.Vector3)
-{
-    // PROTOTYPE:
-    // Create a material to be used by the next sound site, with random colour
-    var soundSiteMaterial = new THREE.MeshPhongMaterial({ specular: 0xffffff, shading: THREE.FlatShading, vertexColors: THREE.VertexColors });
-    soundSiteMaterial.color.setHSL(Math.random() * 0.2 + 0.5, 0.75, Math.random() * 0.25 + 0.75);
-
-    //
-    var soundSite = new SoundSite(g_audioContext, i_soundSiteName, i_url, i_position,
-                                  g_soundSites.length, g_bufferGeometry_positions, g_bufferGeometry_alphas);
-    g_soundSites.push(soundSite);
-
-    //
-    //g_scene.add(soundSite.getMesh());
-    soundSite.addGraphicObjectsToScene(g_scene);
-}
-
 function continueInit()
 {
     //
@@ -1804,32 +1742,6 @@ function searchFreesound_getPage(i_nameQuery, i_pageNo, i_resultsPerPage, i_onPa
         }
     };
     xhr.send();
-}
-
-function loadResultsOfFreesoundSearchIntoSoundSites(i_nameQuery, i_onDone)
-{
-    searchFreesound(i_nameQuery, function (i_results) {
-        for (var resultCount = i_results.length, resultNo = 0; resultNo < resultCount; ++resultNo)
-        {
-            var result = i_results[resultNo];
-
-            var url = result.previews["preview-lq-ogg"];
-            //console.log(url);
-
-            var soundSiteName = url + ', "' + result.name + '"';
-            loadSoundAndAddSoundSite(soundSiteName,
-                                     url,
-                                     new THREE.Vector3(
-                                         Math.floor(Math.random() * 20 - 10) * 20,
-                                         Math.floor(Math.random() * 20) * 20 + 10,
-                                         Math.floor(Math.random() * 20 - 10) * 20)
-                                    );
-        }
-
-        //
-        if (i_onDone)
-            i_onDone();
-    });
 }
 
 function fstest2()
