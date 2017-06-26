@@ -1500,6 +1500,13 @@ function startMainLoop()
 {
     g_sequencer.start();
 
+    // Explicitly unsuspend AudioContext, required on some browsers eg. OS X Safari
+    if (g_audioContext.state != "running")
+    {
+        console.log("Resuming initially suspended AudioContext");
+        g_audioContext.resume();
+    }
+
     // Trigger first frame
     animate();
 }
