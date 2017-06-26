@@ -1074,13 +1074,13 @@ function init()
 
     g_sequencer = new Sequencer(tempo);
 
-    g_camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1000);
+    g_camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 10000);
 
     // Make a scene graph
     g_scene = new THREE.Scene();
 
     // Add fog
-    g_scene.fog = new THREE.Fog(0xffffff, 0, 750);
+    //g_scene.fog = new THREE.Fog(0xffffff, 0, 750);
 
     // Load a skybox and apply it to the scene as background
     //var cubeTextureLoader = new THREE.CubeTextureLoader();
