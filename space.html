@@ -9,18 +9,18 @@
 
         <script type="x-shader/x-vertex" id="vertexshader">
             //uniform float u_zoom;
-            attribute float alpha;
 
+            attribute float a_glow;
             attribute vec2 a_spriteUv;
             attribute vec4 a_colour;
 
-            varying float v_alpha;
+            varying float v_glow;
             varying vec2 v_spriteUv;
             varying vec4 v_colour;
 
             void main()
             {
-                v_alpha = 1.0 - alpha;
+                v_glow = a_glow;
                 v_spriteUv = a_spriteUv;
                 v_colour = a_colour;
 
@@ -31,7 +31,7 @@
         </script>
 
         <script type="x-shader/x-fragment" id="fragmentshader">
-            varying float v_alpha;
+            varying float v_glow;
 
             varying vec2 v_spriteUv;
             varying vec4 v_colour;
@@ -45,6 +45,8 @@
 
                 gl_FragColor = texture2D(u_texture1, textureCoords) * v_colour;
                 //gl_FragColor.r = (1.0 - gl_FragColor.r) * v_alpha + gl_FragColor.r;
+                gl_FragColor.rgb = gl_FragColor.rgb * (1.0 - v_glow) + vec3(v_glow);
+                //gl_FragColor = gl_FragColor * (1.0);
             }
         </script>
     </head>

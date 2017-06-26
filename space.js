@@ -269,6 +269,7 @@ Sequencer.prototype.tick = function ()
                     {
                         closestSites += soundSite.soundId + ": " + soundSite.soundUrl + ", " + soundSite.sequence.toString() + "\n";
                         playNote(soundSite.audioBuffer, closeness, nextBeatStartTime);
+                        soundSite.lastTriggerTime = performance.now() / 1000;
                     }
                 }
             }
@@ -600,7 +601,7 @@ var g_showSoundSiteRanges = false;
 function SoundSite(i_audioContext, i_sound,
                    i_soundSiteNo, i_url,
                    i_position,
-                   i_soundSiteNo, o_vertexAttribute_positions, o_vertexAttribute_alphas, o_vertexAttribute_colours, o_vertexAttribute_spriteUvs)
+                   i_soundSiteNo, o_vertexAttribute_positions, o_vertexAttribute_glows, o_vertexAttribute_colours, o_vertexAttribute_spriteUvs)
 // Params:
 //  i_audioContext:
 //   (AudioContext)
@@ -614,13 +615,15 @@ function SoundSite(i_audioContext, i_sound,
 //   (integer number)
 //  o_vertexAttribute_positions:
 //   (array of float number)
-//  o_vertexAttribute_alphas:
+//  o_vertexAttribute_glows:
 //   (array of float number)
 {
     this.m_audioContext = i_audioContext;
     this.soundId = i_sound.id;
     this.soundUrl = i_url;
     this.soundSiteNo = i_soundSiteNo;
+
+    this.lastTriggerTime = 0;
 
     //
     var localRandom = new Math.seedrandom(this.soundId);
@@ -667,7 +670,7 @@ function SoundSite(i_audioContext, i_sound,
     o_vertexAttribute_positions[i_soundSiteNo*3 + 0] = i_position.x;
     o_vertexAttribute_positions[i_soundSiteNo*3 + 1] = i_position.y;
     o_vertexAttribute_positions[i_soundSiteNo*3 + 2] = i_position.z;
-    o_vertexAttribute_alphas[i_soundSiteNo] = 1.0;
+    o_vertexAttribute_glows[i_soundSiteNo] = 0;
 
     o_vertexAttribute_colours[i_soundSiteNo*4 + 0] = i_sound.r;
     o_vertexAttribute_colours[i_soundSiteNo*4 + 1] = i_sound.g;
@@ -877,7 +880,6 @@ SoundSite.prototype.getPosition = function ()
 
 var g_soundSites = [];
 var g_soundSites_flatVertices = null;  // (Float32Array)
-var g_soundSites_alphas = null;  // (Float32Array)
 
 function findSoundSitesOwningMeshes(i_meshes)
 {
@@ -1394,7 +1396,7 @@ function assetLoader_onAll()
     var particleCount = Object.keys(g_assetLoader.loaded["points"]).length;
 
     g_bufferGeometry_positions = new Float32Array(particleCount * 3);
-    g_bufferGeometry_alphas = new Float32Array(particleCount);
+    g_bufferGeometry_glows = new Float32Array(particleCount);
     g_bufferGeometry_colours = new Float32Array(particleCount * 4);
     g_bufferGeometry_spriteUvs = new Float32Array(particleCount * 2);
 
@@ -1423,7 +1425,7 @@ function assetLoader_onAll()
                                       //point.r, point.g, point.b,
                                       //point.onset_times?
                                       //point.r?
-                                      g_soundSites.length, g_bufferGeometry_positions, g_bufferGeometry_alphas, g_bufferGeometry_colours, g_bufferGeometry_spriteUvs);
+                                      g_soundSites.length, g_bufferGeometry_positions, g_bufferGeometry_glows, g_bufferGeometry_colours, g_bufferGeometry_spriteUvs);
         g_soundSites.push(soundSite);
     }
 
@@ -1452,6 +1454,7 @@ function assetLoader_onAll()
         vertexShader: document.getElementById('vertexshader').textContent,
         fragmentShader: document.getElementById('fragmentshader').textContent,
         transparent: true
+        //depthTest: false
     });
 
     // + }}}
@@ -1464,7 +1467,7 @@ function assetLoader_onAll()
     g_bufferGeometry = new THREE.BufferGeometry();
 
     g_bufferGeometry.addAttribute('position', new THREE.BufferAttribute(g_bufferGeometry_positions, 3));
-    g_bufferGeometry.addAttribute('alpha', new THREE.BufferAttribute(g_bufferGeometry_alphas, 1));
+    g_bufferGeometry.addAttribute('a_glow', new THREE.BufferAttribute(g_bufferGeometry_glows, 1));
     g_bufferGeometry.addAttribute('a_colour', new THREE.BufferAttribute(g_bufferGeometry_colours, 4));
     g_bufferGeometry.addAttribute('a_spriteUv', new THREE.BufferAttribute(g_bufferGeometry_spriteUvs, 2));
 
@@ -1479,7 +1482,7 @@ function assetLoader_onAll()
         g_bufferGeometry_positions[pointNo * 3 + 1] = Math.random() * 1000;
         g_bufferGeometry_positions[pointNo * 3 + 2] = Math.random() * 1000;
 
-        g_bufferGeometry_alphas[pointNo] = 1.0;
+        g_bufferGeometry_glows[pointNo] = 1.0;
     }
     */
 
@@ -1685,6 +1688,19 @@ function animate()
 	g_controls.movementSpeed = 150;
 	g_controls.update(delta);
 
+
+    // Light up recently played stars
+    var timeInSeconds = time / 1000;
+    for (var soundSiteCount = g_soundSites.length, soundSiteNo = 0; soundSiteNo < soundSiteCount; ++soundSiteNo)
+    {
+        var soundSite = g_soundSites[soundSiteNo];
+
+        g_bufferGeometry_glows[soundSiteNo] = 1.0 - dan.clamp(timeInSeconds - soundSite.lastTriggerTime, 0, 1);
+    }
+    g_bufferGeometry.attributes.a_glow.needsUpdate = true;
+
+
+    //
     g_renderer.render(g_scene, g_camera);
 
     g_scrollingLog.removeTimedOutEntries();
