@@ -202,7 +202,7 @@ Sequencer.prototype.tick = function ()
             {
                 if (!soundSite.audioBuffer)
                 {
-                    soundSite.loadSamplesIfNeededAndStartPlaying();  // TODO: "AndStartPlaying" is no longer applicable
+                    soundSite.loadSamplesIfNeeded();  // TODO: "AndStartPlaying" is no longer applicable
                     // TODO: still trigger the first sound if it loads in time
                 }
                 else
@@ -262,7 +262,7 @@ Sequencer.prototype.tick = function ()
                 {
                     if (!soundSite.audioBuffer)
                     {
-                        soundSite.loadSamplesIfNeededAndStartPlaying();  // TODO: "AndStartPlaying" is no longer applicable
+                        soundSite.loadSamplesIfNeeded();  // TODO: "AndStartPlaying" is no longer applicable
                         // TODO: still trigger the first sound if it loads in time
                     }
                     else
@@ -294,7 +294,7 @@ Sequencer.prototype.tick = function ()
                 {
                     if (!soundSite.audioBuffer)
                     {
-                        soundSite.loadSamplesIfNeededAndStartPlaying();  // TODO: "AndStartPlaying" is no longer applicable
+                        soundSite.loadSamplesIfNeeded();  // TODO: "AndStartPlaying" is no longer applicable
                         // TODO: still trigger the first sound if it loads in time
                     }
                     else
@@ -675,7 +675,7 @@ function SoundSite(i_audioContext,
     //this.rangeSphereMesh.position.z = this.mesh.position.z;
 }
 
-SoundSite.prototype.loadSamplesIfNeededAndStartPlaying = function (i_onReady)
+SoundSite.prototype.loadSamplesIfNeeded = function (i_onReady)
 // Params:
 //  i_onReady:
 //   Either (function)
@@ -687,7 +687,7 @@ SoundSite.prototype.loadSamplesIfNeededAndStartPlaying = function (i_onReady)
         return;
     this.loadSamplesStarted = true;
 
-    console.log("loadSamplesIfNeededAndStartPlaying: " + this.soundId);
+    console.log("loadSamplesIfNeeded: " + this.soundId);
 
     //
     var me = this;
@@ -1588,7 +1588,7 @@ function setGainOfSoundSitesByCameraProximity()
         if (closeness > 0)
         {
             currentlyPlayingSites.push([soundSite.soundId, closeness]);
-            soundSite.loadSamplesIfNeededAndStartPlaying();
+            soundSite.loadSamplesIfNeeded();
         }
     }
     */
@@ -1615,7 +1615,7 @@ function setGainOfSoundSitesByCameraProximity()
         if (closeness > 0)
         {
             currentlyPlayingSites.push([soundSite.soundId, closeness]);
-            soundSite.loadSamplesIfNeededAndStartPlaying();
+            soundSite.loadSamplesIfNeeded();
         }
     }
 
