@@ -598,29 +598,26 @@ function map01ToRange(i_value,
 var k_distanceAtWhichSoundIsSilent = 300;
 var g_showSoundSiteRanges = false;
 
-function SoundSite(i_audioContext, i_sound,
-                   i_soundSiteNo, i_url,
+function SoundSite(i_audioContext,
+                   i_dataPoint,
+                   i_url,
                    i_position,
-                   i_soundSiteNo, o_vertexAttribute_positions, o_vertexAttribute_glows, o_vertexAttribute_colours, o_vertexAttribute_spriteUvs)
+                   i_soundSiteNo)
 // Params:
 //  i_audioContext:
 //   (AudioContext)
-//  i_soundSiteNo:
-//   (string)
 //  i_url:
 //   (string)
 //  i_position:
 //   (THREE.Vector3)
 //  i_soundSiteNo:
 //   (integer number)
-//  o_vertexAttribute_positions:
-//   (array of float number)
-//  o_vertexAttribute_glows:
-//   (array of float number)
 {
     this.m_audioContext = i_audioContext;
-    this.soundId = i_sound.id;
+    this.dataPoint = i_dataPoint;
+    this.soundId = i_dataPoint.id;
     this.soundUrl = i_url;
+    this.position = i_position;
     this.soundSiteNo = i_soundSiteNo;
 
     this.lastTriggerTime = 0;
@@ -667,40 +664,7 @@ function SoundSite(i_audioContext, i_sound,
     //this.mesh.position.y = positionY;
     //this.mesh.position.z = positionZ;
 
-    o_vertexAttribute_positions[i_soundSiteNo*3 + 0] = i_position.x;
-    o_vertexAttribute_positions[i_soundSiteNo*3 + 1] = i_position.y;
-    o_vertexAttribute_positions[i_soundSiteNo*3 + 2] = i_position.z;
-    o_vertexAttribute_glows[i_soundSiteNo] = 0;
-
-    o_vertexAttribute_colours[i_soundSiteNo*4 + 0] = i_sound.r;
-    o_vertexAttribute_colours[i_soundSiteNo*4 + 1] = i_sound.g;
-    o_vertexAttribute_colours[i_soundSiteNo*4 + 2] = i_sound.b;
-    o_vertexAttribute_colours[i_soundSiteNo*4 + 3] = 1.0;
-
-    var firstFamily = g_assetLoader.loaded["freesound_tags_indexed"][this.soundId]["families"][0];
-    switch (firstFamily)
-    {
-    case "human":
-        o_vertexAttribute_spriteUvs[i_soundSiteNo*2 + 0] = 0.0;
-        o_vertexAttribute_spriteUvs[i_soundSiteNo*2 + 1] = 0.0;
-        break;
-    case "objects":
-        o_vertexAttribute_spriteUvs[i_soundSiteNo*2 + 0] = 0.5;
-        o_vertexAttribute_spriteUvs[i_soundSiteNo*2 + 1] = 0.0;
-        break;
-    case "scifi":
-        o_vertexAttribute_spriteUvs[i_soundSiteNo*2 + 0] = 0.0;
-        o_vertexAttribute_spriteUvs[i_soundSiteNo*2 + 1] = 0.5;
-        break;
-    case "animals":
-        o_vertexAttribute_spriteUvs[i_soundSiteNo*2 + 0] = 0.5;
-        o_vertexAttribute_spriteUvs[i_soundSiteNo*2 + 1] = 0.5;
-        break;
-    default:
-        o_vertexAttribute_spriteUvs[i_soundSiteNo*2 + 0] = 0.0;
-        o_vertexAttribute_spriteUvs[i_soundSiteNo*2 + 1] = 0.0;
-        break;
-    }
+    // [o_... assignments moved away from here]
 
     //this.rangeSphereGeometry = new THREE.SphereGeometry(k_distanceAtWhichSoundIsSilent, 32, 32);
     //var material = new THREE.MeshBasicMaterial({color: 0xffff88});
@@ -1252,9 +1216,10 @@ var g_kdTree = null;
 
 function buildTreeOfSoundSites()
 {
-    /*
     // + k-d tree {{{
     // To make the nearest neighbour search faster
+
+    /* // THREE.TypedArrayUtils.Kdtree implementation
 
     // Get sound site positions in flat array
     var soundSitePositions = new Float32Array(g_soundSites.length * 3);
@@ -1279,13 +1244,7 @@ function buildTreeOfSoundSites()
     };
     g_kdTree = new THREE.TypedArrayUtils.Kdtree(soundSitePositions, distanceFunction, 3);
 
-    console.log('TIME building kdtree', new Date().getTime() - measureStart);
-
-    // + }}}
     */
-
-    // + k-d tree {{{
-    // To make the nearest neighbour search faster
 
     // Get sound site positions in array of objects
     var soundSitePositions = [];
@@ -1312,6 +1271,7 @@ function buildTreeOfSoundSites()
         return Math.sqrt(Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2) + Math.pow(a[2] - b[2], 2));
     };
     g_kdTree = new kdTree(soundSitePositions, distanceFunction, ["x", "y", "z"]);
+
 
     console.log('TIME building kdtree', new Date().getTime() - measureStart);
 
@@ -1373,14 +1333,18 @@ function continueInit()
     g_assetLoader = new dan.loaders.AssetLoader();
 
     g_scrollingLog.addText("Loading...");
+
     loadWithLog(g_assetLoader, g_assetLoader.loadTexture, "sprites/shapes.png", "shapes");
-    //loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/27k_collection.json", "points");
+
     loadWithLog(g_assetLoader, g_assetLoader.loadJson, "http://54.215.134.50:5000/tsne?tags=" + g_tagsStr, "points");
-    //loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/tsne_splash.json", "points");
     //loadWithLog(g_assetLoader, g_assetLoader.loadJson, "http://ec2-54-215-134-50.us-west-1.compute.amazonaws.com:5000/tsne?tags=" + g_tagsStr, "points");
+    //loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/tsne_splash.json", "points");
+    //loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/27k_collection.json", "points");
+
     //loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/tag_summary.json", "tag_summary");
     //loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/tags_to_ids.json", "tags_to_ids");
     loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/freesound_tags_indexed.json", "freesound_tags_indexed");
+
     if (k_soundSource == "index")
         loadWithLog(g_assetLoader, g_assetLoader.loadJson, k_soundSource_indexUrl, "sound_index");
 
@@ -1391,53 +1355,145 @@ function continueInit()
 
 function assetLoader_onAll()
 {
-    // + Load sounds {{{
+    //g_fullScreenFragmentShader = new FullScreenFragmentShader();
 
-    var particleCount = Object.keys(g_assetLoader.loaded["points"]).length;
+    // + Count data points in loaded JSON {{{
 
-    g_bufferGeometry_positions = new Float32Array(particleCount * 3);
-    g_bufferGeometry_glows = new Float32Array(particleCount);
-    g_bufferGeometry_colours = new Float32Array(particleCount * 4);
-    g_bufferGeometry_spriteUvs = new Float32Array(particleCount * 2);
+    var dataPointCount;
+
+    // If points loaded and converted from JSON are in format where the top-level of the structure is an array,
+    // count them as you do for an array
+    if (g_assetLoader.loaded["points"].constructor === Array)
+    {
+        dataPointCount = g_assetLoader.loaded["points"].length;
+    }
+    // Else if points loaded and converted from JSON are in format where the top-level of the structure is an object,
+    // count them as you do for an object
+    else if (g_assetLoader.loaded["points"].constructor === Object)
+    {
+        dataPointCount = Object.keys(g_assetLoader.loaded["points"]).length;
+    }
+    // Else if points loaded and converted from JSON are in some other format,
+    // abort with error
+    else
+    {
+        g_scrollingLog.addText("Loaded points aren't in either array or object format! Giving up.");
+        throw "Loaded points aren't in either array or object format! Giving up.";
+    }
+
+    // + }}}
+
+    // + Load data points {{{
 
     //
     var coordinateExpansionFactor = 20;
-    for (var pointCount = g_assetLoader.loaded["points"].length, pointNo = 0; pointNo < pointCount; ++pointNo)
+    function loadSourcePoint(i_point)
     {
-        var point = g_assetLoader.loaded["points"][pointNo];
-
-        //
         var soundUrl;
         switch (k_soundSource)
         {
         case "pattern":
-            soundUrl = k_soundSource_pattern.replace("*", point.id);
+            soundUrl = k_soundSource_pattern.replace("*", i_point.id);
             break;
         case "index":
-            soundUrl = g_assetLoader["loaded"]["sound_index"][point.id]["url"];
+            if (!(i_point.id in g_assetLoader["loaded"]["sound_index"]))
+            {
+                console.log("Don't have a sound_index entry for " + i_point.id.toString() + " so don't know URL, skipping");
+                return;
+            }
+            soundUrl = g_assetLoader["loaded"]["sound_index"][i_point.id]["url"];
             break;
         }
 
         //
-        var soundSite = new SoundSite(g_audioContext, point,
-                                      pointNo.toString(), soundUrl,
-                                      new THREE.Vector3(point.x * coordinateExpansionFactor, point.y * coordinateExpansionFactor, point.z * coordinateExpansionFactor),
-                                      //point.r, point.g, point.b,
-                                      //point.onset_times?
-                                      //point.r?
-                                      g_soundSites.length, g_bufferGeometry_positions, g_bufferGeometry_glows, g_bufferGeometry_colours, g_bufferGeometry_spriteUvs);
+        var soundSite = new SoundSite(g_audioContext, i_point,
+                                      soundUrl,
+                                      new THREE.Vector3(i_point.x * coordinateExpansionFactor, i_point.y * coordinateExpansionFactor, i_point.z * coordinateExpansionFactor),
+                                      //i_point.r, i_point.g, i_point.b,
+                                      //i_point.onset_times?
+                                      //i_point.r?
+                                      g_soundSites.length);
         g_soundSites.push(soundSite);
     }
 
+    // If points loaded and converted from JSON are in format where the top-level of the structure is an array,
+    // iterate them as you do for an array
+    if (g_assetLoader.loaded["points"].constructor === Array)
+    {
+        for (var dataPointNo = 0; dataPointNo < dataPointCount; ++dataPointNo)
+        {
+            var point = g_assetLoader.loaded["points"][dataPointNo];
+            loadSourcePoint(point);
+        }
+    }
+    // Else if points loaded and converted from JSON are in format where the top-level of the structure is an object,
+    // iterate them as you do for an object
+    else if (g_assetLoader.loaded["points"].constructor === Object)
+    {
+        for (var dataPointId in g_assetLoader.loaded["points"])
+        {
+            var point = g_assetLoader.loaded["points"][dataPointId];
+            point.id = dataPointId;
+            loadSourcePoint(point);
+        }
+    }
 
     if (g_soundSites.length > 20000)
         debugger;
 
+    // + + Fill vertex arrays {{{
+
+    g_bufferGeometry_positions = new Float32Array(g_soundSites.length * 3);
+    g_bufferGeometry_glows = new Float32Array(g_soundSites.length);
+    g_bufferGeometry_colours = new Float32Array(g_soundSites.length * 4);
+    g_bufferGeometry_spriteUvs = new Float32Array(g_soundSites.length * 2);
+
+    for (var soundSiteCount = g_soundSites.length, soundSiteNo = 0; soundSiteNo < soundSiteCount; ++soundSiteNo)
+    {
+        var soundSite = g_soundSites[soundSiteNo];
+
+        g_bufferGeometry_positions[soundSiteNo*3 + 0] = soundSite.position.x;
+        g_bufferGeometry_positions[soundSiteNo*3 + 1] = soundSite.position.y;
+        g_bufferGeometry_positions[soundSiteNo*3 + 2] = soundSite.position.z;
+        g_bufferGeometry_glows[soundSiteNo] = 0;
+
+        g_bufferGeometry_colours[soundSiteNo*4 + 0] = soundSite.dataPoint.r;
+        g_bufferGeometry_colours[soundSiteNo*4 + 1] = soundSite.dataPoint.g;
+        g_bufferGeometry_colours[soundSiteNo*4 + 2] = soundSite.dataPoint.b;
+        g_bufferGeometry_colours[soundSiteNo*4 + 3] = 1.0;
+
+        var firstFamily = g_assetLoader.loaded["freesound_tags_indexed"][soundSite.soundId]["families"][0];
+        switch (firstFamily)
+        {
+        case "human":
+            g_bufferGeometry_spriteUvs[soundSiteNo*2 + 0] = 0.0;
+            g_bufferGeometry_spriteUvs[soundSiteNo*2 + 1] = 0.0;
+            break;
+        case "objects":
+            g_bufferGeometry_spriteUvs[soundSiteNo*2 + 0] = 0.5;
+            g_bufferGeometry_spriteUvs[soundSiteNo*2 + 1] = 0.0;
+            break;
+        case "scifi":
+            g_bufferGeometry_spriteUvs[soundSiteNo*2 + 0] = 0.0;
+            g_bufferGeometry_spriteUvs[soundSiteNo*2 + 1] = 0.5;
+            break;
+        case "animals":
+            g_bufferGeometry_spriteUvs[soundSiteNo*2 + 0] = 0.5;
+            g_bufferGeometry_spriteUvs[soundSiteNo*2 + 1] = 0.5;
+            break;
+        default:
+            g_bufferGeometry_spriteUvs[soundSiteNo*2 + 0] = 0.0;
+            g_bufferGeometry_spriteUvs[soundSiteNo*2 + 1] = 0.0;
+            break;
+        }
+    }
+
+    // + + }}}
 
     //
     buildTreeOfSoundSites();
 
-
+    // + }}}
 
     // + Create custom shader for points, that draws from crate texture {{{
 
@@ -1446,6 +1502,7 @@ function assetLoader_onAll()
     var imagePreviewTexture = g_assetLoader.loaded["shapes"];
     imagePreviewTexture.minFilter = THREE.LinearMipMapLinearFilter;
     imagePreviewTexture.magFilter = THREE.LinearFilter;
+
     var pointShaderMaterial = new THREE.ShaderMaterial({
         uniforms: {
             u_texture1: { value: imagePreviewTexture },
@@ -1473,18 +1530,6 @@ function assetLoader_onAll()
 
     // Make a renderable THREE.Points object that uses the above buffer geometry
     var points = new THREE.Points(g_bufferGeometry, pointShaderMaterial);
-
-    /*
-    // Fill attributes with random or default values
-    for (var pointNo = 0; pointNo < particleCount; ++pointNo)
-    {
-        g_bufferGeometry_positions[pointNo * 3 + 0] = Math.random() * 1000;
-        g_bufferGeometry_positions[pointNo * 3 + 1] = Math.random() * 1000;
-        g_bufferGeometry_positions[pointNo * 3 + 2] = Math.random() * 1000;
-
-        g_bufferGeometry_glows[pointNo] = 1.0;
-    }
-    */
 
     // Add point objects to scene
     g_scene.add(points);
