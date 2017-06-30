@@ -1481,8 +1481,8 @@ function assetLoader_onAll()
         },
         vertexShader: document.getElementById('vertexshader').textContent,
         fragmentShader: document.getElementById('fragmentshader').textContent,
-        transparent: true
-        //depthTest: false
+        transparent: true,
+        depthTest: false
     });
 
     // + }}}
