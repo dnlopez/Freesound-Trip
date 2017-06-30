@@ -999,7 +999,10 @@ var g_sequencer;
 function init()
 {
     g_tagsStr = dan.getParameterValueFromQueryString("tags");
-    var tags = g_tagsStr.split("+");
+    if (g_tagsStr == "")
+        g_tags = [];
+    else
+        g_tags = g_tagsStr.split("+");
 
     var tempo = dan.getParameterValueFromQueryString("bpm");
     if (tempo != "")
@@ -1307,10 +1310,22 @@ function continueInit()
 
     loadWithLog(g_assetLoader, g_assetLoader.loadTexture, "sprites/shapes.png", "shapes");
 
-    loadWithLog(g_assetLoader, g_assetLoader.loadJson, "http://54.215.134.50:5000/tsne?tags=" + g_tagsStr, "points");
-    //loadWithLog(g_assetLoader, g_assetLoader.loadJson, "http://ec2-54-215-134-50.us-west-1.compute.amazonaws.com:5000/tsne?tags=" + g_tagsStr, "points");
-    //loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/tsne_splash.json", "points");
-    //loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/27k_collection.json", "points");
+    if (dan.getParameterValueFromQueryString("datasource") == "dynamic")
+    {
+        loadWithLog(g_assetLoader, g_assetLoader.loadJson, "http://54.215.134.50:5000/tsne?tags=" + g_tagsStr, "points");
+        //loadWithLog(g_assetLoader, g_assetLoader.loadJson, "http://ec2-54-215-134-50.us-west-1.compute.amazonaws.com:5000/tsne?tags=" + g_tagsStr, "points");
+        g_soundsAlreadyFiltered = true;
+    }
+    else if (dan.getParameterValueFromQueryString("datasource") == "test_splash")
+    {
+        loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/tsne_splash.json", "points");
+        g_soundsAlreadyFiltered = true;
+    }
+    else
+    {
+        loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/27k_collection.json", "points");
+        g_soundsAlreadyFiltered = false;
+    }
 
     //loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/tag_summary.json", "tag_summary");
     //loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/tags_to_ids.json", "tags_to_ids");
@@ -1356,10 +1371,39 @@ function assetLoader_onAll()
 
     // + Load data points {{{
 
+    function soundHasTag(i_soundId, i_tagName)
+    {
+        var tagInfo = g_assetLoader["loaded"]["freesound_tags_indexed"][i_soundId];
+        if (!tagInfo)
+            return false;
+        if (tagInfo["tags"].indexOf(i_tagName) == -1)
+            return false;
+        return true;
+    }
+
     //
     var coordinateExpansionFactor = 20;
     function loadSourcePoint(i_point)
     {
+        //
+        if (!g_soundsAlreadyFiltered && g_tags.length > 0)
+        {
+            var tagIsInFilter = false;
+            for (var tagCount = g_tags.length, tagNo = 0; tagNo < tagCount; ++tagNo)
+            {
+                var tag = g_tags[tagNo];
+
+                if (soundHasTag(i_point.id, tag))
+                {
+                    tagIsInFilter = true;
+                    break;
+                }
+            }
+            if (!tagIsInFilter)
+                return;
+        }
+
+        // Determine sound URL
         var soundUrl;
         switch (k_soundSource)
         {
@@ -1376,7 +1420,7 @@ function assetLoader_onAll()
             break;
         }
 
-        //
+        // Create sound site
         var soundSite = new SoundSite(g_audioContext, i_point,
                                       soundUrl,
                                       new THREE.Vector3(i_point.x * coordinateExpansionFactor, i_point.y * coordinateExpansionFactor, i_point.z * coordinateExpansionFactor),
@@ -1409,8 +1453,11 @@ function assetLoader_onAll()
         }
     }
 
-    //if (g_soundSites.length > 20000)
-    //    debugger;
+    // + + Show info about points {{{
+
+    g_scrollingLog.addText("Selected " + g_soundSites.length + " points");
+
+    // + + }}}
 
     // + + Fill vertex arrays {{{
 
