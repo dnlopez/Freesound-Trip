@@ -47,7 +47,7 @@ Array.prototype.rotate = (function() {
     };
 })();
 
-function generateSequence(i_length, i_oneEveryNSteps, i_individualHitChance, i_maxJitter, i_offset)
+function generateSequence(i_length, i_oneEveryNSteps, i_individualHitChance, i_maxJitter, i_offset, i_linearRandomGeneratorFunc)
 // Params:
 //  i_length:
 //   (integer number)
@@ -59,6 +59,16 @@ function generateSequence(i_length, i_oneEveryNSteps, i_individualHitChance, i_m
 //   (float number)
 //  i_offset:
 //   (integer number)
+//  i_linearRandomGeneratorFunc:
+//   Either (function)
+//    Function has:
+//     Params:
+//      -
+//     Returns:
+//      (float number)
+//      In half-open range [0 .. 1)
+//   or (null or undefined)
+//    Use default of Math.random()
 //
 // Returns:
 //  (array of integer number)
@@ -80,9 +90,9 @@ function generateSequence(i_length, i_oneEveryNSteps, i_individualHitChance, i_m
     {
         var intElementNo = Math.round(elementNo);
 
-        if (Math.random() < i_individualHitChance)
+        if (i_linearRandomGeneratorFunc() < i_individualHitChance)
         {
-            var jitterAmount = Math.round((Math.random() * 2 - 1) * i_maxJitter);
+            var jitterAmount = Math.round((i_linearRandomGeneratorFunc() * 2 - 1) * i_maxJitter);
 
             var jitteredElementNo = dan.clockMod(intElementNo + jitterAmount, sequence.length);
 
@@ -545,13 +555,15 @@ function lowTendingRandom(i_power, i_linearRandomGeneratorFunc)
 //  i_power:
 //   (number)
 //  i_linearRandomGeneratorFunc:
-//   (function)
-//   Function has:
-//    Params:
-//     -
-//    Returns:
-//     (float number)
-//     In half-open range [0 .. 1)
+//   Either (function)
+//    Function has:
+//     Params:
+//      -
+//     Returns:
+//      (float number)
+//      In half-open range [0 .. 1)
+//   or (null or undefined)
+//    Use default of Math.random()
 //
 // FIXME:
 //  If i_power is high, 
@@ -567,13 +579,15 @@ function highTendingRandom(i_power, i_linearRandomGeneratorFunc)
 //  i_power:
 //   (number)
 //  i_linearRandomGeneratorFunc:
-//   (function)
-//   Function has:
-//    Params:
-//     -
-//    Returns:
-//     (float number)
-//     In half-open range [0 .. 1)
+//   Either (function)
+//    Function has:
+//     Params:
+//      -
+//     Returns:
+//      (float number)
+//      In half-open range [0 .. 1)
+//   or (null or undefined)
+//    Use default of Math.random()
 {
     return 1 - Number.EPSILON - lowTendingRandom(i_power, i_linearRandomGeneratorFunc);
 }
@@ -656,7 +670,7 @@ function SoundSite(i_audioContext,
 
     var sequence_offset = map01ToRange(lowTendingRandom(3, localRandom), 0, 2);
 
-    this.sequence = generateSequence(64, sequence_oneEveryNSteps, sequence_individualHitChance, sequence_maxJitter, sequence_offset);
+    this.sequence = generateSequence(64, sequence_oneEveryNSteps, sequence_individualHitChance, sequence_maxJitter, sequence_offset, localRandom);
 
     //// Graphic object
     //this.mesh = new THREE.Mesh(i_geometry, i_material);
