@@ -1371,6 +1371,10 @@ function assetLoader_onAll()
 
     // + Load data points {{{
 
+    // + + Select points, determine sound URLs {{{
+
+    var selectedPointInfos = [];
+
     function soundHasTag(i_soundId, i_tagName)
     {
         var tagInfo = g_assetLoader["loaded"]["freesound_tags_indexed"][i_soundId];
@@ -1382,10 +1386,9 @@ function assetLoader_onAll()
     }
 
     //
-    var coordinateExpansionFactor = 20;
-    function loadSourcePoint(i_point)
+    function selectSourcePoint(i_point)
     {
-        //
+        // Filter by tags
         if (!g_soundsAlreadyFiltered && g_tags.length > 0)
         {
             var tagIsInFilter = false;
@@ -1420,15 +1423,8 @@ function assetLoader_onAll()
             break;
         }
 
-        // Create sound site
-        var soundSite = new SoundSite(g_audioContext, i_point,
-                                      soundUrl,
-                                      new THREE.Vector3(i_point.x * coordinateExpansionFactor, i_point.y * coordinateExpansionFactor, i_point.z * coordinateExpansionFactor),
-                                      //i_point.r, i_point.g, i_point.b,
-                                      //i_point.onset_times?
-                                      //i_point.r?
-                                      g_soundSites.length);
-        g_soundSites.push(soundSite);
+        //
+        selectedPointInfos.push([i_point, soundUrl]);
     }
 
     // If points loaded and converted from JSON are in format where the top-level of the structure is an array,
@@ -1438,7 +1434,7 @@ function assetLoader_onAll()
         for (var dataPointNo = 0; dataPointNo < dataPointCount; ++dataPointNo)
         {
             var point = g_assetLoader.loaded["points"][dataPointNo];
-            loadSourcePoint(point);
+            selectSourcePoint(point);
         }
     }
     // Else if points loaded and converted from JSON are in format where the top-level of the structure is an object,
@@ -1449,48 +1445,100 @@ function assetLoader_onAll()
         {
             var point = g_assetLoader.loaded["points"][dataPointId];
             point.id = dataPointId;
-            loadSourcePoint(point);
+            selectSourcePoint(point);
         }
     }
 
-    // + + Show info about points {{{
+    // + + }}}
 
-    var soundSites_minPositions = {
+    // + + Show info about selected points {{{
+
+    var selectedPoints_minPositions = {
         x: Infinity,
         y: Infinity,
         z: Infinity
     };
-    var soundSites_maxPositions = {
+    var selectedPoints_maxPositions = {
         x: -Infinity,
         y: -Infinity,
         z: -Infinity
     };
-    for (var soundSiteCount = g_soundSites.length, soundSiteNo = 0; soundSiteNo < soundSiteCount; ++soundSiteNo)
+    for (var selectedPointInfoCount = selectedPointInfos.length, selectedPointInfoNo = 0; selectedPointInfoNo < selectedPointInfoCount; ++selectedPointInfoNo)
     {
-        var soundSite = g_soundSites[soundSiteNo];
+        var selectedPointInfo = selectedPointInfos[selectedPointInfoNo];
 
-        if (soundSite.position.x < soundSites_minPositions.x)
-            soundSites_minPositions.x = soundSite.position.x;
-        if (soundSite.position.y < soundSites_minPositions.y)
-            soundSites_minPositions.y = soundSite.position.y;
-        if (soundSite.position.z < soundSites_minPositions.z)
-            soundSites_minPositions.z = soundSite.position.z;
+        if (selectedPointInfo[0].x < selectedPoints_minPositions.x)
+            selectedPoints_minPositions.x = selectedPointInfo[0].x;
+        if (selectedPointInfo[0].y < selectedPoints_minPositions.y)
+            selectedPoints_minPositions.y = selectedPointInfo[0].y;
+        if (selectedPointInfo[0].z < selectedPoints_minPositions.z)
+            selectedPoints_minPositions.z = selectedPointInfo[0].z;
 
-        if (soundSite.position.x > soundSites_maxPositions.x)
-            soundSites_maxPositions.x = soundSite.position.x;
-        if (soundSite.position.y > soundSites_maxPositions.y)
-            soundSites_maxPositions.y = soundSite.position.y;
-        if (soundSite.position.z > soundSites_maxPositions.z)
-            soundSites_maxPositions.z = soundSite.position.z;
+        if (selectedPointInfo[0].x > selectedPoints_maxPositions.x)
+            selectedPoints_maxPositions.x = selectedPointInfo[0].x;
+        if (selectedPointInfo[0].y > selectedPoints_maxPositions.y)
+            selectedPoints_maxPositions.y = selectedPointInfo[0].y;
+        if (selectedPointInfo[0].z > selectedPoints_maxPositions.z)
+            selectedPoints_maxPositions.z = selectedPointInfo[0].z;
     }
 
-    var soundSiteSummary = "Selected " + g_soundSites.length + " points" +
-        ", bounding box: [" + soundSites_minPositions.x + ", " + soundSites_minPositions.y + ", " + soundSites_minPositions.z + "]" +
-        " .. [" + soundSites_maxPositions.x + ", " + soundSites_maxPositions.y + ", " + soundSites_maxPositions.z + "]";
-    g_scrollingLog.addText(soundSiteSummary);
-    console.log(soundSiteSummary);
+    var boundingBoxVolume =
+        (selectedPoints_maxPositions.x - selectedPoints_minPositions.x) *
+        (selectedPoints_maxPositions.y - selectedPoints_minPositions.y) *
+        (selectedPoints_maxPositions.z - selectedPoints_minPositions.z);
+
+    var selectedPointSummary = "Selected " + selectedPointInfos.length.toString() + " points" +
+        ", bounding box: [" + selectedPoints_minPositions.x.toString() + ", " + selectedPoints_minPositions.y.toString() + ", " + selectedPoints_minPositions.z.toString() + "]" +
+        " .. [" + selectedPoints_maxPositions.x.toString() + ", " + selectedPoints_maxPositions.y.toString() + ", " + selectedPoints_maxPositions.z.toString() + "]" +
+        ", volume: " + boundingBoxVolume.toString();
+    g_scrollingLog.addText(selectedPointSummary);
+    console.log(selectedPointSummary);
 
     // + + }}}
+
+    // + + Create sound sites {{{
+
+    var volumePerSound = dan.getParameterValueFromQueryString("volumePerSound");
+    if (volumePerSound == "")
+        volumePerSound = 4191178.822507101;
+    else
+        volumePerSound = parseFloat(volumePerSound);
+    // was (reverse calculated using point count of tsne_splash.json of 376): 4191178.822507101
+
+    var targetVolume = dan.getParameterValueFromQueryString("targetVolume");
+    if (targetVolume == "")
+        targetVolume = volumePerSound * selectedPointInfos.length;
+    else
+        targetVolume = parseFloat(targetVolume);
+    // was (reverse calculated using bounding box volume of tsne_splash.json of 196985.40465783377): 1575883237.26267016
+
+    var volumeExpansionFactor = dan.getParameterValueFromQueryString("volumeExpansionFactor");
+    if (volumeExpansionFactor == "")
+        volumeExpansionFactor = targetVolume / boundingBoxVolume;
+    else
+        volumeExpansionFactor = parseFloat(volumeExpansionFactor);
+    // was: 8000
+
+    var coordinateExpansionFactor = dan.getParameterValueFromQueryString("coordinateExpansionFactor");
+    if (coordinateExpansionFactor == "")
+        coordinateExpansionFactor = Math.pow(volumeExpansionFactor, 1/3);
+    else
+        coordinateExpansionFactor = parseFloat(coordinateExpansionFactor);
+    // was: 20
+
+    for (var selectedPointInfoCount = selectedPointInfos.length, selectedPointInfoNo = 0; selectedPointInfoNo < selectedPointInfoCount; ++selectedPointInfoNo)
+    {
+        var selectedPointInfo = selectedPointInfos[selectedPointInfoNo];
+
+        // Create sound site
+        var soundSite = new SoundSite(g_audioContext, selectedPointInfo[0],
+                                      selectedPointInfo[1],
+                                      new THREE.Vector3(selectedPointInfo[0].x * coordinateExpansionFactor, selectedPointInfo[0].y * coordinateExpansionFactor, selectedPointInfo[0].z * coordinateExpansionFactor),
+                                      g_soundSites.length);
+        g_soundSites.push(soundSite);
+    }
+
+    // + }}}
 
     // + + Fill vertex arrays {{{
 
