@@ -1455,7 +1455,40 @@ function assetLoader_onAll()
 
     // + + Show info about points {{{
 
-    g_scrollingLog.addText("Selected " + g_soundSites.length + " points");
+    var soundSites_minPositions = {
+        x: Infinity,
+        y: Infinity,
+        z: Infinity
+    };
+    var soundSites_maxPositions = {
+        x: -Infinity,
+        y: -Infinity,
+        z: -Infinity
+    };
+    for (var soundSiteCount = g_soundSites.length, soundSiteNo = 0; soundSiteNo < soundSiteCount; ++soundSiteNo)
+    {
+        var soundSite = g_soundSites[soundSiteNo];
+
+        if (soundSite.position.x < soundSites_minPositions.x)
+            soundSites_minPositions.x = soundSite.position.x;
+        if (soundSite.position.y < soundSites_minPositions.y)
+            soundSites_minPositions.y = soundSite.position.y;
+        if (soundSite.position.z < soundSites_minPositions.z)
+            soundSites_minPositions.z = soundSite.position.z;
+
+        if (soundSite.position.x > soundSites_maxPositions.x)
+            soundSites_maxPositions.x = soundSite.position.x;
+        if (soundSite.position.y > soundSites_maxPositions.y)
+            soundSites_maxPositions.y = soundSite.position.y;
+        if (soundSite.position.z > soundSites_maxPositions.z)
+            soundSites_maxPositions.z = soundSite.position.z;
+    }
+
+    var soundSiteSummary = "Selected " + g_soundSites.length + " points" +
+        ", bounding box: [" + soundSites_minPositions.x + ", " + soundSites_minPositions.y + ", " + soundSites_minPositions.z + "]" +
+        " .. [" + soundSites_maxPositions.x + ", " + soundSites_maxPositions.y + ", " + soundSites_maxPositions.z + "]";
+    g_scrollingLog.addText(soundSiteSummary);
+    console.log(soundSiteSummary);
 
     // + + }}}
 
