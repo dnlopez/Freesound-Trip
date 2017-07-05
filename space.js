@@ -1,4 +1,30 @@
 
+// jQuery
+// #require "externals/jquery-1.8.2.min.js"
+
+//
+// #require "externals/kdTree.js"
+
+// Three
+// #require "externals/three.js/three.js"
+// #require "externals/three.js/examples/js/controls/FlyControls.js"
+
+// Dan reusable
+// #require <dan/urls.js>
+// #require <dan/numeric_helpers.js>
+// #require <dan/gui/html/PopupTextarea.js>
+// #require <dan/snd/webaudio/AudioContextOutputStream.js>
+// #require <dan/snd/webaudio/Float32ArrayWavetablePlayer.js>
+// #require <dan/loaders/AssetLoader.js>
+// #require <dan/loaders/AssetLoader_threeTexture.js>
+
+// This program
+// #require "externals/freesound.js"
+// #require "externals/seedrandom.js"
+// #require "Float32ArrayWavetablePlayerWithGain.js"
+// #require "source_sounds.js"
+
+
 // + Configuration {{{
 
 var k_soundSource = "index";
