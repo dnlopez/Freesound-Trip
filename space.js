@@ -1288,19 +1288,19 @@ function continueInit()
     {
         ++assetEventCount;
 
-        i_loadMethod.call(i_loaderObject, i_url, i_key).promise.then(function (i_asset, i_url, i_key) {
+        i_loadMethod.call(i_loaderObject, i_url, i_key).then(function (i_result) {
             ++assetEventDoneCount;
             var assetEventDoneNote = "(" + assetEventDoneCount.toString() + "/" + assetEventCount.toString() + ")";
             //setProgress(assetEventDoneCount / assetEventCount);
 
-            loaderLog(assetEventDoneNote + " Loaded " + i_url);
+            loaderLog(assetEventDoneNote + " Loaded " + i_result.url);
         },
-        function (i_errorDescription, i_url, i_key) {
+        function (i_result) {
             ++assetEventDoneCount;
             var assetEventDoneNote = "(" + assetEventDoneCount.toString() + "/" + assetEventCount.toString() + ")";
             //setProgress(assetEventDoneCount / assetEventCount);
 
-            loaderLog(assetEventDoneNote + " FAILED to load " + i_url + ", error description: " + i_errorDescription);
+            loaderLog(assetEventDoneNote + " FAILED to load " + i_result.url + ", error description: " + i_result.errorDescription);
         });
     }
 

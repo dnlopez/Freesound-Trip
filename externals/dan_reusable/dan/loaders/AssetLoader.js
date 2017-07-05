@@ -3,7 +3,7 @@
 // #require "loaders.js"
 
 // jQuery
-// #require <jquery-1.8.2.min.js>
+//// #require <jquery-1.8.2.min.js>
 
 // Dan reusable
 // #require <dan/snd/snd.js>
@@ -18,18 +18,8 @@ dan.loaders.AssetLoader = function ()
     //  (string)
     //  A short name used to refer to the asset, provided by user when initiating a load.
     // Values:
-    //  (object)
-    //  Key-value pairs:
-    //   asset:
-    //    A partially loaded asset or an object that otherwise represents it.
-    //    The actual type depends on the type of asset being loaded.
-    //    eg. if loading an image, this will be an HTMLImageElement whose 'src' has not,
-    //    yet finished loading; if loading text, this will be a (empty at this point) string;
-    //    or if loading a Three.js texture, this will be a THREE.Texture.
-    //    See the relevant loadXXX() function comments for details in each case.
-    //   deferred:
-    //    (jQuery.Deferred)
-    //    An as yet unfulfilled work object representing the load.
+    //  (Promise)
+    //  A work object representing the load.
 
     this.failed = {};
     // Assets that failed to load.
@@ -38,19 +28,8 @@ dan.loaders.AssetLoader = function ()
     //  (string)
     //  A short name used to refer to the asset, provided by user when initiating a load.
     // Values:
-    //  (object)
-    //  Key-value pairs:
-    //   asset:
-    //    The partially loaded asset or object that otherwise represents it,
-    //    or perhaps null if it would be too expensive to keep the partial object around.
-    //    The actual type depends on the type of asset being loaded.
-    //    See the relevant loadXXX() function comments for details in each case.
-    //   deferred:
-    //    (jQuery.Deferred)
-    //    A now rejected work object that represented the load.
-    //   status:
-    //    (string)
-    //    A description of the error that occurred.
+    //  (string)
+    //  A description of the error that occurred.
 
     this.loaded = {};
     // Assets that have successfully finished loading.
@@ -84,61 +63,54 @@ dan.loaders.AssetLoader.prototype._generateUniqueKey = function ()
 
 dan.loaders.AssetLoader.prototype.all = function ()
 // Returns:
-//  (jQuery.Promise)
-//  Resolves when all the current deferreds resolve, or rejects when one of the current deferreds is rejected.
+//  (Promise)
+//  Resolves when all the currently loading promises resolve, or rejects when one of the currently loading promises is rejected.
 {
-    var deferreds = [];
-    for (var key in this.loading)
-    {
-        var d = this.loading[key].deferred;
-        //console.log(d.state());
-        deferreds.push(d);
-    }
-    return $.when.apply($, deferreds);
-    // [If just "return $.when(deferreds)" then promise will resolve too early.
-    //  Why is apply needed for this to work, again?]
+    return Promise.all(Object.values(this.loading));
 };
 
 
 dan.loaders.AssetLoader.prototype.loadImage = function (i_url, i_key)
+// Load an image into an HTMLImageElement.
+//
 // Params:
 //  i_url:
 //   (string)
 //   Path to load image from.
 //  i_key:
 //   Either (string)
-//    Short name to use to refer to the image by in future
+//    Short name to use to refer to the asset by in future
 //   or (null or undefined)
 //    No particular short name (A unique name is auto-generated for internal purposes).
 //
 // Returns:
-//  (object)
-//  Key-value pairs:
-//   asset:
-//    (HTMLImageElement)
-//    The new image element, with its src not yet loaded.
-//   promise:
-//    (jQuery.Promise)
-//    A promise to deliver the result of the load.
-//    Fulfilled handler params:
-//     i_asset:
+//  (Promise)
+//  A promise to deliver the result of the load.
+//  If it resolves, handlers watching for that state have params:
+//   i_result:
+//    (object)
+//    Object has properties:
+//     asset:
 //      (HTMLImageElement)
-//      The new image, now with its src loaded.
-//     i_url:
+//      The loaded text.
+//     url:
 //      (string)
 //      The i_url argument that was originally passed in to load this asset.
-//     i_key:
+//     key:
 //      (string)
 //      The short name for the asset (whether originally passed in as the i_key argument
 //      or auto-generated).
-//    Failed handler:
-//     i_errorDescription:
+//  Else if it fails, handlers watching for that state have params:
+//   i_result:
+//    (object)
+//    Object has properties:
+//     errorDescription:
 //      (string)
-//      An empty string (unfortunately don't know how to get an error description in this case).
-//     i_url:
+//      A description of the error.
+//     url:
 //      (string)
 //      As for the fulfilled handler.
-//     i_key:
+//     key:
 //      (string)
 //      As for the fulfilled handler.
 {
@@ -146,48 +118,46 @@ dan.loaders.AssetLoader.prototype.loadImage = function (i_url, i_key)
     if (!i_key)
         i_key = this._generateUniqueKey();
 
-    // Start loading image, get partially loaded HTMLImageElement object
+    // Create promise and store it in this.loading
     var self = this;
-    var partiallyLoadedImage = new Image();
+    this.loading[i_key] = new Promise(function (i_resolve, i_reject) {
 
-    partiallyLoadedImage.onload = function (i_event) {
-        // Get the deferred for resolving later
-        var deferred = self.loading[i_key].deferred;
+        var imageElement = new Image();
 
-        // Remove entry from this.loading, create entry in this.loaded
-        delete self.loading[i_key];
-        self.loaded[i_key] = partiallyLoadedImage;
+        imageElement.onload = function (i_event) {
+            // Remove promise from this.loading, put asset in this.loaded
+            delete self.loading[i_key];
+            self.loaded[i_key] = imageElement;
 
-        // Finally resolve the promise
-        deferred.resolve(partiallyLoadedImage, i_url, i_key);
-    };
+            // Resolve the promise
+            i_resolve({
+                key: i_key,
+                url: i_url,
+                asset: imageElement
+            });
+        };
 
-    partiallyLoadedImage.onerror = function (i_event) {
-        // Get the deferred for rejecting later
-        var deferred = self.loading[i_key].deferred;
+        imageElement.onerror = function (i_event) {
+            var errorDescription = "";
 
-        // Remove entry from this.loading, create entry in this.failed
-        delete self.loading[i_key];
-        self.failed[i_key] = { asset: partiallyLoadedImage,
-                               deferred: deferred,
-                               status: "" };
+            // Remove promise from this.loading, put error description in this.failed
+            delete self.loading[i_key];
+            self.failed[i_key] = errorDescription;
 
-        // Finally reject the promise
-        deferred.reject("", i_url, i_key);
-    };
+            // Reject the promise
+            i_reject({
+                key: i_key,
+                url: i_url,
+                errorDescription: errorDescription
+            });
+        };
 
+        // Start the load
+        imageElement.src = i_url;
+    });
 
-    // Start the load
-    partiallyLoadedImage.src = i_url;
-
-    // Make entry in this.loading
-    this.loading[i_key] = { asset: partiallyLoadedImage,
-                            deferred: new $.Deferred() };
-
-    // Return partially loaded HTMLImageElement object,
-    // and the promise that will return the result of the load
-    return { asset: partiallyLoadedImage,
-             promise: this.loading[i_key].deferred.promise() };
+    // Return the promise
+    return this.loading[i_key];
 };
 
 dan.loaders.AssetLoader.prototype.loadAudioElement = function (i_url, i_key)
@@ -204,33 +174,33 @@ dan.loaders.AssetLoader.prototype.loadAudioElement = function (i_url, i_key)
 //    No particular short name (A unique name is auto-generated for internal purposes).
 //
 // Returns:
-//  (object)
-//  Key-value pairs:
-//   asset:
-//    (HTMLAudioElement)
-//    The new audio element, with its src not yet loaded.
-//   promise:
-//    (jQuery.Promise)
-//    A promise to deliver the result of the load.
-//    Fulfilled handler params:
-//     i_asset:
+//  (Promise)
+//  A promise to deliver the result of the load.
+//  If it resolves, handlers watching for that state have params:
+//   i_result:
+//    (object)
+//    Object has properties:
+//     asset:
 //      (HTMLAudioElement)
-//      The new audio, now with its src loaded.
-//     i_url:
+//      The new audio element.
+//     url:
 //      (string)
 //      The i_url argument that was originally passed in to load this asset.
-//     i_key:
+//     key:
 //      (string)
 //      The short name for the asset (whether originally passed in as the i_key argument
 //      or auto-generated).
-//    Failed handler:
-//     i_errorDescription:
+//  Else if it fails, handlers watching for that state have params:
+//   i_result:
+//    (object)
+//    Object has properties:
+//     errorDescription:
 //      (string)
 //      An empty string (unfortunately don't know how to get an error description in this case).
-//     i_url:
+//     url:
 //      (string)
 //      As for the fulfilled handler.
-//     i_key:
+//     key:
 //      (string)
 //      As for the fulfilled handler.
 {
@@ -238,49 +208,47 @@ dan.loaders.AssetLoader.prototype.loadAudioElement = function (i_url, i_key)
     if (!i_key)
         i_key = this._generateUniqueKey();
 
-    // Start loading audio, get partially loaded HTMLAudioElement object
+    // Create promise and store it in this.loading
     var self = this;
-    var partiallyLoadedAudio = new Audio();
+    this.loading[i_key] = new Promise(function (i_resolve, i_reject) {
 
-    // 'oncanplaythrough': http://stackoverflow.com/a/8059487
-    partiallyLoadedAudio.oncanplaythrough = function (i_event) {
-        // Get the deferred for resolving later
-        var deferred = self.loading[i_key].deferred;
+        var audioElement = new Audio();
 
-        // Remove entry from this.loading, create entry in this.loaded
-        delete self.loading[i_key];
-        self.loaded[i_key] = partiallyLoadedAudio;
+        // 'oncanplaythrough': http://stackoverflow.com/a/8059487
+        audioElement.oncanplaythrough = function (i_event) {
+            // Remove promise from this.loading, put asset in this.loaded
+            delete self.loading[i_key];
+            self.loaded[i_key] = audioElement;
 
-        // Finally resolve the promise
-        deferred.resolve(partiallyLoadedAudio, i_url, i_key);
-    };
+            // Resolve the promise
+            i_resolve({
+                key: i_key,
+                url: i_url,
+                asset: audioElement
+            });
+        };
 
-    partiallyLoadedAudio.onerror = function (i_event) {
-        // Get the deferred for rejecting later
-        var deferred = self.loading[i_key].deferred;
+        audioElement.onerror = function (i_event) {
+            var errorDescription = "";
 
-        // Remove entry from this.loading, create entry in this.failed
-        delete self.loading[i_key];
-        self.failed[i_key] = { asset: partiallyLoadedAudio,
-                               deferred: deferred,
-                               status: "" };
+            // Remove promise from this.loading, put error description in this.failed
+            delete self.loading[i_key];
+            self.failed[i_key] = errorDescription;
 
-        // Finally reject the promise
-        deferred.reject("", i_url, i_key);
-    };
+            // Reject the promise
+            i_reject({
+                key: i_key,
+                url: i_url,
+                errorDescription: errorDescription
+            });
+        };
 
+        // Start the load
+        audioElement.src = i_url;
+    });
 
-    // Start the load
-    partiallyLoadedAudio.src = i_url;
-
-    // Make entry in this.loading
-    this.loading[i_key] = { asset: partiallyLoadedAudio,
-                            deferred: new $.Deferred() };
-
-    // Return partially loaded HTMLAudioElement object,
-    // and the promise that will return the result of the load
-    return { asset: partiallyLoadedAudio,
-             promise: this.loading[i_key].deferred.promise() };
+    // Return the promise
+    return this.loading[i_key];
 };
 
 dan.loaders.AssetLoader.prototype.loadAudioBuffer = function (i_url, i_key)
@@ -297,32 +265,33 @@ dan.loaders.AssetLoader.prototype.loadAudioBuffer = function (i_url, i_key)
 //    No particular short name (A unique name is auto-generated for internal purposes).
 //
 // Returns:
-//  (object)
-//  Key-value pairs:
-//   asset:
-//    (null)
-//   promise:
-//    (jQuery.Promise)
-//    A promise to deliver the result of the load.
-//    Fulfilled handler params:
-//     i_asset:
+//  (Promise)
+//  A promise to deliver the result of the load.
+//  If it resolves, handlers watching for that state have params:
+//   i_result:
+//    (object)
+//    Object has properties:
+//     asset:
 //      (AudioBuffer)
 //      The audio, decoded.
-//     i_url:
+//     url:
 //      (string)
 //      The i_url argument that was originally passed in to load this asset.
-//     i_key:
+//     key:
 //      (string)
 //      The short name for the asset (whether originally passed in as the i_key argument
 //      or auto-generated).
-//    Failed handler:
-//     i_errorDescription:
+//  Else if it fails, handlers watching for that state have params:
+//   i_result:
+//    (object)
+//    Object has properties:
+//     errorDescription:
 //      (string)
-//      An empty string (unfortunately don't know how to get an error description in this case).
-//     i_url:
+//      A description of the error.
+//     url:
 //      (string)
 //      As for the fulfilled handler.
-//     i_key:
+//     key:
 //      (string)
 //      As for the fulfilled handler.
 {
@@ -330,73 +299,78 @@ dan.loaders.AssetLoader.prototype.loadAudioBuffer = function (i_url, i_key)
     if (!i_key)
         i_key = this._generateUniqueKey();
 
-    //
+    // Create promise and store it in this.loading
     var self = this;
+    this.loading[i_key] = new Promise(function (i_resolve, i_reject) {
 
-    var xhr = new XMLHttpRequest();
-    xhr.open("GET", i_url, true);
-    xhr.responseType = "arraybuffer";
-    xhr.onreadystatechange = function ()
-    {
-        // If done
-        if (xhr.readyState == 4)
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", i_url, true);
+        xhr.responseType = "arraybuffer";
+        xhr.onreadystatechange = function ()
         {
-            // Get the deferred for resolving or rejecting later
-            var deferred = self.loading[i_key].deferred;
-
-            // If successful
-            if (xhr.status == 200)
+            // If done
+            if (xhr.readyState == 4)
             {
-                // Use an audio context to decode the audio data into an AudioBuffer
-                var audioContext = dan.snd.getSingletonAudioContext();
-                audioContext.decodeAudioData(
-                    xhr.response,
-                    function onDecodeSuccess(i_decodedData) {
-                        // Remove entry from this.loading, create entry in this.loaded
-                        delete self.loading[i_key];
-                        self.loaded[i_key] = i_decodedData;
+                // If successful
+                if (xhr.status == 200)
+                {
+                    // Use an audio context to decode the audio data into an AudioBuffer
+                    var audioContext = dan.snd.getSingletonAudioContext();
+                    audioContext.decodeAudioData(
+                        xhr.response,
+                        function onDecodeSuccess(i_decodedData) {
+                            // Remove promise from this.loading, put asset in this.loaded
+                            delete self.loading[i_key];
+                            self.loaded[i_key] = i_decodedData;
 
-                        // Finally resolve the promise
-                        deferred.resolve(i_decodedData, i_url, i_key);
-                    },
-                    function onDecodeError() {
-                        // Remove entry from this.loading, create entry in this.failed
-                        delete self.loading[i_key];
-                        self.failed[i_key] = { asset: "",
-                                               deferred: deferred,
-                                               status: "AudioContext.decodeAudioData() failed" };
-                        
-                        // Finally reject the promise
-                        deferred.reject("AudioContext.decodeAudioData() failed", i_url, i_key);
-                    }
-                );
+                            // Resolve the promise
+                            i_resolve({
+                                key: i_key,
+                                url: i_url,
+                                asset: i_decodedData
+                            });
+                        },
+                        function onDecodeError() {
+                            var errorDescription = "AudioContext.decodeAudioData() failed";
+
+                            // Remove promise from this.loading, put error description in this.failed
+                            delete self.loading[i_key];
+                            self.failed[i_key] = errorDescription;
+
+                            // Reject the promise
+                            i_reject({
+                                key: i_key,
+                                url: i_url,
+                                errorDescription: errorDescription
+                            });
+                        }
+                    );
+                }
+                // Else if failed
+                else
+                {
+                    var errorDescription = xhr.status + " " + xhr.statusText;
+
+                    // Remove promise from this.loading, put error description in this.failed
+                    delete self.loading[i_key];
+                    self.failed[i_key] = errorDescription;
+
+                    // Reject the promise
+                    i_reject({
+                        key: i_key,
+                        url: i_url,
+                        errorDescription: errorDescription
+                    });
+                }
             }
-            // Else if failed
-            else
-            {
-                // Remove entry from this.loading, create entry in this.failed
-                delete self.loading[i_key];
-                self.failed[i_key] = { asset: "",
-                                       deferred: deferred,
-                                       status: xhr.status + " " + xhr.statusText };
+        };
 
-                // Finally reject the promise
-                deferred.reject(xhr.status + " " + xhr.statusText, i_url, i_key);
-            }
-        }
-    };
+        // Start asynchronous request
+        xhr.send(null);
+    });
 
-    // Make entry in this.loading
-    this.loading[i_key] = { asset: null,
-                            deferred: new $.Deferred() };
-
-    // Start asynchronous request
-    xhr.send(null);
-
-    // Return null,
-    // and the promise that will eventually return the result of the load
-    return { asset: null,
-             promise: this.loading[i_key].deferred.promise() };
+    // Return the promise
+    return this.loading[i_key];
 };
 
 dan.loaders.AssetLoader.prototype.loadText = function (i_url, i_key)
@@ -406,38 +380,38 @@ dan.loaders.AssetLoader.prototype.loadText = function (i_url, i_key)
 //   Path to load text from.
 //  i_key:
 //   Either (string)
-//    Short name to use to refer to the image by in future
+//    Short name to use to refer to the asset by in future
 //   or (null or undefined)
 //    No particular short name (A unique name is auto-generated for internal purposes).
 //
 // Returns:
-//  (object)
-//  Key-value pairs:
-//   asset:
-//    (string)
-//    An empty string.
-//   promise:
-//    (jQuery.Promise)
-//    A promise to deliver the result of the load.
-//    Fulfilled handler params:
-//     i_asset:
+//  (Promise)
+//  A promise to deliver the result of the load.
+//  If it resolves, handlers watching for that state have params:
+//   i_result:
+//    (object)
+//    Object has properties:
+//     asset:
 //      (string)
 //      The loaded text.
-//     i_url:
+//     url:
 //      (string)
 //      The i_url argument that was originally passed in to load this asset.
-//     i_key:
+//     key:
 //      (string)
 //      The short name for the asset (whether originally passed in as the i_key argument
 //      or auto-generated).
-//    Failed handler:
-//     i_errorDescription:
+//  Else if it fails, handlers watching for that state have params:
+//   i_result:
+//    (object)
+//    Object has properties:
+//     errorDescription:
 //      (string)
 //      A description of the error.
-//     i_url:
+//     url:
 //      (string)
 //      As for the fulfilled handler.
-//     i_key:
+//     key:
 //      (string)
 //      As for the fulfilled handler.
 {
@@ -445,56 +419,57 @@ dan.loaders.AssetLoader.prototype.loadText = function (i_url, i_key)
     if (!i_key)
         i_key = this._generateUniqueKey();
 
-    //
+    // Create promise and store it in this.loading
     var self = this;
+    this.loading[i_key] = new Promise(function (i_resolve, i_reject) {
 
-    var xhr = new XMLHttpRequest();
-    xhr.open("GET", i_url, true);
-    xhr.responseType = "text";
-    xhr.onreadystatechange = function ()
-    {
-        // If done
-        if (xhr.readyState == 4)
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", i_url, true);
+        xhr.responseType = "text";
+        xhr.onreadystatechange = function ()
         {
-            // Get the deferred for resolving or rejecting later
-            var deferred = self.loading[i_key].deferred;
-
-            // If successful
-            if (xhr.status == 200)
+            // If done
+            if (xhr.readyState == 4)
             {
-                // Remove entry from this.loading, create entry in this.loaded
-                delete self.loading[i_key];
-                self.loaded[i_key] = xhr.responseText;
+                // If successful
+                if (xhr.status == 200)
+                {
+                    // Remove promise from this.loading, put asset in this.loaded
+                    delete self.loading[i_key];
+                    self.loaded[i_key] = xhr.responseText;
 
-                // Finally resolve the promise
-                deferred.resolve(xhr.responseText, i_url, i_key);
+                    // Resolve the promise
+                    i_resolve({
+                        key: i_key,
+                        url: i_url,
+                        asset: xhr.responseText
+                    });
+                }
+                // Else if failed
+                else
+                {
+                    var errorDescription = xhr.status + " " + xhr.statusText;
+
+                    // Remove promise from this.loading, save error description in this.failed
+                    delete self.loading[i_key];
+                    self.failed[i_key] = errorDescription;
+
+                    // Reject the promise
+                    i_reject({
+                        key: i_key,
+                        url: i_url,
+                        errorDescription: errorDescription
+                    });
+                }
             }
-            // Else if failed
-            else
-            {
-                // Remove entry from this.loading, create entry in this.failed
-                delete self.loading[i_key];
-                self.failed[i_key] = { asset: "",
-                                       deferred: deferred,
-                                       status: xhr.status + " " + xhr.statusText };
+        };
 
-                // Finally reject the promise
-                deferred.reject(xhr.status + " " + xhr.statusText, i_url, i_key);
-            }
-        }
-    };
+        // Start asynchronous request
+        xhr.send(null);
+    });
 
-    // Make entry in this.loading
-    this.loading[i_key] = { asset: "",
-                            deferred: new $.Deferred() };
-
-    // Start asynchronous request
-    xhr.send(null);
-
-    // Return empty string,
-    // and the promise that will eventually return the result of the load
-    return { asset: "",
-             promise: this.loading[i_key].deferred.promise() };
+    // Return the promise
+    return this.loading[i_key];
 };
 
 dan.loaders.loadTextSynchronously = function (i_url)
@@ -535,38 +510,38 @@ dan.loaders.AssetLoader.prototype.loadJson = function (i_url, i_key)
 //   Path to load json from.
 //  i_key:
 //   Either (string)
-//    Short name to use to refer to the json by in future
+//    Short name to use to refer to the asset by in future
 //   or (null or undefined)
 //    No particular short name (A unique name is auto-generated for internal purposes).
 //
 // Returns:
-//  (object)
-//  Key-value pairs:
-//   asset:
-//    (string)
-//    An empty string.
-//   promise:
-//    (jQuery.Promise)
-//    A promise to deliver the result of the load.
-//    Fulfilled handler params:
-//     i_asset:
+//  (Promise)
+//  A promise to deliver the result of the load.
+//  If it resolves, handlers watching for that state have params:
+//   i_result:
+//    (object)
+//    Object has properties:
+//     asset:
 //      (object)
 //      The loaded and parsed json.
-//     i_url:
+//     url:
 //      (string)
 //      The i_url argument that was originally passed in to load this asset.
-//     i_key:
+//     key:
 //      (string)
 //      The short name for the asset (whether originally passed in as the i_key argument
 //      or auto-generated).
-//    Failed handler:
-//     i_errorDescription:
+//  Else if it fails, handlers watching for that state have params:
+//   i_result:
+//    (object)
+//    Object has properties:
+//     errorDescription:
 //      (string)
 //      A description of the error.
-//     i_url:
+//     url:
 //      (string)
 //      As for the fulfilled handler.
-//     i_key:
+//     key:
 //      (string)
 //      As for the fulfilled handler.
 {
@@ -574,58 +549,57 @@ dan.loaders.AssetLoader.prototype.loadJson = function (i_url, i_key)
     if (!i_key)
         i_key = this._generateUniqueKey();
 
-    //
+    // Create promise and store it in this.loading
     var self = this;
+    this.loading[i_key] = new Promise(function (i_resolve, i_reject) {
 
-    var xhr = new XMLHttpRequest();
-    xhr.open("GET", i_url, true);
-    xhr.responseType = "text";
-    xhr.onreadystatechange = function ()
-    {
-        // If done
-        if (xhr.readyState == 4)
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", i_url, true);
+        xhr.responseType = "text";
+        xhr.onreadystatechange = function ()
         {
-            // Get the deferred for resolving or rejecting later
-            if (!(i_key in self.loading))  // HACK
-                return;
-            var deferred = self.loading[i_key].deferred;
-
-            // If successful
-            if (xhr.status == 200)
+            // If done
+            if (xhr.readyState == 4)
             {
-                // Remove entry from this.loading, create entry in this.loaded
-                delete self.loading[i_key];
-                self.loaded[i_key] = JSON.parse(xhr.responseText);
+                // If successful
+                if (xhr.status == 200)
+                {
+                    // Remove promise from this.loading, put asset in this.loaded
+                    delete self.loading[i_key];
+                    self.loaded[i_key] = JSON.parse(xhr.responseText);
 
-                // Finally resolve the promise
-                deferred.resolve(xhr.responseText, i_url, i_key);
+                    // Resolve the promise
+                    i_resolve({
+                        key: i_key,
+                        url: i_url,
+                        asset: self.loaded[i_key]
+                    });
+                }
+                // Else if failed
+                else
+                {
+                    var errorDescription = xhr.status + " " + xhr.statusText;
+
+                    // Remove promise from this.loading, save error description in this.failed
+                    delete self.loading[i_key];
+                    self.failed[i_key] = errorDescription;
+
+                    // Reject the promise
+                    i_reject({
+                        key: i_key,
+                        url: i_url,
+                        errorDescription: errorDescription
+                    });
+                }
             }
-            // Else if failed
-            else
-            {
-                // Remove entry from this.loading, create entry in this.failed
-                delete self.loading[i_key];
-                self.failed[i_key] = { asset: "",
-                                       deferred: deferred,
-                                       status: xhr.status + " " + xhr.statusText };
+        };
 
-                // Finally reject the promise
-                deferred.reject(xhr.status + " " + xhr.statusText, i_url, i_key);
-            }
-        }
-    };
+        // Start asynchronous request
+        xhr.send(null);
+    });
 
-    // Make entry in this.loading
-    this.loading[i_key] = { asset: "",
-                            deferred: new $.Deferred() };
-
-    // Start asynchronous request
-    xhr.send(null);
-
-    // Return empty string,
-    // and the promise that will eventually return the result of the load
-    return { asset: "",
-             promise: this.loading[i_key].deferred.promise() };
+    // Return the promise
+    return this.loading[i_key];
 };
 
 dan.loaders.loadJsonSynchronously = function (i_url)
@@ -673,33 +647,33 @@ dan.loaders.AssetLoader.prototype.loadXml = function (i_url, i_key)
 //    No particular short name (A unique name is auto-generated for internal purposes).
 //
 // Returns:
-//  (object)
-//  Key-value pairs:
-//   asset:
-//    (string)
-//    An empty string.
-//   promise:
-//    (jQuery.Promise)
-//    A promise to deliver the result of the load.
-//    Fulfilled handler params:
-//     i_asset:
-//      (string)
+//  (Promise)
+//  A promise to deliver the result of the load.
+//  If it resolves, handlers watching for that state have params:
+//   i_result:
+//    (object)
+//    Object has properties:
+//     asset:
+//      (object)
 //      The loaded document.
-//     i_url:
+//     url:
 //      (string)
 //      The i_url argument that was originally passed in to load this asset.
-//     i_key:
+//     key:
 //      (string)
 //      The short name for the asset (whether originally passed in as the i_key argument
 //      or auto-generated).
-//    Failed handler:
-//     i_errorDescription:
+//  Else if it fails, handlers watching for that state have params:
+//   i_result:
+//    (object)
+//    Object has properties:
+//     errorDescription:
 //      (string)
 //      A description of the error.
-//     i_url:
+//     url:
 //      (string)
 //      As for the fulfilled handler.
-//     i_key:
+//     key:
 //      (string)
 //      As for the fulfilled handler.
 {
@@ -707,72 +681,72 @@ dan.loaders.AssetLoader.prototype.loadXml = function (i_url, i_key)
     if (!i_key)
         i_key = this._generateUniqueKey();
 
-    //
+    // Create promise and store it in this.loading
     var self = this;
+    this.loading[i_key] = new Promise(function (i_resolve, i_reject) {
 
-    var xhr = new XMLHttpRequest();
-    xhr.open("GET", i_url, true);
-    xhr.responseType = "xml";
-    xhr.onreadystatechange = function ()
-    {
-        // If done
-        if (xhr.readyState == 4)
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", i_url, true);
+        xhr.responseType = "xml";
+        xhr.onreadystatechange = function ()
         {
-            // Get the deferred for resolving or rejecting later
-            var deferred = self.loading[i_key].deferred;
-
-            // If successful
-            if (xhr.status == 200)
+            // If done
+            if (xhr.readyState == 4)
             {
-                var responseXml;
-
-                // If response came down as XML,
-                // simply save the reference to it
-                if (xhr.responseXML)
+                // If successful
+                if (xhr.status == 200)
                 {
-                    responseXml = xhr.responseXML;
+                    // If response came down as XML,
+                    // simply save the reference to it
+                    var responseXml;
+                    if (xhr.responseXML)
+                    {
+                        responseXml = xhr.responseXML;
+                    }
+                    // Else if response came down as text,
+                    // use a DOMParser to parse it to an XML document
+                    else if (xhr.responseText)
+                    {
+                        var xmlParser = new DOMParser();
+                        responseXml = xmlParser.parseFromString(xhr.responseText, "application/xml");
+                    }
+
+                    // Remove promise from this.loading, put asset in this.loaded
+                    delete self.loading[i_key];
+                    self.loaded[i_key] = responseXml;
+
+                    // Resolve the promise
+                    i_resolve({
+                        key: i_key,
+                        url: i_url,
+                        asset: responseXml
+                    });
                 }
-                // Else if response came down as text,
-                // use a DOMParser to parse it to an XML document
-                else if (xhr.responseText)
+                // Else if failed
+                else
                 {
-                    var xmlParser = new DOMParser();
-                    responseXml = xmlParser.parseFromString(xhr.responseText, "application/xml");
+                    var errorDescription = xhr.status + " " + xhr.statusText;
+
+                    // Remove promise from this.loading, save error description in this.failed
+                    delete self.loading[i_key];
+                    self.failed[i_key] = errorDescription;
+
+                    // Reject the promise
+                    i_reject({
+                        key: i_key,
+                        url: i_url,
+                        errorDescription: errorDescription
+                    });
                 }
-
-                // Remove entry from this.loading, create entry in this.loaded
-                delete self.loading[i_key];
-                self.loaded[i_key] = responseXml;
-
-                // Finally resolve the promise
-                deferred.resolve(responseXml, i_url, i_key);
             }
-            // Else if failed
-            else
-            {
-                // Remove entry from this.loading, create entry in this.failed
-                delete self.loading[i_key];
-                self.failed[i_key] = { asset: "",
-                                       deferred: deferred,
-                                       status: xhr.status + " " + xhr.statusText };
+        };
 
-                // Finally reject the promise
-                deferred.reject(xhr.status + " " + xhr.statusText, i_url, i_key);
-            }
-        }
-    };
+        // Start asynchronous request
+        xhr.send(null);
+    });
 
-    // Make entry in this.loading
-    this.loading[i_key] = { asset: "",
-                            deferred: new $.Deferred() };
-
-    // Start asynchronous request
-    xhr.send(null);
-
-    // Return empty string,
-    // and the promise that will eventually return the result of the load
-    return { asset: "",
-             promise: this.loading[i_key].deferred.promise() };
+    // Return the promise
+    return this.loading[i_key];
 };
 
 

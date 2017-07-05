@@ -3,7 +3,7 @@
 // #require "AssetLoader.js"
 //
 // Three.js
-// #require <three.js/Three_main.js>
+//// #require <three.js/Three_main.js>
 
 
 dan.loaders.AssetLoader.prototype.loadTexture = function (i_url, i_key, i_mapping)
@@ -13,7 +13,7 @@ dan.loaders.AssetLoader.prototype.loadTexture = function (i_url, i_key, i_mappin
 //   Path to load texture image from.
 //  i_key:
 //   Either (string)
-//    Short name to use to refer to the image by in future
+//    Short name to use to refer to the asset by in future
 //   or (null or undefined)
 //    No particular short name (A unique name is auto-generated for internal purposes).
 //  i_mapping:
@@ -23,66 +23,81 @@ dan.loaders.AssetLoader.prototype.loadTexture = function (i_url, i_key, i_mappin
 //    Default to THREE.UVMapping()
 //
 // Returns:
-//  (object)
-//  Key-value pairs:
-//   asset:
-//    (THREE.Texture)
-//    The new texture, with its image not yet loaded.
-//   promise:
-//    (jQuery.Promise)
-//    A promise to deliver the result of the load.
-//    Fulfilled handler params:
-//     i_asset:
+//  (Promise)
+//  A promise to deliver the result of the load.
+//  If it resolves, handlers watching for that state have params:
+//   i_result:
+//    (object)
+//    Object has properties:
+//     asset:
 //      (THREE.Texture)
 //      The new texture, now with its image loaded.
-//    Failed handler:
-//     i_errorDescription:
+//     url:
 //      (string)
-//      An empty string (unfortunately don't know how to get an error description in this case).
+//      The i_url argument that was originally passed in to load this asset.
+//     key:
+//      (string)
+//      The short name for the asset (whether originally passed in as the i_key argument
+//      or auto-generated).
+//  Else if it fails, handlers watching for that state have params:
+//   i_result:
+//    (object)
+//    Object has properties:
+//     errorDescription:
+//      (string)
+//      A description of the error.
+//     url:
+//      (string)
+//      As for the fulfilled handler.
+//     key:
+//      (string)
+//      As for the fulfilled handler.
 {
     // If the caller didn't choose a key then generate a unique one
     if (!i_key)
         i_key = this._generateUniqueKey();
 
-    // Start loading texture, get partially loaded Texture object
+    // Create promise and store it in this.loading
     var self = this;
-    var partiallyLoadedTexture = dan.loaders.AssetLoader.fixed_THREE_ImageUtils_loadTexture(i_url, i_mapping,
-        // i_onLoad
-        function (i_texture) {
-            // Get the deferred for resolving later
-            var deferred = self.loading[i_key].deferred;
+    this.loading[i_key] = new Promise(function (i_resolve, i_reject) {
 
-            // Remove entry from this.loading, create entry in this.loaded
-            delete self.loading[i_key];
-            self.loaded[i_key] = i_texture;
+        // Start loading texture, get partially loaded Texture object
+        var partiallyLoadedTexture = dan.loaders.AssetLoader.fixed_THREE_ImageUtils_loadTexture(i_url, i_mapping,
+            // i_onLoad
+            function (i_texture) {
+                // Remove entry from this.loading, put asset in this.loaded
+                delete self.loading[i_key];
+                self.loaded[i_key] = i_texture;
 
-            // Finally resolve the promise
-            deferred.resolve(i_texture, i_url, i_key);
-        },
-        // i_onError
-        function (i_texture) {
-            // Get the deferred for rejecting later
-            var deferred = self.loading[i_key].deferred;
+                // Resolve the promise
+                i_resolve({
+                    key: i_key,
+                    url: i_url,
+                    asset: i_texture
+                });
+            },
+            // i_onError
+            function (i_texture) {
+                var errorDescription = "";
 
-            // Remove entry from this.loading, create entry in this.failed
-            delete self.loading[i_key];
-            self.failed[i_key] = { asset: i_texture,
-                                   deferred: deferred,
-                                   status: "" };
+                // Remove promise from this.loading, put error description in this.failed
+                delete self.loading[i_key];
+                self.failed[i_key] = errorDescription;
 
-            // Finally reject the promise
-            deferred.reject("");
-        });
+                // Reject the promise
+                i_reject({
+                    key: i_key,
+                    url: i_url,
+                    errorDescription: errorDescription
+                });
+            }
+        );
 
-    // Make entry in this.loading
-    this.loading[i_key] = { asset: partiallyLoadedTexture,
-                            deferred: new $.Deferred() };
+    });
 
-    // Return partially loaded Texture object,
-    // and the promise that will return the result of the load
-    return { asset: partiallyLoadedTexture,
-             promise: this.loading[i_key].deferred.promise() };
-}
+    // Return the promise
+    return this.loading[i_key];
+};
 
 
 // + Three.js patches {{{
