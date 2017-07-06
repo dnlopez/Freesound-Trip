@@ -20,10 +20,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-(function () {
 
-
-function SVG3DTagCloud(i_container, i_params)
+function Svg3dTagCloud(i_container, i_params)
 // Params:
 //  i_container:
 //   (HTMLElement)
@@ -79,36 +77,54 @@ function SVG3DTagCloud(i_container, i_params)
 
     // + }}}
 
-    var entryHolder = [];
-
     var radius;
     var diameter;
 
     var mouseReact = true;
+
+    // + Base elements {{{
+
+    var backgroundRectElement;
+    var svgElement;
+
+    // + }}}
+
+    // + Mouse {{{
+
     var mousePos = { x: 0, y: 0 };
+
+    function getMousePos(i_svgElement, event)
+    {
+        var rect = i_svgElement.getBoundingClientRect();
+
+        return {
+            x: event.clientX - rect.left,
+            y: event.clientY - rect.top
+        };
+    };
+
+    function svgElement_onMouseMove(i_event)
+    {
+        mousePos = getMousePos(svgElement, i_event);
+    };
+
+    // + }}}
 
     var center2D;
     var center3D = { x: 0, y: 0, z: 0 };
-
-    var speed = { x: 0, y: 0 };
-
-    var position = { sx: 0, cx: 0, sy: 0, cy: 0 };
-
-    var MATHPI180 = Math.PI / 180;
 
     var svgNamespaceUri = 'http://www.w3.org/2000/svg';
 
     //---
 
-    var svgElement;
-    var backgroundRectElement;
-
     function init()
     {
         // Create SVG element and add as child of container element
         svgElement = document.createElementNS(svgNamespaceUri, 'svg');
-        svgElement.addEventListener('mousemove', svgElement_onMouseMove);
         i_container.appendChild(svgElement);
+
+        //
+        svgElement.addEventListener('mousemove', svgElement_onMouseMove);
 
         // If want to clear the background, create a covering child rect with a fill colour to do this
         if (settings.bgDraw)
@@ -132,14 +148,12 @@ function SVG3DTagCloud(i_container, i_params)
         window.addEventListener('resize', window_onResize);
     };
 
+    var speed = { x: 0, y: 0 };
+
     function reInit()
     {
-        var windowWidth = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
-        var windowHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
-
-        var svgWidth = windowWidth;
-        var svgHeight = windowHeight;
-
+        var svgWidth;
+        var svgHeight;
         if (settings.width.toString().indexOf('%') > 0 || settings.height.toString().indexOf('%') > 0)
         {
             svgWidth = Math.round(i_container.offsetWidth / 100 * parseInt(settings.width));
@@ -151,10 +165,11 @@ function SVG3DTagCloud(i_container, i_params)
             svgHeight = parseInt(settings.height);
         }
 
-        if (windowWidth <= svgWidth)
+        var windowWidth = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+        var windowHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+        if (svgWidth >= windowWidth)
             svgWidth = windowWidth;
-
-        if (windowHeight <= svgHeight)
+        if (svgHeight >= windowHeight)
             svgHeight = windowHeight;
 
         //---
@@ -174,11 +189,10 @@ function SVG3DTagCloud(i_container, i_params)
 
         radius = diameter / 2;
 
-        if (radius < settings.radiusMin) {
-
+        if (radius < settings.radiusMin)
+        {
             radius = settings.radiusMin;
             diameter = radius * 2;
-
         }
 
         //---
@@ -199,65 +213,103 @@ function SVG3DTagCloud(i_container, i_params)
 
     //---
 
-    function setEntryPositions(radius)
+    var entries = [];
+
+    function setEntryPositions(i_radius)
     {
-        for (var i = 0, l = entryHolder.length; i < l; i++)
+        for (var entryCount = entries.length, entryNo = 0; entryNo < entryCount; ++entryNo)
         {
-            setEntryPosition(entryHolder[i], radius);
+            setEntryPosition(entries[entryNo], i_radius);
         }
     };
 
-    function setEntryPosition(entry, radius)
+    function setEntryPosition(i_entry, i_radius)
     {
-        var dx = entry.vectorPosition.x - center3D.x;
-        var dy = entry.vectorPosition.y - center3D.y;
-        var dz = entry.vectorPosition.z - center3D.z;
+        var dx = i_entry.vectorPosition.x - center3D.x;
+        var dy = i_entry.vectorPosition.y - center3D.y;
+        var dz = i_entry.vectorPosition.z - center3D.z;
+        var length = Math.sqrt(dx*dx + dy*dy + dz*dz);
 
-        var length = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        i_entry.vectorPosition.x /= length;
+        i_entry.vectorPosition.y /= length;
+        i_entry.vectorPosition.z /= length;
 
-        entry.vectorPosition.x /= length;
-        entry.vectorPosition.y /= length;
-        entry.vectorPosition.z /= length;
-
-        entry.vectorPosition.x *= radius;
-        entry.vectorPosition.y *= radius;
-        entry.vectorPosition.z *= radius;
+        i_entry.vectorPosition.x *= i_radius;
+        i_entry.vectorPosition.y *= i_radius;
+        i_entry.vectorPosition.z *= i_radius;
     };
+    /*
+    function setEntryPosition(i_entry, i_radius)
+    {
+        i_entry.vectorPosition.x -= center3D.x;
+        i_entry.vectorPosition.y -= center3D.y;
+        i_entry.vectorPosition.z -= center3D.z;
 
-    function addEntry(index, entryObj, x, y, z)
+        var dx = i_entry.vectorPosition.x;
+        var dy = i_entry.vectorPosition.y;
+        var dz = i_entry.vectorPosition.z;
+        var length = Math.sqrt(dx*dx + dy*dy + dz*dz);
+
+        i_entry.vectorPosition.x /= length;
+        i_entry.vectorPosition.y /= length;
+        i_entry.vectorPosition.z /= length;
+
+        i_entry.vectorPosition.x *= i_radius;
+        i_entry.vectorPosition.y *= i_radius;
+        i_entry.vectorPosition.z *= i_radius;
+
+        i_entry.vectorPosition.x += center3D.x;
+        i_entry.vectorPosition.y += center3D.y;
+        i_entry.vectorPosition.z += center3D.z;
+    };
+    */
+
+    function createEntry(i_index, i_entryObj, i_x, i_y, i_z)
     {
         var entry = {};
 
         entry.element = document.createElementNS(svgNamespaceUri, 'text');
         entry.element.setAttribute('x', 0);
         entry.element.setAttribute('y', 0);
-        entry.element.setAttribute('fill', settings.fontColor);
+        if (i_entryObj.hasOwnProperty("fontColor"))
+            entry.element.setAttribute('fill', i_entryObj.fontColor);
+        else
+            entry.element.setAttribute('fill', settings.fontColor);
         entry.element.setAttribute('font-family', settings.fontFamily);
         entry.element.setAttribute('font-size', settings.fontSize);
+        if (i_entryObj.hasOwnProperty("fontSize"))
+            entry.element.setAttribute('font-size', i_entryObj.fontSize);
+        else
+            entry.element.setAttribute('font-size', settings.fontSize);
         entry.element.setAttribute('font-weight', settings.fontWeight);
         entry.element.setAttribute('font-style', settings.fontStyle);
         entry.element.setAttribute('font-stretch', settings.fontStretch);
         entry.element.setAttribute('text-anchor', 'middle');
-        entry.element.textContent = settings.fontToUpperCase ? entryObj.label.toUpperCase() : entryObj.label;
+        entry.element.textContent = settings.fontToUpperCase ? i_entryObj.label.toUpperCase() : i_entryObj.label;
 
         entry.link = document.createElementNS(svgNamespaceUri, 'a');
-        entry.link.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', entryObj.url);
-        entry.link.setAttribute('target', entryObj.target);
+
+        if (i_entryObj.hasOwnProperty("url"))
+            entry.link.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', i_entryObj.url);
+        if (i_entryObj.hasOwnProperty("target"))
+            entry.link.setAttribute('target', i_entryObj.target);
+
         entry.link.addEventListener('mouseover', mouseOverHandler, true);
         entry.link.addEventListener('mouseout', mouseOutHandler, true);
         entry.link.appendChild(entry.element);
 
-        entry.index = index;
+        entry.index = i_index;
         entry.mouseOver = false;
 
-        entry.vectorPosition = { x:x, y:y, z:z };
-        entry.vector2D = { x:0, y:0 };
+        entry.vectorPosition = { x: i_x, y: i_y, z: i_z };
+        entry.vector2D = { x: 0, y: 0 };
 
         svgElement.appendChild(entry.link);
 
         return entry;
     };
 
+    /*
     function addEntries()
     {
         // For each entry (using 1-based indexes)
@@ -270,154 +322,159 @@ function SVG3DTagCloud(i_container, i_params)
             var y = Math.sin(theta) * Math.sin(phi);
             var z = Math.cos(phi);
 
-            var entry = addEntry(entryNo - 1, settings.entries[entryNo - 1], x, y, z);
+            entries.push(createEntry(entryNo - 1, settings.entries[entryNo - 1], x, y, z));
+        }
+    };
+    */
+    function addEntries()
+    {
+        // Spiral from front to back, anti-clockwise
 
-            entryHolder.push(entry);
+        // For each entry
+        for (var entryCount = settings.entries.length, entryNo = 0; entryNo < entryCount; ++entryNo)
+        {
+            // Argument to Math.acos() ranges from [-1 .. 1)
+            // 'phi' ranges from [PI .. 0)
+            var phi = Math.acos(-1 + (2 * entryNo) / entryCount);
+            //var phi = Math.PI - (entryNo / entryCount * Math.PI);
+
+            var theta = Math.sqrt((entryCount + 1) * Math.PI) * phi;
+
+            var x = Math.cos(theta) * Math.sin(phi);
+            var y = Math.sin(theta) * Math.sin(phi);
+            var z = Math.cos(phi);
+
+            entries.push(createEntry(entryNo, settings.entries[entryNo], x, y, z));
         }
     };
 
-    function getEntryByElement(element)
+    function getEntryByElement(i_element)
     {
-        for (var i = 0, l = entryHolder.length; i < l; i++)
+        for (var entryCount = entries.length, entryNo = 0; entryNo < entryCount; ++entryNo)
         {
-            var entry = entryHolder[i];
+            var entry = entries[entryNo];
 
-            if (entry.element.getAttribute('x') === element.getAttribute('x') &&
-                entry.element.getAttribute('y') === element.getAttribute('y'))
+            // If 'x' and 'y' attributes are the same, assume it's the same element
+            if (entry.element.getAttribute('x') === i_element.getAttribute('x') &&
+                entry.element.getAttribute('y') === i_element.getAttribute('y'))
             {
                 return entry;
             }
         }
     };
 
-    function highlightEntry(element)
+    function highlightEntry(i_elementToHighlight)
     {
-        var entry = getEntryByElement(element);
+        var entryToHighlight = getEntryByElement(i_elementToHighlight);
 
-        for (var i = 0, l = entryHolder.length; i < l; i++) {
+        for (var entryCount = entries.length, entryNo = 0; entryNo < entryCount; ++entryNo)
+        {
+            var entry = entries[entryNo];
 
-            var e = entryHolder[i];
-
-            if (e.index === entry.index) {
-
-                e.mouseOver = true;
-
-            } else {
-
-                e.mouseOver = false;
-
-            }
-
+            if (entry.index === entryToHighlight.index)
+                entry.mouseOver = true;
+            else
+                entry.mouseOver = false;
         }
     };
 
-    //---
+    // + Update and render {{{
+
+    var k_piDividedBy180 = Math.PI / 180;
 
     function render()
     {
-        var fx = speed.x * mousePos.x - settings.speed;
-        var fy = settings.speed - speed.y * mousePos.y;
+        // Get angles to rotate by in degrees
+        var rotation_x = -(mousePos.y - center2D.y) * speed.y;
+        var rotation_y = (mousePos.x - center2D.x) * speed.x;
 
-        var angleX = fx * MATHPI180;
-        var angleY = fy * MATHPI180;
+        // Convert degrees to radians
+        rotation_x *= k_piDividedBy180;
+        rotation_y *= k_piDividedBy180;
 
-        position.sx = Math.sin(angleX);
-        position.cx = Math.cos(angleX);
-        position.sy = Math.sin(angleY);
-        position.cy = Math.cos(angleY);
+        //
+        var sin_rotation_x = Math.sin(rotation_x);
+        var cos_rotation_x = Math.cos(rotation_x);
+        var sin_rotation_y = Math.sin(rotation_y);
+        var cos_rotation_y = Math.cos(rotation_y);
 
-        //---
+        //
+        for (var entryCount = entries.length, entryNo = 0; entryNo < entryCount; ++entryNo)
+        {
+            var entry = entries[entryNo];
 
-        for (var i = 0, l = entryHolder.length; i < l; i++) {
+            //
+            if (mouseReact)
+            {
+                // Rotate around Y axis [right-handed rotation]
+                var posX = entry.vectorPosition.x;
+                var posZ = entry.vectorPosition.z;
+                entry.vectorPosition.x = posX*cos_rotation_y + posZ*sin_rotation_y;
+                entry.vectorPosition.z = posZ*cos_rotation_y - posX*sin_rotation_y;
 
-            var entry = entryHolder[i];
-
-            //---
-
-            if (mouseReact) {
-
-                var rx = entry.vectorPosition.x;
-                var rz = entry.vectorPosition.y * position.sy + entry.vectorPosition.z * position.cy;
-
-                entry.vectorPosition.x = rx * position.cx + rz * position.sx;
-                entry.vectorPosition.y = entry.vectorPosition.y * position.cy + entry.vectorPosition.z * -position.sy;
-                entry.vectorPosition.z = rx * -position.sx + rz * position.cx;
-
+                // Rotate around X axis [right-handed rotation]
+                var posY = entry.vectorPosition.y;
+                var posZ = entry.vectorPosition.z;
+                entry.vectorPosition.y = posY*cos_rotation_x - posZ*sin_rotation_x;
+                entry.vectorPosition.z = posZ*cos_rotation_x + posY*sin_rotation_x;
             }
 
-            //---
-
+            // Project
             var scale = settings.fov / (settings.fov + entry.vectorPosition.z);
-
             entry.vector2D.x = entry.vectorPosition.x * scale + center2D.x;
             entry.vector2D.y = entry.vectorPosition.y * scale + center2D.y;
 
-            //---
-
+            //
             entry.element.setAttribute('x', entry.vector2D.x);
             entry.element.setAttribute('y', entry.vector2D.y);
 
-            //---
-
+            //
             var opacity;
-
-            if (mouseReact) {
-
+            if (mouseReact)
+            {
                 opacity = (radius - entry.vectorPosition.z) / diameter;
 
-                if (opacity < settings.opacityOut) {
-
+                if (opacity < settings.opacityOut)
                     opacity = settings.opacityOut;
-
-                }
-
-            } else {
-
+            }
+            else
+            {
                 opacity = parseFloat(entry.element.getAttribute('opacity'));
 
-                if (entry.mouseOver) {
-
+                if (entry.mouseOver)
                     opacity += (settings.opacityOver - opacity) / settings.opacitySpeed;
-
-                } else {
-
+                else
                     opacity += (settings.opacityOut - opacity) / settings.opacitySpeed;
-
-                }
-
             }
 
             entry.element.setAttribute('opacity', opacity);
-
         }
 
-        //---
-
-        entryHolder = entryHolder.sort(function(a, b) {
-            return (b.vectorPosition.z - a.vectorPosition.z);
-        });
-
+        // Sort in order of descending Z
+        // (far to near)
+        //entries = entries.sort(function (a, b) {
+        //    return (b.vectorPosition.z - a.vectorPosition.z);
+        //});
     };
 
     //---
 
     window.requestAnimFrame = (function () {
-        return  window.requestAnimationFrame       ||
-                window.webkitRequestAnimationFrame ||
-                window.mozRequestAnimationFrame    ||
-                function (callback) {
-                    window.setTimeout(callback, 1000 / 60);
-                };
-
+        return window.requestAnimationFrame ||
+            window.webkitRequestAnimationFrame ||
+            window.mozRequestAnimationFrame ||
+            function (callback) {
+                window.setTimeout(callback, 1000 / 60);
+            };
     })();
 
     function animloop()
     {
-        requestAnimFrame(animloop);
         render();
+        requestAnimFrame(animloop);
     };
 
-    //---
+    // + }}}
 
     function mouseOverHandler(event)
     {
@@ -433,23 +490,6 @@ function SVG3DTagCloud(i_container, i_params)
 
     //---
 
-    function svgElement_onMouseMove(event)
-    {
-        mousePos = getMousePos(svgElement, event);
-    };
-
-    function getMousePos(i_svgElement, event)
-    {
-        var rect = i_svgElement.getBoundingClientRect();
-
-        return {
-            x: event.clientX - rect.left,
-            y: event.clientY - rect.top
-        };
-    };
-
-    //---
-
     function window_onResize(event)
     {
         reInit();
@@ -459,23 +499,3 @@ function SVG3DTagCloud(i_container, i_params)
 
     init();
 };
-
-window.SVG3DTagCloud = SVG3DTagCloud;
-
-
-}());
-
-
-if (typeof jQuery !== 'undefined')
-{
-    (function ($) {
-        $.fn.svg3DTagCloud = function (i_params)
-        {
-            return this.each(function () {
-                if (!$.data(this, 'plugin_SVG3DTagCloud')) {
-                    $.data(this, 'plugin_SVG3DTagCloud', new SVG3DTagCloud(this, i_params));
-                }
-            });
-        };
-    }(jQuery));
-}
