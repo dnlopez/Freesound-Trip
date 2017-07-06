@@ -18,9 +18,10 @@
 <ul>
   <li>C</li>
 </ul>
-<h4>Show current sounds</h4>
+<h4>Show the current sequence</h4>
 <ul>
-  <li>P: itemize the sequencer's current output, specific to your current position in space, in relation to all of the sound sites
+  <li>I: show the current sequence, on a grid
+  <li>P: show the current sequence, in exportable text form
 </ul>
 <hr>
 <p>Created by the Audio Commons team of the Sónar Innovation Challenge 2017</p>
