@@ -262,6 +262,21 @@ Sequencer.prototype._getClosestSoundSitesByBruteSearch = function (i_position, i
     return closestSoundSites;
 };
 
+Sequencer.prototype.k_distanceAtWhichSoundIsSilent = 300;
+
+Sequencer.prototype.distanceToGain = function (i_distance)
+// Params:
+//  i_distance:
+//   (float number)
+//
+// Returns:
+//  (float number)
+{
+    var closeness = (this.k_distanceAtWhichSoundIsSilent - i_distance) / this.k_distanceAtWhichSoundIsSilent;
+    closeness = Math.max(closeness, 0);
+    return closeness;
+};
+
 Sequencer.prototype.tick = function ()
 {
     if (!this.playing)
@@ -294,15 +309,48 @@ Sequencer.prototype.tick = function ()
             var soundSite = closestSoundSite.soundSite;
             var distance = closestSoundSite.distance;
 
+            // Choose gain according to distance
+            //var distance = soundSite.getPosition().distanceTo(g_camera.position);
+            var gain = this.distanceToGain(distance);
+            if (gain > 0)
+            {
+                if (!soundSite.audioBuffer)
+                {
+                    var k_lookaheadSteps = Math.ceil(this.tempo / 120 * 4);
+                    for (var lookaheadStep = 0; lookaheadStep < k_lookaheadSteps; ++lookaheadStep)
+                    {
+                        var lookaheadBeatNo = (this.currentBeatNo + lookaheadStep) % this.sequenceLength;
+                        if (soundSite.sequence[lookaheadBeatNo] === 1 || soundSite.sequence[lookaheadBeatNo] === true)
+                            soundSite.loadSamplesIfNeeded();
+                    }
+                }
+                else
+                {
+                    if (soundSite.sequence[this.currentBeatNo] === 1 || soundSite.sequence[this.currentBeatNo] === true)
+                    {
+                        closestSites += soundSite.soundId + ": " + soundSite.soundUrl + ", " + soundSite.sequence.toString() + "\n";
+                        playNote(soundSite.audioBuffer, gain, nextBeatStartTime);
+                        soundSite.lastTriggerTime = performance.now() / 1000;
+                    }
+                }
+            }
+        }
+
+        // For all of the closest sound sites, load samples or trigger sounds
+        var closestSites = "";
+        for (var closestSoundSiteCount = closestSoundSites.length, closestSoundSiteNo = 0; closestSoundSiteNo < closestSoundSiteCount; ++closestSoundSiteNo)
+        {
+            var closestSoundSite = closestSoundSites[closestSoundSiteNo];
+
+            var soundSite = closestSoundSite.soundSite;
+            var distance = closestSoundSite.distance;
+
             if (soundSite.sequence[this.currentBeatNo] === 1 || soundSite.sequence[this.currentBeatNo] === true)
             {
                 // Choose gain according to distance
-                var distance = soundSite.getPosition().distanceTo(g_camera.position);
-
-                var closeness = (k_distanceAtWhichSoundIsSilent - distance) / k_distanceAtWhichSoundIsSilent;
-                closeness = Math.max(closeness, 0);
-
-                if (closeness > 0)
+                //var distance = soundSite.getPosition().distanceTo(g_camera.position);
+                var gain = this.distanceToGain(distance);
+                if (gain > 0)
                 {
                     if (!soundSite.audioBuffer)
                     {
@@ -312,7 +360,7 @@ Sequencer.prototype.tick = function ()
                     else
                     {
                         closestSites += soundSite.soundId + ": " + soundSite.soundUrl + ", " + soundSite.sequence.toString() + "\n";
-                        playNote(soundSite.audioBuffer, closeness, nextBeatStartTime);
+                        playNote(soundSite.audioBuffer, gain, nextBeatStartTime);
                         soundSite.lastTriggerTime = performance.now() / 1000;
                     }
                 }
@@ -357,11 +405,6 @@ Sequencer.prototype.save = function ()
     var closestSoundSites = this._getClosestSoundSitesByKdTree(g_camera.position, this.closestSiteCount);
     var soundSiteDistances = closestSoundSites;
 
-    // Convert beats per minute to seconds per beat,
-    // then get the start time of the next beat
-    var beatPeriod = 60.0/this.tempo;
-    var nextBeatStartTime = this.currentBeatStartTime + beatPeriod;
-
     //
     var notes = [];
 
@@ -369,7 +412,6 @@ Sequencer.prototype.save = function ()
     {
         var closestSites = "";
 
-        // For the closest few [shouldn't the next line be Math.min?...]
         for (var closestSoundSiteCount = closestSoundSites.length, closestSoundSiteNo = 0; closestSoundSiteNo < closestSoundSiteCount; ++closestSoundSiteNo)
         {
             var closestSoundSite = closestSoundSites[closestSoundSiteNo];
@@ -380,15 +422,11 @@ Sequencer.prototype.save = function ()
             if (soundSite.sequence[beatNo] === 1 || soundSite.sequence[beatNo] === true)
             {
                 // Choose gain according to distance
-                var distance = soundSite.getPosition().distanceTo(g_camera.position);
-
-                var closeness = (k_distanceAtWhichSoundIsSilent - distance) / k_distanceAtWhichSoundIsSilent;
-                closeness = Math.max(closeness, 0);
-
-                if (closeness > 0)
+                var gain = this.distanceToGain(distance);
+                if (gain > 0)
                 {
                     closestSites += soundSite.soundId + ": " + soundSite.soundUrl + ", " + soundSite.sequence.toString() + "\n";
-                    notes.push([beatNo, soundSite.soundId, closeness]);
+                    notes.push([beatNo, soundSite.soundId, gain]);
                 }
             }
         }
@@ -592,7 +630,6 @@ function map01ToRange(i_value,
 
 // + Sound site {{{
 
-var k_distanceAtWhichSoundIsSilent = 300;
 var g_showSoundSiteRanges = false;
 
 function SoundSite(i_audioContext,
@@ -686,6 +723,8 @@ SoundSite.prototype.loadSamplesIfNeeded = function (i_onReady)
 
     console.log("loadSamplesIfNeeded: " + this.soundId);
 
+    var loadTimeStart = performance.now() / 1000;
+
     //
     var me = this;
 
@@ -716,6 +755,9 @@ SoundSite.prototype.loadSamplesIfNeeded = function (i_onReady)
 
                 //
                 me.gainNode.connect(me.m_audioContext.destination);
+
+                //
+                me.loadTime = performance.now() / 1000 - loadTimeStart;
 
                 //
                 if (i_onReady)
