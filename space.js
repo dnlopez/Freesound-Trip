@@ -459,6 +459,12 @@ Sequencer.prototype.draw = function ()
 {
     var topLeft = dan.math.Vector2.fromXY(10, 10);
     var gridTopLeft = dan.math.Vector2.fromXY(70, 10);
+    // Allow 60px width for sound ID
+    // Allow 80px width for gain
+    var gridSquareHeight = 20;
+    var gridSquareWidth = (window.innerWidth - 60 - 80) / this.sequenceLength;
+    if (gridSquareWidth > 20)
+        gridSquareWidth = 20;
 
     //var closestSoundSites = this._getClosestSoundSitesByBruteSearch(g_camera.position, this.closestSiteCount);
     var closestSoundSites = this._getClosestSoundSitesByKdTree(g_camera.position, this.closestSiteCount);
@@ -473,8 +479,6 @@ Sequencer.prototype.draw = function ()
     });
 
     var soundSiteDistances = closestSoundSites;
-
-    var gridSquareSize = 20;
 
     //
     var audibleSoundSiteCount = closestSoundSites.length;
@@ -505,39 +509,46 @@ Sequencer.prototype.draw = function ()
         {
             if (soundSite.sequence[beatNo] === 1 || soundSite.sequence[beatNo] === true)
             {
-                g_danCanvas.drawCircleFill(dan.math.Vector2.add(gridTopLeft, [(beatNo + 0.5) * gridSquareSize, (closestSoundSiteNo + 0.5) * gridSquareSize]),
-                                           gridSquareSize / 2 - 2,
+                g_danCanvas.drawCircleFill(dan.math.Vector2.add(gridTopLeft, [(beatNo + 0.5) * gridSquareWidth, (closestSoundSiteNo + 0.5) * gridSquareHeight]),
+                                           gridSquareWidth / 2 - 2,
                                            colour);
             }
         }
 
         //
+        var droidSansMono14TextureFont_xHeight = 8;
+        var droidSansMono14TextureFont_yOffsetToAlignWithGridSquare = (gridSquareHeight + droidSansMono14TextureFont_xHeight) / 2;
+
+        //
         g_danCanvas.drawTextT(g_droidSansMono14TextureFont, soundSite.soundId.toString(), new dan.gfx.ColourRGBA(1, 0, 1, 1),
-                              dan.math.Vector2.add(topLeft, [0, closestSoundSiteNo * gridSquareSize + gridSquareSize - 5]));
+                              dan.math.Vector2.add(topLeft, [0, closestSoundSiteNo * gridSquareHeight + droidSansMono14TextureFont_yOffsetToAlignWithGridSquare]));
 
         g_danCanvas.drawTextT(g_droidSansMono14TextureFont, gain.toString().substr(0, 5), new dan.gfx.ColourRGBA(1, 0, 1, 1),
-                              dan.math.Vector2.add(gridTopLeft, [this.sequenceLength * gridSquareSize + 8, closestSoundSiteNo * gridSquareSize + gridSquareSize - 5]));
+                              dan.math.Vector2.add(gridTopLeft, [this.sequenceLength * gridSquareWidth + 8, closestSoundSiteNo * gridSquareHeight + gridSquareHeight - 5]));
     }
 
     // Draw grid horizontal lines
     for (var audibleSoundSiteNo = 0; audibleSoundSiteNo <= audibleSoundSiteCount; ++audibleSoundSiteNo)
     {
-        g_danCanvas.drawLineStroke(dan.math.Vector2.add(gridTopLeft, [0, audibleSoundSiteNo * gridSquareSize]),
-                                   dan.math.Vector2.add(gridTopLeft, [this.sequenceLength * gridSquareSize, audibleSoundSiteNo * gridSquareSize]),
+        g_danCanvas.drawLineStroke(dan.math.Vector2.add(gridTopLeft, [0, audibleSoundSiteNo * gridSquareHeight]),
+                                   dan.math.Vector2.add(gridTopLeft, [this.sequenceLength * gridSquareWidth, audibleSoundSiteNo * gridSquareHeight]),
                                    1, 0.5, new dan.gfx.ColourRGBA(1, 1, 0, 1));
     }
     // Draw grid vertical lines
     for (var beatNo = 0; beatNo <= this.sequenceLength; ++beatNo)
     {
-        g_danCanvas.drawLineStroke(dan.math.Vector2.add(gridTopLeft, [beatNo * gridSquareSize, 0]),
-                                   dan.math.Vector2.add(gridTopLeft, [beatNo * gridSquareSize, audibleSoundSiteCount * gridSquareSize]),
+        g_danCanvas.drawLineStroke(dan.math.Vector2.add(gridTopLeft, [beatNo * gridSquareWidth, 0]),
+                                   dan.math.Vector2.add(gridTopLeft, [beatNo * gridSquareWidth, audibleSoundSiteCount * gridSquareHeight]),
                                    1, 0.5, new dan.gfx.ColourRGBA(1, 1, 0, 1));
     }
 
     // Highlight column for current beat
-    g_danCanvas.drawRectFill(dan.math.Vector2.add(gridTopLeft, [this.currentBeatNo * gridSquareSize, 0]),
-                             [gridSquareSize, audibleSoundSiteCount * gridSquareSize],
-                             new dan.gfx.ColourRGBA(0, 1, 1, 0.5));
+    if (this.playing)
+    {
+        g_danCanvas.drawRectFill(dan.math.Vector2.add(gridTopLeft, [this.currentBeatNo * gridSquareWidth, 0]),
+                                 [gridSquareWidth, audibleSoundSiteCount * gridSquareHeight],
+                                 new dan.gfx.ColourRGBA(0, 1, 1, 0.5));
+    }
 
     //g_danCanvas.drawCircleFill([(beatNo + 0.5) * gridSquareSize, (audibleSoundSiteNo + 0.5) * gridSquareSize],
     //                           gridSquareSize / 2, new dan.gfx.ColourRGBA(1, 1, 0, 1));
