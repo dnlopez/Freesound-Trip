@@ -205,6 +205,14 @@ Sequencer.prototype.stop = function ()
     this.playing = false;
 };
 
+Sequencer.prototype.togglePlay = function ()
+{
+    if (this.playing)
+        this.stop();
+    else
+        this.start();
+};
+
 Sequencer.prototype._getClosestSoundSitesByKdTree = function (i_position, i_closestSiteCount)
 {
     var nearestNeighbours = g_kdTree.nearest(i_position, i_closestSiteCount);
@@ -307,7 +315,7 @@ Sequencer.prototype.tick = function ()
         if (this.currentBeatNo >= this.sequenceLength)
             this.currentBeatNo = 0;
 
-        console.log("sequencer beat: " + this.currentBeatNo.toString());
+        //console.log("sequencer beat: " + this.currentBeatNo.toString());
 
         var closestSoundSites = this._getClosestSoundSitesByKdTree(g_camera.position, this.closestSiteCount);
         //var closestSoundSites = this._getClosestSoundSitesByBruteSearch(g_camera.position, this.closestSiteCount);
@@ -1264,11 +1272,6 @@ function init()
             moveRight = true;
             break;
 
-        case 32: // space
-            if (canJump === true) velocity.y += 350;
-            canJump = false;
-            break;
-
         case 71: // g
             g_showSoundSiteRanges = !g_showSoundSiteRanges;
             break;
@@ -1308,6 +1311,14 @@ function init()
                     }, [13, 27]],
                 ],
                 true);
+
+        case 32: // space
+            g_sequencer.togglePlay();
+            if (g_sequencer.playing)
+                g_scrollingLog.addText("Sequencer started.");
+            else
+                g_scrollingLog.addText("Sequencer stopped.");
+            break;
         }
     };
 
