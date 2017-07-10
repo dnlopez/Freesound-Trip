@@ -186,6 +186,8 @@ function Sequencer(i_tempo)
     this.closestSiteCount = 376;
 }
 
+// + + Transport {{{
+
 Sequencer.prototype.start = function ()
 // Start playing
 {
@@ -212,6 +214,10 @@ Sequencer.prototype.togglePlay = function ()
     else
         this.start();
 };
+
+// + + }}}
+
+// + + Query sound sites {{{
 
 Sequencer.prototype._getClosestSoundSitesByKdTree = function (i_position, i_closestSiteCount)
 {
@@ -297,6 +303,47 @@ Sequencer.prototype.distanceToGain = function (i_distance)
     return closeness;
 };
 
+Sequencer.prototype.requery = function ()
+{
+    //var closestSoundSites = this._getClosestSoundSitesByBruteSearch(g_camera.position, this.closestSiteCount);
+    var closestSoundSites = this._getClosestSoundSitesByKdTree(g_camera.position, this.closestSiteCount);
+
+    // Sort in ascending distance order
+    closestSoundSites = closestSoundSites.sort(function (i_a, i_b) {
+        if (i_a.distance < i_b.distance)
+            return -1;
+        else if (i_a.distance > i_b.distance)
+            return 1;
+        else
+            return 0;
+    });
+
+    // Calculate and save gains until they're far enough to be silent
+    var audibleSoundSiteCount = closestSoundSites.length;
+    for (var closestSoundSiteCount = closestSoundSites.length, closestSoundSiteNo = 0; closestSoundSiteNo < closestSoundSiteCount; ++closestSoundSiteNo)
+    {
+        var closestSoundSite = closestSoundSites[closestSoundSiteNo];
+
+        var soundSite = closestSoundSite.soundSite;
+        var distance = closestSoundSite.distance;
+
+        // Choose gain according to distance,
+        // and save it in the soundSite object
+        soundSite.gain = this.distanceToGain(distance);
+        if (soundSite.gain <= 0)
+        {
+            audibleSoundSiteCount = closestSoundSiteNo;
+            break;
+        }
+    }
+
+    // Truncate array to just the audible ones
+    closestSoundSites.length = audibleSoundSiteCount;
+    this.audibleSoundSites = closestSoundSites;
+};
+
+// + + }}}
+
 Sequencer.prototype.tick = function ()
 {
     if (!this.playing)
@@ -316,6 +363,8 @@ Sequencer.prototype.tick = function ()
             this.currentBeatNo = 0;
 
         //console.log("sequencer beat: " + this.currentBeatNo.toString());
+
+        // TODO: use 'audibleSoundSites' from the last call to requery() instead of requerying here
 
         var closestSoundSites = this._getClosestSoundSitesByKdTree(g_camera.position, this.closestSiteCount);
         //var closestSoundSites = this._getClosestSoundSitesByBruteSearch(g_camera.position, this.closestSiteCount);
@@ -356,6 +405,8 @@ Sequencer.prototype.tick = function ()
             }
         }
 
+        //// Save for possible UI drawing
+        //this.closestSoundSites = closestSoundSites;
         //document.body.querySelector("#infoText").innerText = closestSites;
 
         // For each part, advance its beat cursor
@@ -424,47 +475,46 @@ Sequencer.prototype.save = function ()
     return notes;
 };
 
-Sequencer.prototype.draw = function ()
+// + + UI {{{
+
+Sequencer.prototype.relayout = function ()
 {
-    var topLeft = dan.math.Vector2.fromXY(10, 10);
-    var gridTopLeft = dan.math.Vector2.fromXY(70, 10);
-    // Allow 60px width for sound ID
-    // Allow 80px width for gain
-    var gridSquareHeight = 20;
-    var gridSquareWidth = (window.innerWidth - 60 - 80) / this.sequenceLength;
-    if (gridSquareWidth > 20)
-        gridSquareWidth = 20;
-
-    //var closestSoundSites = this._getClosestSoundSitesByBruteSearch(g_camera.position, this.closestSiteCount);
-    var closestSoundSites = this._getClosestSoundSitesByKdTree(g_camera.position, this.closestSiteCount);
-
-    closestSoundSites = closestSoundSites.sort(function (i_a, i_b) {
-        if (i_a.distance < i_b.distance)
-            return -1;
-        else if (i_a.distance > i_b.distance)
-            return 1;
-        else
-            return 0;
-    });
-
-    var soundSiteDistances = closestSoundSites;
+    //
+    this.layout = {};
 
     //
-    var audibleSoundSiteCount = closestSoundSites.length;
-    for (var closestSoundSiteCount = closestSoundSites.length, closestSoundSiteNo = 0; closestSoundSiteNo < closestSoundSiteCount; ++closestSoundSiteNo)
+    this.layout.topLeft = dan.math.Vector2.fromXY(10, 10);
+
+    //
+    this.layout.gridSquareHeight = 20;
+    this.layout.gridSquareWidth = (window.innerWidth - 60 - 80) / this.sequenceLength;
+    if (this.layout.gridSquareWidth > 20)
+        this.layout.gridSquareWidth = 20;
+
+    // Sound ID column, width 60px
+    this.layout.soundIdsRect = dan.math.Rect2.fromSS(this.layout.topLeft,
+                                                     [60, this.audibleSoundSites.length * this.layout.gridSquareHeight]);
+
+    // Grid
+    this.layout.gridRect = dan.math.Rect2.fromSS(this.layout.soundIdsRect.rightTop(),
+                                                 [this.sequenceLength * this.layout.gridSquareWidth, this.audibleSoundSites.length * this.layout.gridSquareHeight]);
+
+    // Gain column, width 80px
+    this.layout.gainRect = dan.math.Rect2.fromSS(this.layout.gridRect.rightTop(),
+                                                 [80, this.audibleSoundSites.length * this.layout.gridSquareHeight]);
+};
+
+Sequencer.prototype.draw = function ()
+{
+    var this_layout = this.layout;
+
+    //
+    for (var audibleSoundSiteCount = this.audibleSoundSites.length, audibleSoundSiteNo = 0; audibleSoundSiteNo < audibleSoundSiteCount; ++audibleSoundSiteNo)
     {
-        var closestSoundSite = closestSoundSites[closestSoundSiteNo];
+        var audibleSoundSite = this.audibleSoundSites[audibleSoundSiteNo];
 
-        var soundSite = closestSoundSite.soundSite;
-        var distance = closestSoundSite.distance;
-
-        // Choose gain according to distance
-        var gain = this.distanceToGain(distance);
-        if (gain <= 0)
-        {
-            audibleSoundSiteCount = closestSoundSiteNo;
-            break;
-        }
+        var soundSite = audibleSoundSite.soundSite;
+        var distance = audibleSoundSite.distance;
 
         //
         var colour;
@@ -478,50 +528,70 @@ Sequencer.prototype.draw = function ()
         {
             if (soundSite.sequence[beatNo] === 1 || soundSite.sequence[beatNo] === true)
             {
-                g_danCanvas.drawCircleFill(dan.math.Vector2.add(gridTopLeft, [(beatNo + 0.5) * gridSquareWidth, (closestSoundSiteNo + 0.5) * gridSquareHeight]),
-                                           gridSquareWidth / 2 - 2,
+                g_danCanvas.drawCircleFill(dan.math.Vector2.add(this_layout.gridRect.leftTop(), [(beatNo + 0.5) * this_layout.gridSquareWidth, (audibleSoundSiteNo + 0.5) * this_layout.gridSquareHeight]),
+                                           this_layout.gridSquareWidth / 2 - 2,
                                            colour);
             }
         }
 
         //
         var droidSansMono14TextureFont_xHeight = 8;
-        var droidSansMono14TextureFont_yOffsetToAlignWithGridSquare = (gridSquareHeight + droidSansMono14TextureFont_xHeight) / 2;
+        var droidSansMono14TextureFont_yOffsetToAlignWithGridSquare = (this_layout.gridSquareHeight + droidSansMono14TextureFont_xHeight) / 2;
 
         //
         g_danCanvas.drawTextT(g_droidSansMono14TextureFont, soundSite.soundId.toString(), new dan.gfx.ColourRGBA(1, 0, 1, 1),
-                              dan.math.Vector2.add(topLeft, [0, closestSoundSiteNo * gridSquareHeight + droidSansMono14TextureFont_yOffsetToAlignWithGridSquare]));
+                              dan.math.Vector2.add(this_layout.soundIdsRect.leftTop(), [0, audibleSoundSiteNo * this_layout.gridSquareHeight + droidSansMono14TextureFont_yOffsetToAlignWithGridSquare]));
 
-        g_danCanvas.drawTextT(g_droidSansMono14TextureFont, gain.toString().substr(0, 5), new dan.gfx.ColourRGBA(1, 0, 1, 1),
-                              dan.math.Vector2.add(gridTopLeft, [this.sequenceLength * gridSquareWidth + 8, closestSoundSiteNo * gridSquareHeight + gridSquareHeight - 5]));
+        g_danCanvas.drawTextT(g_droidSansMono14TextureFont, soundSite.gain.toString().substr(0, 5), new dan.gfx.ColourRGBA(1, 0, 1, 1),
+                              dan.math.Vector2.add(this_layout.gridRect.rightTop(), [8, audibleSoundSiteNo * this_layout.gridSquareHeight + this_layout.gridSquareHeight - 5]));
     }
 
     // Draw grid horizontal lines
-    for (var audibleSoundSiteNo = 0; audibleSoundSiteNo <= audibleSoundSiteCount; ++audibleSoundSiteNo)
+    for (var audibleSoundSiteCount = this.audibleSoundSites.length, audibleSoundSiteNo = 0; audibleSoundSiteNo <= audibleSoundSiteCount; ++audibleSoundSiteNo)
     {
-        g_danCanvas.drawLineStroke(dan.math.Vector2.add(gridTopLeft, [0, audibleSoundSiteNo * gridSquareHeight]),
-                                   dan.math.Vector2.add(gridTopLeft, [this.sequenceLength * gridSquareWidth, audibleSoundSiteNo * gridSquareHeight]),
+        g_danCanvas.drawLineStroke(dan.math.Vector2.add(this_layout.gridRect.leftTop(), [0, audibleSoundSiteNo * this_layout.gridSquareHeight]),
+                                   dan.math.Vector2.add(this_layout.gridRect.leftTop(), [this.sequenceLength * this_layout.gridSquareWidth, audibleSoundSiteNo * this_layout.gridSquareHeight]),
                                    1, 0.5, new dan.gfx.ColourRGBA(1, 1, 0, 1));
     }
     // Draw grid vertical lines
     for (var beatNo = 0; beatNo <= this.sequenceLength; ++beatNo)
     {
-        g_danCanvas.drawLineStroke(dan.math.Vector2.add(gridTopLeft, [beatNo * gridSquareWidth, 0]),
-                                   dan.math.Vector2.add(gridTopLeft, [beatNo * gridSquareWidth, audibleSoundSiteCount * gridSquareHeight]),
+        g_danCanvas.drawLineStroke(dan.math.Vector2.add(this_layout.gridRect.leftTop(), [beatNo * this_layout.gridSquareWidth, 0]),
+                                   dan.math.Vector2.add(this_layout.gridRect.leftTop(), [beatNo * this_layout.gridSquareWidth, audibleSoundSiteCount * this_layout.gridSquareHeight]),
                                    1, 0.5, new dan.gfx.ColourRGBA(1, 1, 0, 1));
     }
 
     // Highlight column for current beat
     if (this.playing)
     {
-        g_danCanvas.drawRectFill(dan.math.Vector2.add(gridTopLeft, [this.currentBeatNo * gridSquareWidth, 0]),
-                                 [gridSquareWidth, audibleSoundSiteCount * gridSquareHeight],
+        g_danCanvas.drawRectFill(dan.math.Vector2.add(this_layout.gridRect.leftTop(), [this.currentBeatNo * this_layout.gridSquareWidth, 0]),
+                                 [this_layout.gridSquareWidth, audibleSoundSiteCount * this_layout.gridSquareHeight],
                                  new dan.gfx.ColourRGBA(0, 1, 1, 0.5));
     }
 
-    //g_danCanvas.drawCircleFill([(beatNo + 0.5) * gridSquareSize, (audibleSoundSiteNo + 0.5) * gridSquareSize],
-    //                           gridSquareSize / 2, new dan.gfx.ColourRGBA(1, 1, 0, 1));
+    //g_danCanvas.drawCircleFill([(beatNo + 0.5) * this_layout.gridSquareSize, (audibleSoundSiteNo + 0.5) * this_layout.gridSquareSize],
+    //                           this_layout.gridSquareSize / 2, new dan.gfx.ColourRGBA(1, 1, 0, 1));
 };
+
+Sequencer.prototype.onMouseDown = function (i_event)
+{
+    var this_layout = this.layout;
+
+    var mousePos = dan.math.Vector2.fromXY(i_event.pageX, i_event.pageY);
+
+    if (this_layout.soundIdsRect.contains(mousePos))
+    {
+        var positionInSoundIdsRect = dan.math.Vector2.sub(mousePos, this_layout.soundIdsRect.leftTop());
+
+        var audibleSoundSiteNo = Math.floor(positionInSoundIdsRect[1] / this_layout.gridSquareHeight);
+        //g_scrollingLog.addText(this.audibleSoundSites[audibleSoundSiteNo].soundSite.soundId);
+        g_autoFlyToSoundSite = this.audibleSoundSites[audibleSoundSiteNo].soundSite;
+
+        g_showSequence = false;
+    }
+};
+
+// + + }}}
 
 function playNote(i_buffer,
                   //i_pan, i_panPositionX, i_panPositionY, i_panPositionZ,
@@ -991,6 +1061,27 @@ function findSoundSitesOwningMeshes(i_meshes)
     return soundSites;
 }
 
+function findSoundSiteNoById(i_soundId)
+// Params:
+//  i_soundId:
+//   (integer number)
+//
+// Returns:
+//  Either (integer number)
+//  or (null)
+{
+    var soundIdStr = i_soundId.toString();
+    for (var soundSiteCount = g_soundSites.length, soundSiteNo = 0; soundSiteNo < soundSiteCount; ++soundSiteNo)
+    {
+        var soundSite = g_soundSites[soundSiteNo];
+
+        if (soundSite.soundId == soundIdStr)
+            return soundSiteNo;
+    }
+
+    return null;
+}
+
 // + + }}}
 
 // + }}}
@@ -1152,6 +1243,8 @@ function body_onMouseMove(i_event)
 
 var g_sequencer;
 
+var g_autoFlyToSoundSite = null;
+
 function init()
 {
     g_tagsStr = dan.getParameterValueFromQueryString("tags");
@@ -1219,6 +1312,12 @@ function init()
     g_viewportDiv = document.createElement("div");
     document.body.appendChild(g_viewportDiv);
     document.body.addEventListener("mousemove", body_onMouseMove);
+    g_viewportDiv.addEventListener("mousedown", function (i_event) {
+        if (g_showSequence)
+        {
+            g_sequencer.onMouseDown(i_event);
+        }
+    });
 
     //g_controls = new THREE.PointerLockControls(g_camera);
     g_controls = new THREE.FlyControls(g_camera, g_viewportDiv);
@@ -1920,6 +2019,44 @@ function setGainOfSoundSitesByCameraProximity()
     return currentlyPlayingSites;
 }
 
+function flyTowardsPoint(i_point)
+// Params:
+//  i_point:
+//   (THREE.Vector3)
+//
+// Returns:
+//  (boolean)
+{
+    var k_stopAtDistance = 10;
+
+    var cameraDirection = g_camera.getWorldDirection();
+    var cameraToTarget = i_point.clone().sub(g_camera.position);
+    cameraToTarget_length = cameraToTarget.length();
+    cameraToTarget.divideScalar(cameraToTarget_length);
+
+    // Rotate
+    var rotationAxis = cameraDirection.clone().cross(cameraToTarget);
+    var rotationAngle = Math.asin(rotationAxis.length());
+    if (rotationAngle != 0)
+    {
+        rotationAngle /= 10;
+        rotationAxis.normalize();
+
+        var rotationInWorldSpace = new THREE.Quaternion().setFromAxisAngle(rotationAxis, rotationAngle);
+        g_camera.quaternion.multiplyQuaternions(rotationInWorldSpace, g_camera.quaternion);
+    }
+
+    // Move forward
+    if (cameraToTarget_length > k_stopAtDistance)
+    {
+        //g_camera.translateZ(-i_movementStep);
+        g_camera.translateZ(-cameraToTarget_length / 20);
+    }
+
+    //
+    return cameraToTarget_length > k_stopAtDistance || rotationAngle > 0.0001;
+}
+
 var distances = [];
 function animate()
 {
@@ -2002,6 +2139,12 @@ function animate()
     var time = performance.now();
     var delta = (time - prevTime) / 1000;
 
+    if (g_autoFlyToSoundSite)
+    {
+        if (!flyTowardsPoint(g_autoFlyToSoundSite.position))  //, g_controls.movementSpeed * delta))
+            g_autoFlyToSoundSite = null;
+    }
+
     /*
     velocity.x -= velocity.x * 10.0 * delta;
     velocity.z -= velocity.z * 10.0 * delta;
@@ -2060,7 +2203,11 @@ function animate()
     GL.setCull({ enabled: false });
 
     if (g_showSequence)
+    {
+        g_sequencer.requery();
+        g_sequencer.relayout();
         g_sequencer.draw();
+    }
 
     g_danCanvas.flush();
 
