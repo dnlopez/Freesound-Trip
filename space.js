@@ -356,37 +356,6 @@ Sequencer.prototype.tick = function ()
             }
         }
 
-        // For all of the closest sound sites, load samples or trigger sounds
-        var closestSites = "";
-        for (var closestSoundSiteCount = closestSoundSites.length, closestSoundSiteNo = 0; closestSoundSiteNo < closestSoundSiteCount; ++closestSoundSiteNo)
-        {
-            var closestSoundSite = closestSoundSites[closestSoundSiteNo];
-
-            var soundSite = closestSoundSite.soundSite;
-            var distance = closestSoundSite.distance;
-
-            if (soundSite.sequence[this.currentBeatNo] === 1 || soundSite.sequence[this.currentBeatNo] === true)
-            {
-                // Choose gain according to distance
-                //var distance = soundSite.getPosition().distanceTo(g_camera.position);
-                var gain = this.distanceToGain(distance);
-                if (gain > 0)
-                {
-                    if (!soundSite.audioBuffer)
-                    {
-                        soundSite.loadSamplesIfNeeded();
-                        // TODO: still trigger the first sound if it loads in time
-                    }
-                    else
-                    {
-                        closestSites += soundSite.soundId + ": " + soundSite.soundUrl + ", " + soundSite.sequence.toString() + "\n";
-                        playNote(soundSite.audioBuffer, gain, nextBeatStartTime);
-                        soundSite.lastTriggerTime = performance.now() / 1000;
-                    }
-                }
-            }
-        }
-
         //document.body.querySelector("#infoText").innerText = closestSites;
 
         // For each part, advance its beat cursor
