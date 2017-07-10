@@ -443,7 +443,6 @@ Sequencer.prototype.save = function ()
 {
     //var closestSoundSites = this._getClosestSoundSitesByBruteSearch(g_camera.position, this.closestSiteCount);
     var closestSoundSites = this._getClosestSoundSitesByKdTree(g_camera.position, this.closestSiteCount);
-    var soundSiteDistances = closestSoundSites;
 
     //
     var notes = [];
@@ -1228,7 +1227,6 @@ var moveRight = false;
 var canJump = false;
 
 var prevTime = performance.now();
-var velocity = new THREE.Vector3();
 
 var g_mousePositionInViewport = [0, 0];
 var g_mousePositionInViewport_normalized = [0, 0];
@@ -1339,7 +1337,8 @@ function init()
 
         case 37: // left
         case 65: // a
-            moveLeft = true; break;
+            moveLeft = true;
+            break;
 
         case 40: // down
         case 83: // s
@@ -1961,64 +1960,6 @@ function startMainLoop()
     animate();
 }
 
-function setGainOfSoundSitesByCameraProximity()
-{
-    // For each sound site, get distance from camera,
-    // and if close enough then load/start the sound playing if necessary,
-    // and adjust gain based on closeness
-    var currentlyPlayingSites = [];
-
-    /*
-    // Implementation: find neighbours by brutely iterating through every sound site
-
-    for (var soundSiteCount = g_soundSites.length, soundSiteNo = 0; soundSiteNo < soundSiteCount; ++soundSiteNo)
-    {
-        var soundSite = g_soundSites[soundSiteNo];
-
-        var distance = soundSite.getPosition().distanceTo(g_camera.position);
-
-        var closeness = (k_distanceAtWhichSoundIsSilent - distance) / k_distanceAtWhichSoundIsSilent;
-        closeness = Math.max(closeness, 0);
-
-        soundSite.setGain(closeness);
-        //soundSite.setGain(1.0);
-        if (closeness > 0)
-        {
-            currentlyPlayingSites.push([soundSite.soundId, closeness]);
-            soundSite.loadSamplesIfNeeded();
-        }
-    }
-    */
-
-    // Implementation: find neighbours by querying kd tree
-
-    // Get 3 nearest points to g_camera.position
-    // 'maxDistance' is squared because we use the manhattan distance and no square root was applied in the distance function
-    var nearestNeighbours = g_kdTree.nearest([g_camera.position.x, g_camera.position.y, g_camera.position.z], 5);
-    for (var nearestNeighbourCount = nearestNeighbours.length, nearestNeighbourNo = 0; nearestNeighbourNo < nearestNeighbourCount; ++nearestNeighbourNo)
-    {
-        var nearestNeighbour = nearestNeighbours[nearestNeighbourNo];
-
-        var kdNode = nearestNeighbour[0];
-
-        var soundSite = kdNode.soundSite;
-        var distance = soundSite.getPosition().distanceTo(g_camera.position);  // nearestNeighbour[1] seems to be NaN for some reason
-
-        var closeness = (k_distanceAtWhichSoundIsSilent - distance) / k_distanceAtWhichSoundIsSilent;
-        closeness = Math.max(closeness, 0);
-
-        soundSite.setGain(closeness);
-        //soundSite.setGain(1.0);
-        if (closeness > 0)
-        {
-            currentlyPlayingSites.push([soundSite.soundId, closeness]);
-            soundSite.loadSamplesIfNeeded();
-        }
-    }
-
-    return currentlyPlayingSites;
-}
-
 function flyTowardsPoint(i_point)
 // Params:
 //  i_point:
@@ -2057,12 +1998,9 @@ function flyTowardsPoint(i_point)
     return cameraToTarget_length > k_stopAtDistance || rotationAngle > 0.0001;
 }
 
-var distances = [];
 function animate()
 {
     requestAnimationFrame(animate);
-
-    //var currentlyPlayingSites = setGainOfSoundSitesByCameraProximity();
 
     // + Mouse picking {{{
     /*
