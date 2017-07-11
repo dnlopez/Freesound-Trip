@@ -1290,6 +1290,58 @@ function init()
 
     g_sequencer = new Sequencer(tempo);
 
+    //
+    g_viewportDiv = document.createElement("div");
+    document.body.appendChild(g_viewportDiv);
+    document.body.addEventListener("mousemove", body_onMouseMove);
+    g_viewportDiv.addEventListener("mousedown", function (i_event) {
+        if (g_showSequence)
+        {
+            g_sequencer.onMouseDown(i_event);
+        }
+        else
+        {
+            // If pressed the right mouse button
+            if (i_event.button == 2)
+            {
+                var pointedAtSoundSites = getSoundSitesAtViewportPosition(new THREE.Vector2(g_mousePositionInViewport_normalized[0], -g_mousePositionInViewport_normalized[1]));
+                if (pointedAtSoundSites.length > 0)
+                {
+                    var webUrl = g_assetLoader.loaded["sound_index"][pointedAtSoundSites[0].soundId]["web-url"];
+                    g_scrollingLog.addText(webUrl);
+                    window.open(webUrl, "_blank");
+                    //
+                    i_event.stopPropagation();
+                    i_event.stopImmediatePropagation();
+                    g_controls.resetInputs();
+                }
+            }
+        }
+    });
+
+    // Create canvas element, add to document body
+    var canvas = document.createElement("canvas");
+    canvas.width = 1;
+    canvas.height = 1;
+    var contextAttributes = { stencil: true };
+    var ctx = canvas.getContext("webgl", contextAttributes) || canvas.getContext("experimental-webgl", contextAttributes);
+    if (ctx === null)
+    {
+        throw "Error creating WebGL context";
+    }
+
+    //
+    g_renderer = new THREE.WebGLRenderer(ctx);
+    g_renderer.setClearColor(0xffffff);
+    g_renderer.setPixelRatio(window.devicePixelRatio);
+    //g_renderer.setSize(window.innerWidth, window.innerHeight);
+    g_viewportDiv.appendChild(g_renderer.domElement);
+
+    //
+    GL = new dan.gfx.gl.Context(g_renderer.context);
+    g_danCanvas = new dan.gfx.canvas.ToGl();
+
+    //
     g_camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 10000);
 
     // Make a scene graph
@@ -1337,34 +1389,6 @@ function init()
     }
     addTestLog();
     */
-
-    g_viewportDiv = document.createElement("div");
-    document.body.appendChild(g_viewportDiv);
-    document.body.addEventListener("mousemove", body_onMouseMove);
-    g_viewportDiv.addEventListener("mousedown", function (i_event) {
-        if (g_showSequence)
-        {
-            g_sequencer.onMouseDown(i_event);
-        }
-        else
-        {
-            // If pressed the right mouse button
-            if (i_event.button == 2)
-            {
-                var pointedAtSoundSites = getSoundSitesAtViewportPosition(new THREE.Vector2(g_mousePositionInViewport_normalized[0], -g_mousePositionInViewport_normalized[1]));
-                if (pointedAtSoundSites.length > 0)
-                {
-                    var webUrl = g_assetLoader.loaded["sound_index"][pointedAtSoundSites[0].soundId]["web-url"];
-                    g_scrollingLog.addText(webUrl);
-                    window.open(webUrl, "_blank");
-                    //
-                    i_event.stopPropagation();
-                    i_event.stopImmediatePropagation();
-                    g_controls.resetInputs();
-                }
-            }
-        }
-    });
 
     //g_controls = new THREE.PointerLockControls(g_camera);
     g_controls = new THREE_FlyControls(g_camera, g_viewportDiv);
@@ -1586,28 +1610,6 @@ function onWindowResize()
 
 function continueInit()
 {
-    // Create canvas element, add to document body
-    var canvas = document.createElement("canvas");
-    canvas.width = 1;
-    canvas.height = 1;
-    var contextAttributes = { stencil: true };
-    var ctx = canvas.getContext("webgl", contextAttributes) || canvas.getContext("experimental-webgl", contextAttributes);
-    if (ctx === null)
-    {
-        throw "Error creating WebGL context";
-    }
-
-    //
-    g_renderer = new THREE.WebGLRenderer(ctx);
-    g_renderer.setClearColor(0xffffff);
-    g_renderer.setPixelRatio(window.devicePixelRatio);
-    //g_renderer.setSize(window.innerWidth, window.innerHeight);
-    g_viewportDiv.appendChild(g_renderer.domElement);
-
-    //
-    GL = new dan.gfx.gl.Context(g_renderer.context);
-    g_danCanvas = new dan.gfx.canvas.ToGl();
-
     //
     g_scrollingLog.addText("Loading fonts...");
     dan.text.loadFont("fonts/DroidSansMono-Regular.ttf", "DroidSansMono").then(continueInit_onFontsLoaded);
