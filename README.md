@@ -21,6 +21,10 @@
   <li>P: show the current sequence, in exportable text form
   <li>C: record audio</li>
 </ul>
+<h4>Freesound</h4>
+<ul>
+  <li>I: show Freesound IDs for stars underneath mouse pointer</li>
+</ul>
 <hr>
 <p>Created by the Audio Commons team of the Sónar Innovation Challenge 2017</p>
 <ul>

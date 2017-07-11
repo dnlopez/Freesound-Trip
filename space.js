@@ -1389,6 +1389,19 @@ function init()
             g_showSequence = !g_showSequence;
             break;
 
+        case 73: // i
+            if (!g_showSoundSiteIdsOnMouseover)
+            {
+                g_scrollingLog.addText("Freesound ID inspection ON (put mouse on a star).");
+                g_showSoundSiteIdsOnMouseover = true;
+            }
+            else
+            {
+                g_scrollingLog.addText("Freesound ID inspection OFF.");
+                g_showSoundSiteIdsOnMouseover = false;
+            }
+            break;
+
         case 67: // c
             if (g_audioRecorder === null)
             {
@@ -1459,8 +1472,7 @@ function init()
     document.addEventListener("keydown", onKeyDown, false);
     document.addEventListener("keyup", onKeyUp, false);
 
-    g_raycaster = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(0, - 1, 0), 0, 1000);
-    //g_raycaster = new THREE.Raycaster();
+    g_raycaster = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(0, -1, 0), 0, 1000);
 
     // PROTOTYPE:
     // Create a box geometry that will be shared by all the sound sites
@@ -1991,6 +2003,33 @@ function startMainLoop()
     animate();
 }
 
+function getSoundSitesAtViewportPosition(i_position)
+// Params:
+//  i_position:
+//   (THREE.Vector2)
+//
+// Returns:
+//  (array of SoundSite)
+{
+	g_raycaster.params.Points.threshold = 5;
+    g_raycaster.setFromCamera(i_position, g_camera);
+	var intersections = g_raycaster.intersectObjects(g_scene.children);
+    //var pointedAtMeshes = [];
+    var pointedAtSoundSites = [];
+	for (var intersectionNo = 0; intersectionNo < intersections.length; ++intersectionNo)
+    {
+        var intersection = intersections[intersectionNo];
+
+        if (intersection.object.constructor === THREE.Points)
+        {
+            //pointedAtMeshes.push(intersection.object);
+            pointedAtSoundSites.push(g_soundSites[intersection.index]);
+        }
+	}
+
+    return pointedAtSoundSites;
+}
+
 function flyTowardsPoint(i_point)
 // Params:
 //  i_point:
@@ -2029,80 +2068,11 @@ function flyTowardsPoint(i_point)
     return cameraToTarget_length > k_stopAtDistance || rotationAngle > 0.0001;
 }
 
+var g_showSoundSiteIdsOnMouseover = false;
+
 function animate()
 {
     requestAnimationFrame(animate);
-
-    // + Mouse picking {{{
-    /*
-    // Reset all cube colours to default,
-    // then find which are currently pointed at with the mouse, and colour them red and display textual info
-    for (var soundSiteCount = g_soundSites.length, soundSiteNo = 0; soundSiteNo < soundSiteCount; ++soundSiteNo)
-    {
-        var soundSite = g_soundSites[soundSiteNo];
-
-		soundSite.mesh.material.color.set(0xffffff);
-    }
-
-    g_raycaster.setFromCamera(new THREE.Vector2(g_mousePositionInViewport_normalized[0], -g_mousePositionInViewport_normalized[1]), g_camera);
-	var intersections = g_raycaster.intersectObjects(g_scene.children);
-    var pointedAtMeshes = [];
-	for (var intersectionNo = 0; intersectionNo < intersections.length; ++intersectionNo)
-    {
-        var intersection = intersections[intersectionNo];
-
-        pointedAtMeshes.push(intersection.object);
-	}
-    var pointedAtSoundSites = findSoundSitesOwningMeshes(pointedAtMeshes);
-    */
-
-    // + }}}
-
-    // + Debug info text {{{
-    /*
-    var message = "";
-
-    // Which site(s) are playing due to player proximity
-    if (currentlyPlayingSites.length > 0)
-    {
-        message += "Currently playing:\n";
-        for (var currentlyPlayingSiteCount = currentlyPlayingSites.length, currentlyPlayingSiteNo = 0; currentlyPlayingSiteNo < currentlyPlayingSiteCount; ++currentlyPlayingSiteNo)
-        {
-            var currentlyPlayingSite = currentlyPlayingSites[currentlyPlayingSiteNo];
-
-            message += " " + dan.roundToDecimalPlaces(currentlyPlayingSite[1], 3).toString() + ": " + currentlyPlayingSite[0] + "\n";
-        }
-    }
-
-    // Which site(s) mouse is pointing at
-    var mousePointingAtMessage = "";
-    for (var pointedAtSoundSiteCount = pointedAtSoundSites.length, pointedAtSoundSiteNo = 0; pointedAtSoundSiteNo < pointedAtSoundSiteCount; ++pointedAtSoundSiteNo)
-    {
-        var pointedAtSoundSite = pointedAtSoundSites[pointedAtSoundSiteNo];
-
-		pointedAtSoundSite.mesh.material.color.set(0xff0000);
-        mousePointingAtMessage += pointedAtSoundSite.soundId + "\n";
-    }
-    if (mousePointingAtMessage != "")
-    {
-        message += "Mouse pointing at:\n";
-        message += " " + mousePointingAtMessage + "\n";
-    }
-
-    //
-    document.body.querySelector("#infoText").innerText = message;
-    */
-    // + }}}
-
-    // Show/hide all range wireframes according to current setting
-    /*
-    for (var soundSiteCount = g_soundSites.length, soundSiteNo = 0; soundSiteNo < soundSiteCount; ++soundSiteNo)
-    {
-        var soundSite = g_soundSites[soundSiteNo];
-
-		soundSite.rangeSphereMesh.visible = g_showSoundSiteRanges;
-    }
-    */
 
     //
     var time = performance.now();
@@ -2170,6 +2140,31 @@ function animate()
 
     GL.resetToGlState();
     GL.setCull({ enabled: false });
+
+    // + Mouse picking {{{
+
+    if (g_showSoundSiteIdsOnMouseover)
+    {
+        var pointedAtSoundSites = getSoundSitesAtViewportPosition(new THREE.Vector2(g_mousePositionInViewport_normalized[0], -g_mousePositionInViewport_normalized[1]));
+
+        for (var pointedAtSoundSiteCount = pointedAtSoundSites.length, pointedAtSoundSiteNo = 0; pointedAtSoundSiteNo < pointedAtSoundSiteCount; ++pointedAtSoundSiteNo)
+        {
+            var pointedAtSoundSite = pointedAtSoundSites[pointedAtSoundSiteNo];
+
+            var positionInClipSpace = pointedAtSoundSite.position.clone().applyMatrix4(g_camera.matrixWorldInverse).applyMatrix4(g_camera.projectionMatrix);
+            //g_scrollingLog.addText("pointing at: " + pointedAtSoundSite.soundId + ", " + Vector3_toString(p) + ", " + Vector3_toString(positionInClipSpace));
+
+            var boundingClientRect = g_viewportDiv.getBoundingClientRect();
+            var positionInViewport = new dan.math.Vector2.fromXY((positionInClipSpace.x + 1) / 2 * boundingClientRect.width,
+                                                (-positionInClipSpace.y + 1) / 2 * boundingClientRect.height);
+            //positionInViewport[0] -= 12;
+            //g_scrollingLog.addText("pointing at: " + pointedAtSoundSite.soundId + ", " + Vector2_toString(positionInViewport));
+            g_danCanvas.drawTextT(g_droidSansMono14TextureFont, pointedAtSoundSite.soundId.toString(), new dan.gfx.ColourRGBA(0, 0, 0, 1), dan.math.Vector2.add(positionInViewport, [1, 1]));
+            g_danCanvas.drawTextT(g_droidSansMono14TextureFont, pointedAtSoundSite.soundId.toString(), new dan.gfx.ColourRGBA(1, 1, 1, 1), positionInViewport);
+        }
+    }
+
+    // + }}}
 
     if (g_showSequence)
     {
