@@ -34,26 +34,38 @@ dan.math.Rect2 = function ()
 
 dan.math.Rect2.fromSE = function (i_start, i_end)
 // Params:
-//  i_start: (dan.math.Vector2)
-//  i_end: (dan.math.Vector2)
+//  i_start:
+//   Either (dan.math.Vector2)
+//   or (array of 2 floats)
+//  i_end:
+//   Either (dan.math.Vector2)
+//   or (array of 2 floats)
 {
     return new dan.math.Rect2().setSE(i_start, i_end);
 };
 
 dan.math.Rect2.fromSS = function (i_start, i_size)
 // Params:
-//  i_start: (dan.math.Vector2)
-//  i_size: (dan.math.Vector2)
+//  i_start:
+//   Either (dan.math.Vector2)
+//   or (array of 2 floats)
+//  i_size:
+//   Either (dan.math.Vector2)
+//   or (array of 2 floats)
 {
     return new dan.math.Rect2().setSS(i_start, i_size);
 };
 
 dan.math.Rect2.fromLTRB = function (i_left, i_top, i_right, i_bottom)
 // Params:
-//  i_left: (float)
-//  i_top: (float)
-//  i_right: (float)
-//  i_bottom: (float)
+//  i_left:
+//   (float)
+//  i_top:
+//   (float)
+//  i_right:
+//   (float)
+//  i_bottom:
+//   (float)
 //
 // Returns:
 //  (dan.math.Rect2)
@@ -63,10 +75,14 @@ dan.math.Rect2.fromLTRB = function (i_left, i_top, i_right, i_bottom)
 
 dan.math.Rect2.fromX1Y1X2Y2 = function (i_x1, i_y1, i_x2, i_y2)
 // Params:
-//  i_x1: (float)
-//  i_y1: (float)
-//  i_x2: (float)
-//  i_y2: (float)
+//  i_x1:
+//   (float)
+//  i_y1:
+//   (float)
+//  i_x2:
+//   (float)
+//  i_y2:
+//   (float)
 //
 // Returns:
 //  (dan.math.Rect2)
@@ -76,10 +92,14 @@ dan.math.Rect2.fromX1Y1X2Y2 = function (i_x1, i_y1, i_x2, i_y2)
 
 dan.math.Rect2.fromX1X2Y1Y2 = function (i_x1, i_x2, i_y1, i_y2)
 // Params:
-//  i_x1: (float)
-//  i_x2: (float)
-//  i_y1: (float)
-//  i_y2: (float)
+//  i_x1:
+//   (float)
+//  i_x2:
+//   (float)
+//  i_y1:
+//   (float)
+//  i_y2:
+//   (float)
 //
 // Returns:
 //  (dan.math.Rect2)
@@ -89,10 +109,14 @@ dan.math.Rect2.fromX1X2Y1Y2 = function (i_x1, i_x2, i_y1, i_y2)
 
 dan.math.Rect2.fromXYWH = function (i_x, i_y, i_width, i_height)
 // Params:
-//  i_x: (float)
-//  i_y: (float)
-//  i_width: (float)
-//  i_height: (float)
+//  i_x:
+//   (float)
+//  i_y:
+//   (float)
+//  i_width:
+//   (float)
+//  i_height:
+//   (float)
 //
 // Returns:
 //  (dan.math.Rect2)
@@ -102,7 +126,8 @@ dan.math.Rect2.fromXYWH = function (i_x, i_y, i_width, i_height)
 
 dan.math.Rect2.prototype.fromRect2 = function (i_rect)
 // Params:
-//  i_rect: (dan.math.Rect2)
+//  i_rect:
+//   (dan.math.Rect2)
 //
 // Returns:
 //  (dan.math.Rect2)
@@ -125,8 +150,12 @@ dan.math.Rect2.prototype.clone = function ()
 
 dan.math.Rect2.prototype.setSE = function (i_start, i_end)
 // Params:
-//  i_start: (dan.math.Vector2)
-//  i_end: (dan.math.Vector2)
+//  i_start:
+//   Either (dan.math.Vector2)
+//   or (array of 2 floats)
+//  i_end:
+//   Either (dan.math.Vector2)
+//   or (array of 2 floats)
 //
 // Returns:
 //  (dan.math.Rect2)
@@ -140,8 +169,12 @@ dan.math.Rect2.prototype.setSE = function (i_start, i_end)
 
 dan.math.Rect2.prototype.setSS = function (i_start, i_size)
 // Params:
-//  i_start: (dan.math.Vector2)
-//  i_size: (dan.math.Vector2)
+//  i_start:
+//   Either (dan.math.Vector2)
+//   or (array of 2 floats)
+//  i_size:
+//   Either (dan.math.Vector2)
+//   or (array of 2 floats)
 //
 // Returns:
 //  (dan.math.Rect2)
@@ -155,10 +188,14 @@ dan.math.Rect2.prototype.setSS = function (i_start, i_size)
 
 dan.math.Rect2.prototype.setLTRB = function (i_left, i_top, i_right, i_bottom)
 // Params:
-//  i_left: (float)
-//  i_top: (float)
-//  i_right: (float)
-//  i_bottom: (float)
+//  i_left:
+//   (float)
+//  i_top:
+//   (float)
+//  i_right:
+//   (float)
+//  i_bottom:
+//   (float)
 //
 // Returns:
 //  (dan.math.Rect2)
@@ -172,10 +209,14 @@ dan.math.Rect2.prototype.setLTRB = function (i_left, i_top, i_right, i_bottom)
 
 dan.math.Rect2.prototype.setX1Y1X2Y2 = function (i_x1, i_y1, i_x2, i_y2)
 // Params:
-//  i_x1: (float)
-//  i_y1: (float)
-//  i_x2: (float)
-//  i_y2: (float)
+//  i_x1:
+//   (float)
+//  i_y1:
+//   (float)
+//  i_x2:
+//   (float)
+//  i_y2:
+//   (float)
 //
 // Returns:
 //  (dan.math.Rect2)
@@ -189,10 +230,14 @@ dan.math.Rect2.prototype.setX1Y1X2Y2 = function (i_x1, i_y1, i_x2, i_y2)
 
 dan.math.Rect2.prototype.setX1X2Y1Y2 = function (i_x1, i_x2, i_y1, i_y2)
 // Params:
-//  i_x1: (float)
-//  i_x2: (float)
-//  i_y1: (float)
-//  i_y2: (float)
+//  i_x1:
+//   (float)
+//  i_x2:
+//   (float)
+//  i_y1:
+//   (float)
+//  i_y2:
+//   (float)
 //
 // Returns:
 //  (dan.math.Rect2)
@@ -206,10 +251,14 @@ dan.math.Rect2.prototype.setX1X2Y1Y2 = function (i_x1, i_x2, i_y1, i_y2)
 
 dan.math.Rect2.prototype.setXYWH = function (i_x, i_y, i_width, i_height)
 // Params:
-//  i_x: (float)
-//  i_y: (float)
-//  i_width: (float)
-//  i_height: (float)
+//  i_x:
+//   (float)
+//  i_y:
+//   (float)
+//  i_width:
+//   (float)
+//  i_height:
+//   (float)
 //
 // Returns:
 //  (dan.math.Rect2)
@@ -223,7 +272,8 @@ dan.math.Rect2.prototype.setXYWH = function (i_x, i_y, i_width, i_height)
 
 dan.math.Rect2.prototype.setRect2 = function (i_rect)
 // Params:
-//  i_rect: (dan.math.Rect2)
+//  i_rect:
+//   (dan.math.Rect2)
 //
 // Returns:
 //  (dan.math.Rect2)
@@ -248,7 +298,9 @@ dan.math.Rect2.prototype.getStart = function ()
 
 dan.math.Rect2.prototype.setStart = function (i_start)
 // Params:
-//  i_start: (dan.math.Vector2)
+//  i_start:
+//   Either (dan.math.Vector2)
+//   or (array of 2 floats)
 //
 // Returns:
 //  (dan.math.Rect2)
@@ -267,7 +319,9 @@ dan.math.Rect2.prototype.getEnd = function ()
 
 dan.math.Rect2.prototype.setEnd = function (i_end)
 // Params:
-//  i_end: (dan.math.Vector2)
+//  i_end:
+//   Either (dan.math.Vector2)
+//   or (array of 2 floats)
 //
 // Returns:
 //  (dan.math.Rect2)
@@ -290,7 +344,8 @@ dan.math.Rect2.prototype.getLeft = function ()
 
 dan.math.Rect2.prototype.setLeft = function (i_left)
 // Params:
-//  i_left: (float)
+//  i_left:
+//   (float)
 //
 // Returns:
 //  (dan.math.Rect2)
@@ -324,7 +379,8 @@ dan.math.Rect2.prototype.getTop = function ()
 
 dan.math.Rect2.prototype.setTop = function (i_top)
 // Params:
-//  i_top: (float)
+//  i_top:
+//   (float)
 //
 // Returns:
 //  (dan.math.Rect2)
@@ -358,7 +414,8 @@ dan.math.Rect2.prototype.getRight = function ()
 
 dan.math.Rect2.prototype.setRight = function (i_right)
 // Params:
-//  i_right: (float)
+//  i_right:
+//   (float)
 //
 // Returns:
 //  (dan.math.Rect2)
@@ -392,7 +449,8 @@ dan.math.Rect2.prototype.getBottom = function ()
 
 dan.math.Rect2.prototype.setBottom = function (i_bottom)
 // Params:
-//  i_bottom: (float)
+//  i_bottom:
+//   (float)
 //
 // Returns:
 //  (dan.math.Rect2)
@@ -426,7 +484,8 @@ dan.math.Rect2.prototype.getX = function ()
 
 dan.math.Rect2.prototype.setX = function (i_x)
 // Params:
-//  i_x: (float)
+//  i_x:
+//   (float)
 //
 // Returns:
 //  (dan.math.Rect2)
@@ -444,7 +503,8 @@ dan.math.Rect2.prototype.getY = function ()
 
 dan.math.Rect2.prototype.setY = function (i_y)
 // Params:
-//  i_y: (float)
+//  i_y:
+//   (float)
 //
 // Returns:
 //  (dan.math.Rect2)
@@ -660,7 +720,8 @@ dan.math.Rect2.prototype.setRightBottom = function (i_rightBottom)
 
 dan.math.Rect2.prototype.intersects = function (i_other)
 // Params:
-//  i_other: (dan.math.Rect2)
+//  i_other:
+//   (dan.math.Rect2)
 //
 // Returns:
 //  (boolean)
@@ -682,8 +743,10 @@ dan.math.Rect2.prototype.contains = function (i_xOrVector2, i_y)
 //
 // Mode 1:
 //  Params:
-//   i_xOrVector2: (float)
-//   i_y: (float)
+//   i_xOrVector2:
+//    (float)
+//   i_y:
+//    (float)
 //
 // Mode 2:
 //  Params:
@@ -798,8 +861,10 @@ dan.math.Rect2.union_ = function (i_rect1, i_rect2)
 dan.math.Rect2.prototype.add = function (i_xOrVector2, i_y)
 // Mode 1:
 //  Params:
-//   i_xOrVector2: (float)
-//   i_y: (float)
+//   i_xOrVector2:
+//    (float)
+//   i_y:
+//    (float)
 //
 // Mode 2:
 //  Params:
@@ -837,13 +902,17 @@ dan.math.Rect2.prototype.offset = dan.math.Rect2.prototype.add;
 dan.math.Rect2.add = function (i_rect, i_xOrVector2, i_y)
 // Mode 1:
 //  Params:
-//   i_rect: (dan.math.Rect2)
-//   i_xOrVector2: (float)
-//   i_y: (float)
+//   i_rect:
+//    (dan.math.Rect2)
+//   i_xOrVector2:
+//    (float)
+//   i_y:
+//    (float)
 //
 // Mode 2:
 //  Params:
-//   i_rect: (dan.math.Rect2)
+//   i_rect:
+//    (dan.math.Rect2)
 //   i_xOrVector2:
 //    Either (dan.math.Vector2)
 //    or (array of 2 floats)
@@ -871,8 +940,10 @@ dan.math.Rect2.prototype.moveByLeftTop = function (i_leftOrVector2, i_top)
 //
 // Mode 1:
 //  Params:
-//   i_leftOrVector2: (float)
-//   i_top: (float)
+//   i_leftOrVector2:
+//    (float)
+//   i_top:
+//    (float)
 //
 // Mode 2:
 //  Params:
@@ -895,8 +966,10 @@ dan.math.Rect2.prototype.moveByRightTop = function (i_rightOrVector2, i_top)
 //
 // Mode 1:
 //  Params:
-//   i_rightOrVector2: (float)
-//   i_top: (float)
+//   i_rightOrVector2:
+//    (float)
+//   i_top:
+//    (float)
 //
 // Mode 2:
 //  Params:
@@ -919,8 +992,10 @@ dan.math.Rect2.prototype.moveByLeftBottom = function (i_leftOrVector2, i_bottom)
 //
 // Mode 1:
 //  Params:
-//   i_leftOrVector2: (float)
-//   i_bottom: (float)
+//   i_leftOrVector2:
+//    (float)
+//   i_bottom:
+//    (float)
 //
 // Mode 2:
 //  Params:
@@ -943,8 +1018,10 @@ dan.math.Rect2.prototype.moveByRightBottom = function (i_rightOrVector2, i_botto
 //
 // Mode 1:
 //  Params:
-//   i_rightOrVector2: (float)
-//   i_bottom: (float)
+//   i_rightOrVector2:
+//    (float)
+//   i_bottom:
+//    (float)
 //
 // Mode 2:
 //  Params:
@@ -971,8 +1048,10 @@ dan.math.Rect2.prototype.moveByLeftCentre = function (i_leftOrVector2, i_centre)
 //
 // Mode 1:
 //  Params:
-//   i_leftOrVector2: (float)
-//   i_centre: (float)
+//   i_leftOrVector2:
+//    (float)
+//   i_centre:
+//    (float)
 //
 // Mode 2:
 //  Params:
@@ -995,8 +1074,10 @@ dan.math.Rect2.prototype.moveByCentreTop = function (i_centreOrVector2, i_top)
 //
 // Mode 1:
 //  Params:
-//   i_centreOrVector2: (float)
-//   i_top: (float)
+//   i_centreOrVector2:
+//    (float)
+//   i_top:
+//    (float)
 //
 // Mode 2:
 //  Params:
@@ -1019,8 +1100,10 @@ dan.math.Rect2.prototype.moveByRightCentre = function (i_rightOrVector2, i_centr
 //
 // Mode 1:
 //  Params:
-//   i_rightOrVector2: (float)
-//   i_centre: (float)
+//   i_rightOrVector2:
+//    (float)
+//   i_centre:
+//    (float)
 //
 // Mode 2:
 //  Params:
@@ -1043,8 +1126,10 @@ dan.math.Rect2.prototype.moveByCentreBottom = function (i_centreOrVector2, i_bot
 //
 // Mode 1:
 //  Params:
-//   i_centreOrVector2: (float)
-//   i_bottom: (float)
+//   i_centreOrVector2:
+//    (float)
+//   i_bottom:
+//    (float)
 //
 // Mode 2:
 //  Params:
@@ -1071,8 +1156,10 @@ dan.math.Rect2.prototype.moveByCentre = function (i_xOrVector2, i_y)
 //
 // Mode 1:
 //  Params:
-//   i_xOrVector2: (float)
-//   i_y: (float)
+//   i_xOrVector2:
+//    (float)
+//   i_y:
+//    (float)
 //
 // Mode 2:
 //  Params:
@@ -1103,13 +1190,17 @@ dan.math.Rect2.moveByLeftTop = function (i_rect, i_leftOrVector2, i_top)
 //
 // Mode 1:
 //  Params:
-//   i_rect: (dan.math.Rect2)
-//   i_leftOrVector2: (float)
-//   i_top: (float)
+//   i_rect:
+//    (dan.math.Rect2)
+//   i_leftOrVector2:
+//    (float)
+//   i_top:
+//    (float)
 //
 // Mode 2:
 //  Params:
-//   i_rect: (dan.math.Rect2)
+//   i_rect:
+//    (dan.math.Rect2)
 //   i_leftOrVector2:
 //    Either (dan.math.Vector2)
 //    or (array of 2 floats)
@@ -1126,13 +1217,17 @@ dan.math.Rect2.moveByRightTop = function (i_rect, i_rightOrVector2, i_top)
 //
 // Mode 1:
 //  Params:
-//   i_rect: (dan.math.Rect2)
-//   i_rightOrVector2: (float)
-//   i_top: (float)
+//   i_rect:
+//    (dan.math.Rect2)
+//   i_rightOrVector2:
+//    (float)
+//   i_top:
+//    (float)
 //
 // Mode 2:
 //  Params:
-//   i_rect: (dan.math.Rect2)
+//   i_rect:
+//    (dan.math.Rect2)
 //   i_rightOrVector2:
 //    Either (dan.math.Vector2)
 //    or (array of 2 floats)
@@ -1149,13 +1244,17 @@ dan.math.Rect2.moveByLeftBottom = function (i_rect, i_leftOrVector2, i_bottom)
 //
 // Mode 1:
 //  Params:
-//   i_rect: (dan.math.Rect2)
-//   i_leftOrVector2: (float)
-//   i_bottom: (float)
+//   i_rect:
+//    (dan.math.Rect2)
+//   i_leftOrVector2:
+//    (float)
+//   i_bottom:
+//    (float)
 //
 // Mode 2:
 //  Params:
-//   i_rect: (dan.math.Rect2)
+//   i_rect:
+//    (dan.math.Rect2)
 //   i_leftOrVector2:
 //    Either (dan.math.Vector2)
 //    or (array of 2 floats)
@@ -1172,13 +1271,17 @@ dan.math.Rect2.moveByRightBottom = function (i_rect, i_rightOrVector2, i_bottom)
 //
 // Mode 1:
 //  Params:
-//   i_rect: (dan.math.Rect2)
-//   i_rightOrVector2: (float)
-//   i_bottom: (float)
+//   i_rect:
+//    (dan.math.Rect2)
+//   i_rightOrVector2:
+//    (float)
+//   i_bottom:
+//    (float)
 //
 // Mode 2:
 //  Params:
-//   i_rect: (dan.math.Rect2)
+//   i_rect:
+//    (dan.math.Rect2)
 //   i_rightOrVector2:
 //    Either (dan.math.Vector2)
 //    or (array of 2 floats)
@@ -1199,13 +1302,17 @@ dan.math.Rect2.moveByLeftCentre = function (i_rect, i_leftOrVector2, i_centre)
 //
 // Mode 1:
 //  Params:
-//   i_rect: (dan.math.Rect2)
-//   i_leftOrVector2: (float)
-//   i_centre: (float)
+//   i_rect:
+//    (dan.math.Rect2)
+//   i_leftOrVector2:
+//    (float)
+//   i_centre:
+//    (float)
 //
 // Mode 2:
 //  Params:
-//   i_rect: (dan.math.Rect2)
+//   i_rect:
+//    (dan.math.Rect2)
 //   i_leftOrVector2:
 //    Either (dan.math.Vector2)
 //    or (array of 2 floats)
@@ -1222,13 +1329,17 @@ dan.math.Rect2.moveByCentreTop = function (i_rect, i_centreOrVector2, i_top)
 //
 // Mode 1:
 //  Params:
-//   i_rect: (dan.math.Rect2)
-//   i_centreOrVector2: (float)
-//   i_top: (float)
+//   i_rect:
+//    (dan.math.Rect2)
+//   i_centreOrVector2:
+//    (float)
+//   i_top:
+//    (float)
 //
 // Mode 2:
 //  Params:
-//   i_rect: (dan.math.Rect2)
+//   i_rect:
+//    (dan.math.Rect2)
 //   i_centreOrVector2:
 //    Either (dan.math.Vector2)
 //    or (array of 2 floats)
@@ -1245,13 +1356,17 @@ dan.math.Rect2.moveByRightCentre = function (i_rect, i_rightOrVector2, i_centre)
 //
 // Mode 1:
 //  Params:
-//   i_rect: (dan.math.Rect2)
-//   i_rightOrVector2: (float)
-//   i_centre: (float)
+//   i_rect:
+//    (dan.math.Rect2)
+//   i_rightOrVector2:
+//    (float)
+//   i_centre:
+//    (float)
 //
 // Mode 2:
 //  Params:
-//   i_rect: (dan.math.Rect2)
+//   i_rect:
+//    (dan.math.Rect2)
 //   i_rightOrVector2:
 //    Either (dan.math.Vector2)
 //    or (array of 2 floats)
@@ -1268,13 +1383,17 @@ dan.math.Rect2.moveByCentreBottom = function (i_rect, i_centreOrVector2, i_botto
 //
 // Mode 1:
 //  Params:
-//   i_rect: (dan.math.Rect2)
-//   i_centreOrVector2: (float)
-//   i_bottom: (float)
+//   i_rect:
+//    (dan.math.Rect2)
+//   i_centreOrVector2:
+//    (float)
+//   i_bottom:
+//    (float)
 //
 // Mode 2:
 //  Params:
-//   i_rect: (dan.math.Rect2)
+//   i_rect:
+//    (dan.math.Rect2)
 //   i_centreOrVector2:
 //    Either (dan.math.Vector2)
 //    or (array of 2 floats)
@@ -1295,13 +1414,17 @@ dan.math.Rect2.moveByCentre = function (i_rect, i_xOrVector2, i_y)
 //
 // Mode 1:
 //  Params:
-//   i_rect: (dan.math.Rect2)
-//   i_xOrVector2: (float)
-//   i_y: (float)
+//   i_rect:
+//    (dan.math.Rect2)
+//   i_xOrVector2:
+//    (float)
+//   i_y:
+//    (float)
 //
 // Mode 2:
 //  Params:
-//   i_rect: (dan.math.Rect2)
+//   i_rect:
+//    (dan.math.Rect2)
 //   i_xOrVector2:
 //    Either (dan.math.Vector2)
 //    or (array of 2 floats)
@@ -1329,8 +1452,10 @@ dan.math.Rect2.prototype.inflate = function (i_xOrVector2, i_y)
 // Mode 1:
 //  Add i_xOrVector2 and i_y to both sides of the rectangle
 //  Params:
-//   i_xOrVector2: (float)
-//   i_y: (float)
+//   i_xOrVector2:
+//    (float)
+//   i_y:
+//    (float)
 //
 // Mode 2:
 //  Add i_xOrVector2.x and i_xOrVector2.y to both sides of the rectangle
@@ -1485,14 +1610,18 @@ dan.math.Rect2.inflate = function (i_rect, i_xOrVector2, i_y)
 // Mode 1:
 //  Add i_xOrVector2 and i_y to both sides of the rectangle
 //  Params:
-//   i_rect: (dan.math.Rect2)
-//   i_xOrVector2: (float)
-//   i_y: (float)
+//   i_rect:
+//    (dan.math.Rect2)
+//   i_xOrVector2:
+//    (float)
+//   i_y:
+//    (float)
 //
 // Mode 2:
 //  Add i_xOrVector2.x and i_xOrVector2.y to both sides of the rectangle
 //  Params:
-//   i_rect: (dan.math.Rect2)
+//   i_rect:
+//    (dan.math.Rect2)
 //   i_xOrVector2:
 //    Either (dan.math.Vector2)
 //    or (array of 2 floats)
@@ -1582,7 +1711,8 @@ dan.math.Rect2.fitPanned = function (i_rect, i_container, i_align)
 
 dan.math.Rect2.prototype.isEqual = function (i_other)
 // Params:
-//  i_other: (dan.math.Rect2)
+//  i_other:
+//   (dan.math.Rect2)
 //
 // Returns:
 //  (boolean)
@@ -1595,7 +1725,8 @@ dan.math.Rect2.prototype.isEqual = function (i_other)
 
 dan.math.Rect2.prototype.isNotEqual = function (i_other)
 // Params:
-//  i_other: (dan.math.Rect2)
+//  i_other:
+//   (dan.math.Rect2)
 //
 // Returns:
 //  (boolean)

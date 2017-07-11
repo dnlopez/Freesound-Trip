@@ -717,6 +717,26 @@ dan.math.Matrix4.prototype.setToAxisAngleRotation = function (i_axis, i_angleInR
 //
 // Returns:
 //  (dan.math.Matrix4)
+//
+// Derivation:
+//  From
+//   "Visualizing Quaternions", "6. Fundamentals of Rotations", "6.2. Quaternions and 3D Rotations", "6.2.1. Construction", where
+//    Book's "s", "c" <-> below's "sinA", "cosA"
+//    Book's "n1", "n2", "n3" <-> below's "x", "y", "z"
+//   http://paulbourke.net/geometry/rotate/
+//  Summary
+//   Compose matrices that
+//    rotate about the x axis then about the y axis to line the arbitrary axis up with the z axis
+//    rotate about the z axis
+//    do the inverse of the first two rotations
+//
+// Another derivation:
+//  From
+//   "3D Math Primer for Graphics and Game Development", "8.2.3. 3D Rotation about an Arbitrary Axis"
+//  Summary
+//   Find components of vector being rotated that are parallel and perpendicular to arbitary axis
+//   Rotate perpendicular component only and add back to parallel component
+//   Apply above to x, y and z basis vectors to get columns for a matrix
 {
     var sinA = Math.sin(i_angleInRadians);
     var cosA = Math.cos(i_angleInRadians);
