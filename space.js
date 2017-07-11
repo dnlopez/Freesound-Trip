@@ -498,7 +498,7 @@ Sequencer.prototype.relayout = function ()
     //
     this.layout.backgroundRect = dan.math.Rect2.fromXYWH(margin, margin,
                                                          padding + idColumn_width + this.layout.gridSquareWidth * this.sequenceLength + gainColumn_leftPadding+gainColumn_width + padding,
-                                                         padding + (this.audibleSoundSites.length) * this.layout.gridSquareHeight * padding);
+                                                         padding + (this.audibleSoundSites.length + 1) * this.layout.gridSquareHeight + padding);
 
     if (window.innerWidth > this.layout.backgroundRect.width())
         this.layout.backgroundRect.moveByLeftTop([Math.floor((window.innerWidth - this.layout.backgroundRect.width()) / 2), 0]);
