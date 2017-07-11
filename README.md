@@ -24,6 +24,7 @@
 <h4>Freesound</h4>
 <ul>
   <li>I: show Freesound IDs for stars underneath mouse pointer</li>
+  <li>right-click star: visit sound's page on freesound.org</li>
 </ul>
 <hr>
 <p>Created by the Audio Commons team of the Sónar Innovation Challenge 2017</p>

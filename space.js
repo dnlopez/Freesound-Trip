@@ -7,7 +7,6 @@
 
 // Three
 // #require "externals/three.js/three.js"
-// #require "externals/three.js/examples/js/controls/FlyControls.js"
 
 // Dan reusable
 // #require <dan/urls.js>
@@ -33,6 +32,7 @@
 // #require "externals/seedrandom.js"
 // #require "Float32ArrayWavetablePlayerWithGain.js"
 // #require "source_sounds.js"
+// #require "FlyControls.js"
 
 
 // + Configuration {{{
@@ -1346,15 +1346,32 @@ function init()
         {
             g_sequencer.onMouseDown(i_event);
         }
+        else
+        {
+            // If pressed the right mouse button
+            if (i_event.button == 2)
+            {
+                var pointedAtSoundSites = getSoundSitesAtViewportPosition(new THREE.Vector2(g_mousePositionInViewport_normalized[0], -g_mousePositionInViewport_normalized[1]));
+                if (pointedAtSoundSites.length > 0)
+                {
+                    var webUrl = g_assetLoader.loaded["sound_index"][pointedAtSoundSites[0].soundId]["web-url"];
+                    g_scrollingLog.addText(webUrl);
+                    window.open(webUrl, "_blank");
+                    //
+                    i_event.stopPropagation();
+                    i_event.stopImmediatePropagation();
+                    g_controls.resetInputs();
+                }
+            }
+        }
     });
 
     //g_controls = new THREE.PointerLockControls(g_camera);
-    g_controls = new THREE.FlyControls(g_camera, g_viewportDiv);
+    g_controls = new THREE_FlyControls(g_camera, g_viewportDiv);
     g_controls.movementSpeed = 1000;
     g_controls.domElement = g_viewportDiv;
     g_controls.rollSpeed = Math.PI / 4;
-    g_controls.autoForward = false;
-    g_controls.dragToLook = true;
+    g_controls.mouse_mustHoldButtonToLook = true;
     //g_scene.add(g_controls.getObject());
 
 
@@ -2132,6 +2149,16 @@ function animate()
     }
     g_bufferGeometry.attributes.a_glow.needsUpdate = true;
 
+
+    // Show/hide all range wireframes according to current setting
+    /*
+    for (var soundSiteCount = g_soundSites.length, soundSiteNo = 0; soundSiteNo < soundSiteCount; ++soundSiteNo)
+    {
+        var soundSite = g_soundSites[soundSiteNo];
+
+		soundSite.rangeSphereMesh.visible = g_showSoundSiteRanges;
+    }
+    */
 
     //
     g_renderer.autoClear = false;
