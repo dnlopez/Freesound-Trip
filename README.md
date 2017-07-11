@@ -17,7 +17,7 @@
 <h4>Audio</h4>
 <ul>
   <li>Space: stop/restart sequencer playback</li>
-  <li>I: show the current sequence, on a grid
+  <li>G: show the current sequence, on a grid
   <li>P: show the current sequence, in exportable text form
   <li>C: record audio</li>
 </ul>
