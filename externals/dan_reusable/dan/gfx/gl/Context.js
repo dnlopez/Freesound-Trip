@@ -439,7 +439,7 @@ dan.gfx.gl.Context.prototype.bindTexture = function (i_textureTarget, i_texture,
     }
     else if (i_textureTarget == this.ctx.TEXTURE_CUBE_MAP)
     {
-        if (i_safe || i_texture != this.m_textureUnits[this.m_activeTextureUnitStack.back[this.m_activeTextureUnitStack.length - 1]].textureCubeMapBinding)
+        if (i_safe || i_texture != this.m_textureUnits[this.m_activeTextureUnitStack[this.m_activeTextureUnitStack.length - 1]].textureCubeMapBinding)
         {
             this.ctx.bindTexture(i_textureTarget, i_texture);
             this.m_textureUnits[this.m_activeTextureUnitStack[this.m_activeTextureUnitStack.length - 1]].textureCubeMapBinding = i_texture;

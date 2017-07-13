@@ -14,7 +14,7 @@ dan.gfx.gl.Program = function ()
     //this.uniformLocations = {};
 }
 
-dan.gfx.gl.Program.fromString = function (i_delimitedSourceCode)
+dan.gfx.gl.Program.fromString = function (i_delimitedSourceCode, i_quietError)
 // Construct, then;
 // create and compile multiple shaders at once from delimited, concatenated code in a string,
 // then;
@@ -24,19 +24,23 @@ dan.gfx.gl.Program.fromString = function (i_delimitedSourceCode)
 //  See addShaders().
 //
 // Returns:
-//  (Program)
+//  Either (Program)
+//  or (this may only happen if i_quietError == true) (undefined)
+//   an error occurred
+//  or (this may only happen if i_quietError == false) throw (string) exception
+//   description of the error
 {
     var newProgram = new dan.gfx.gl.Program();
 
-    if (!newProgram.addShaders(i_delimitedSourceCode))
+    if (!newProgram.addShaders(i_delimitedSourceCode, i_quietError))
         return;
 
-    newProgram.link();
+    newProgram.link(i_quietError);
 
     return newProgram;
 }
 
-dan.gfx.gl.Program.fromStringVSFS = function (i_vertexSourceCode, i_fragmentSourceCode)
+dan.gfx.gl.Program.fromStringVSFS = function (i_vertexSourceCode, i_fragmentSourceCode, i_quietError)
 // Construct, then;
 // Create and compile a vertex shader and a fragment shader from seperate code strings, then;
 // link the program.
@@ -45,14 +49,18 @@ dan.gfx.gl.Program.fromStringVSFS = function (i_vertexSourceCode, i_fragmentSour
 //  See addShadersVSFS().
 //
 // Returns:
-//  (Program)
+//  Either (Program)
+//  or (this may only happen if i_quietError == true) (undefined)
+//   an error occurred
+//  or (this may only happen if i_quietError == false) throw (string) exception
+//   description of the error
 {
     var newProgram = new dan.gfx.gl.Program();
 
-    if (!newProgram.addShadersVSFS(i_vertexSourceCode, i_fragmentSourceCode))
+    if (!newProgram.addShadersVSFS(i_vertexSourceCode, i_fragmentSourceCode, i_quietError))
         return;
 
-    newProgram.link();
+    newProgram.link(i_quietError);
 
     return newProgram;
 }
@@ -115,7 +123,7 @@ dan.gfx.gl.Program.prototype.dispose = function ()
 
 // + Shader compilation utilities {{{
 
-dan.gfx.gl.Program.prototype._compileShader = function (i_shader, i_sourceCode)
+dan.gfx.gl.Program.prototype._compileShader = function (i_shader, i_sourceCode, i_quietError)
 // Set the source of, and compile a shader.
 //
 // Args:
@@ -125,10 +133,21 @@ dan.gfx.gl.Program.prototype._compileShader = function (i_shader, i_sourceCode)
 //  i_sourceCode:
 //   (string)
 //   Source code of the shader.
+//  i_quietError:
+//   Either (boolean)
+//    What to do if an error occurs.
+//    One of:
+//     true: print the error description to console.error() and return false
+//     false: throw the error description string as an exception
+//   or (null or undefined)
+//    use default of false
 //
 // Returns:
-//  (boolean)
-//  true if successful, else false.
+//  Either (boolean)
+//   true: successful
+//   false: (this may only happen if i_quietError == true) an error occurred
+//  or (this may only happen if i_quietError == false) throw (string) exception
+//   description of the error
 {
     // Set source and compile shader
     GL.ctx.shaderSource(i_shader, i_sourceCode);  //GL_IEADTL();
@@ -137,8 +156,13 @@ dan.gfx.gl.Program.prototype._compileShader = function (i_shader, i_sourceCode)
     // Detect and log errors
     if (!GL.ctx.getShaderParameter(i_shader, GL.ctx.COMPILE_STATUS))
     {
-        console.error("glCompileShader() failed. Info log: " + GL.ctx.getShaderInfoLog(i_shader));
-        return false;
+        var errorDescription = "glCompileShader() failed. Info log: " + GL.ctx.getShaderInfoLog(i_shader);
+        if (i_quietError)
+        {
+            console.error(errorDescription);
+            return false;
+        }
+        throw errorDescription;
     }
 
     // [TODO?: VALID_STATUS]
@@ -171,7 +195,7 @@ dan.gfx.gl.Program.prototype._extractVertexAttributesFromProgram = function (i_p
 //   (array of VertexAttributeDeclaration)
 //  
 // Returns:
-//  (boolean)
+//  -
 {
     // Get attribute count
     var attributeCount = GL.ctx.getProgramParameter(i_program, GL.ctx.ACTIVE_ATTRIBUTES);
@@ -196,15 +220,13 @@ dan.gfx.gl.Program.prototype._extractVertexAttributesFromProgram = function (i_p
             dataType: attrib.type,
             location: location};
     }
-
-    return true;
 }
 
 // + }}}
 
 // + Add shaders {{{
 
-dan.gfx.gl.Program.prototype.addShader = function (i_shaderType, i_sourceCode)
+dan.gfx.gl.Program.prototype.addShader = function (i_shaderType, i_sourceCode, i_quietError)
 // Create and compile a single shader from source code in a string,
 // and keep hold of the compiled object for later linking.
 //
@@ -216,11 +238,21 @@ dan.gfx.gl.Program.prototype.addShader = function (i_shaderType, i_sourceCode)
 //  i_sourceCode:
 //   (string)
 //   GLSL code of the shader.
+//  i_quietError:
+//   Either (boolean)
+//    What to do if an error occurs.
+//    One of:
+//     true: print the error description to console.error() and return false
+//     false: throw the error description string as an exception
+//   or (null or undefined)
+//    use default of false
 //
 // Returns:
-//  (boolean)
-//  true if shader creation and compilation was successful.
-//  false if any error occurred.
+//  Either (boolean)
+//   true: shader creation and compilation was successful.
+//   false: (this may only happen if i_quietError == true) an error occurred
+//  or (this may only happen if i_quietError == false) throw (string) exception
+//   description of the error
 {
     /*
     if (!m_shared)
@@ -248,16 +280,10 @@ dan.gfx.gl.Program.prototype.addShader = function (i_shaderType, i_sourceCode)
     this.shaders.push(shader);
 
     // Compile
-    if (!this._compileShader(shader, sourceCode))
-    {
-        return false;
-    }
-
-    //
-    return true;
+    return this._compileShader(shader, sourceCode, i_quietError);
 }
 
-dan.gfx.gl.Program.prototype.addShaders = function (i_delimitedSourceCode)
+dan.gfx.gl.Program.prototype.addShaders = function (i_delimitedSourceCode, i_quietError)
 // Create and compile multiple shaders at once from delimited, concatenated code in a string,
 // and keep hold of the compiled objects for later linking.
 //
@@ -271,11 +297,21 @@ dan.gfx.gl.Program.prototype.addShaders = function (i_delimitedSourceCode)
 //     <followed by vertex shader code>
 //    //[FRAG]
 //     <followed by fragment shader code>
+//  i_quietError:
+//   Either (boolean)
+//    What to do if an error occurs.
+//    One of:
+//     true: print the error description to console.error() and return false
+//     false: throw the error description string as an exception
+//   or (null or undefined)
+//    use default of false
 //
 // Returns:
-//  (boolean)
-//  true if all shader creation and compilation was successful.
-//  false if any error occurred.
+//  Either (boolean)
+//   true: all shader creation and compilation was successful.
+//   false: (this may only happen if i_quietError == true) an error occurred
+//  or (this may only happen if i_quietError == false) throw (string) exception
+//   description of the error
 {
     // Scan the code line by line,
     // switching current shader type when we find a shader type heading,
@@ -310,17 +346,21 @@ dan.gfx.gl.Program.prototype.addShaders = function (i_delimitedSourceCode)
     // Add any shaders for which code was included
 
     if (vertexShaderCode != "")
-        if (!this.addShader(GL.ctx.VERTEX_SHADER, vertexShaderCode))
+    {
+        if (!this.addShader(GL.ctx.VERTEX_SHADER, vertexShaderCode, i_quietError))
             return false;
+    }
 
     if (fragmentShaderCode != "")
-        if (!this.addShader(GL.ctx.FRAGMENT_SHADER, fragmentShaderCode))
+    {
+        if (!this.addShader(GL.ctx.FRAGMENT_SHADER, fragmentShaderCode, i_quietError))
             return false;
+    }
 
     return true;
 }
 
-dan.gfx.gl.Program.prototype.addShadersVSFS = function (i_vertexSourceCode, i_fragmentSourceCode)
+dan.gfx.gl.Program.prototype.addShadersVSFS = function (i_vertexSourceCode, i_fragmentSourceCode, i_quietError)
 // Create and compile a vertex shader and a fragment shader from seperate code strings,
 // and keep hold of the compiled objects for later linking.
 //
@@ -331,16 +371,26 @@ dan.gfx.gl.Program.prototype.addShadersVSFS = function (i_vertexSourceCode, i_fr
 //  i_fragmentSourceCode:
 //   (string)
 //   GLSL code of fragment shader.
+//  i_quietError:
+//   Either (boolean)
+//    What to do if an error occurs.
+//    One of:
+//     true: print the error description to console.error() and return false
+//     false: throw the error description string as an exception
+//   or (null or undefined)
+//    use default of false
 //
 // Returns:
-//  (boolean)
-//  true if all shader creation and compilation was successful.
-//  false if any error occurred.
+//  Either (boolean)
+//   true: all shader creation and compilation was successful.
+//   false: (this may only happen if i_quietError == true) an error occurred
+//  or (this may only happen if i_quietError == false) throw (string) exception
+//   description of the error
 {
-    if (!this.addShader(GL.ctx.VERTEX_SHADER, i_vertexSourceCode))
+    if (!this.addShader(GL.ctx.VERTEX_SHADER, i_vertexSourceCode, i_quietError))
         return false;
 
-    if (!this.addShader(GL.ctx.FRAGMENT_SHADER, i_fragmentSourceCode))
+    if (!this.addShader(GL.ctx.FRAGMENT_SHADER, i_fragmentSourceCode, i_quietError))
         return false;
 
     return true;
@@ -493,9 +543,23 @@ dan.gfx.gl.Program.prototype.addShadersVSFSFromFiles = function (const string & 
 
 // + Link {{{
 
-dan.gfx.gl.Program.prototype.link = function ()
+dan.gfx.gl.Program.prototype.link = function (i_quietError)
+// Params:
+//  i_quietError:
+//   Either (boolean)
+//    What to do if an error occurs.
+//    One of:
+//     true: print the error description to console.error() and return false
+//     false: throw the error description string as an exception
+//   or (null or undefined)
+//    use default of false
+//
 // Returns:
-//  (boolean)
+//  Either (boolean)
+//   true: successful
+//   false: (this may only happen if i_quietError == true) an error occurred
+//  or (this may only happen if i_quietError == false) throw (string) exception
+//   description of the error
 {
     /*
     if (!m_shared)
@@ -529,10 +593,16 @@ dan.gfx.gl.Program.prototype.link = function ()
     // Detect and log errors
     if (!GL.ctx.getProgramParameter(this.program, GL.ctx.LINK_STATUS))
     {
-        console.error("glLinkProgram() failed.\n" +
-                      " VALIDATE_STATUS: " + GL.ctx.getProgramParameter(this.program, GL.ctx.VALIDATE_STATUS) + ", GL error no: " + GL.ctx.getError() + "\n" +
-                      " Program Info Log: " + GL.ctx.getProgramInfoLog(this.program));
-        return false;
+        var errorDescription = "glLinkProgram() failed.\n" +
+            " VALIDATE_STATUS: " + GL.ctx.getProgramParameter(this.program, GL.ctx.VALIDATE_STATUS) + ", GL error no: " + GL.ctx.getError() + "\n" +
+            " Program Info Log: " + GL.ctx.getProgramInfoLog(this.program);
+
+        if (i_quietError)
+        {
+            console.error(errorDescription);
+            return false;
+        }
+        throw errorDescription;
     }
 
     // Detach and delete all shaders
@@ -546,8 +616,7 @@ dan.gfx.gl.Program.prototype.link = function ()
 
     //
     this.attributeDeclarations = {};
-    if (!this._extractVertexAttributesFromProgram(this.program, this.attributeDeclarations))
-        return false;
+    this._extractVertexAttributesFromProgram(this.program, this.attributeDeclarations);
 
     //
     return true;
@@ -564,24 +633,35 @@ bool Program::isValid()
 
 // + Load {{{
 
-dan.gfx.gl.Program.prototype.load = function (i_delimitedSourceCode)
+dan.gfx.gl.Program.prototype.load = function (i_delimitedSourceCode, i_quietError)
 // Compile shaders and immediately link program.
 //
 // Params:
 //  i_delimitedSourceCode:
 //   (string)
+//  i_quietError:
+//   Either (boolean)
+//    What to do if an error occurs.
+//    One of:
+//     true: print the error description to console.error() and return false
+//     false: throw the error description string as an exception
+//   or (null or undefined)
+//    use default of false
 //
 // Returns:
-//  (boolean)
-//  true if successful, else false.
+//  Either (boolean)
+//   true: successful
+//   false: (this may only happen if i_quietError == true) an error occurred
+//  or (this may only happen if i_quietError == false) throw (string) exception
+//   description of the error
 {
-    if (!this.addShaders(i_delimitedSourceCode))
+    if (!this.addShaders(i_delimitedSourceCode, i_quietError))
         return false;
 
-    return this.link();
+    return this.link(i_quietError);
 }
 
-dan.gfx.gl.Program.prototype.loadVSFS = function (i_vertexSourceCode, i_fragmentSourceCode)
+dan.gfx.gl.Program.prototype.loadVSFS = function (i_vertexSourceCode, i_fragmentSourceCode, i_quietError)
 // Compile shaders and immediately link program.
 //
 // Params:
@@ -589,17 +669,29 @@ dan.gfx.gl.Program.prototype.loadVSFS = function (i_vertexSourceCode, i_fragment
 //   (string)
 //  i_fragmentSourceCode:
 //   (string)
+//  i_quietError:
+//   Either (boolean)
+//    What to do if an error occurs.
+//    One of:
+//     true: print the error description to console.error() and return false
+//     false: throw the error description string as an exception
+//   or (null or undefined)
+//    use default of false
 //
 // Returns:
-//  (boolean)
-//  true if successful, else false.
+//  Either (boolean)
+//   true: successful
+//   false: (this may only happen if i_quietError == true) an error occurred
+//  or (this may only happen if i_quietError == false) throw (string) exception
+//   description of the error
 {
-    if (!this.addShadersVSFS(i_vertexSourceCode, i_fragmentSourceCode))
+    if (!this.addShadersVSFS(i_vertexSourceCode, i_fragmentSourceCode, i_quietError))
         return false;
 
-    return this.link();
+    return this.link(i_quietError);
 }
 
+/*
 dan.gfx.gl.Program.prototype.loadFromFile = function (i_delimitedSourceFilePath)
 // Compile shaders and immediately link program.
 //
@@ -635,6 +727,7 @@ dan.gfx.gl.Program.prototype.loadVSFSFromFiles = function (i_vertexSourceFilePat
 
     return this.link();
 }
+*/
 
 // + }}}
 
