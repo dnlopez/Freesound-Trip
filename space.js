@@ -1789,6 +1789,9 @@ function assetLoader_onAll()
             soundUrl = g_assetLoader["loaded"]["sound_index"][i_point.id]["url"];
             break;
         }
+        //  Convert it from http to https if it isn't already
+        if (soundUrl.substr(0, 7) == "http://")
+            soundUrl = "https://" + soundUrl.substr(7);
 
         //
         selectedPointInfos.push([i_point, soundUrl]);
