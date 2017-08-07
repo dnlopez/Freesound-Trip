@@ -12,7 +12,7 @@ dan.gfx.gl.Program = function ()
     this.shaders = [];
 
     //this.uniformLocations = {};
-}
+};
 
 dan.gfx.gl.Program.fromString = function (i_delimitedSourceCode, i_quietError)
 // Construct, then;
@@ -38,7 +38,7 @@ dan.gfx.gl.Program.fromString = function (i_delimitedSourceCode, i_quietError)
     newProgram.link(i_quietError);
 
     return newProgram;
-}
+};
 
 dan.gfx.gl.Program.fromStringVSFS = function (i_vertexSourceCode, i_fragmentSourceCode, i_quietError)
 // Construct, then;
@@ -63,7 +63,7 @@ dan.gfx.gl.Program.fromStringVSFS = function (i_vertexSourceCode, i_fragmentSour
     newProgram.link(i_quietError);
 
     return newProgram;
-}
+};
 
 /*
 // TODO: sync/async load
@@ -117,7 +117,7 @@ dan.gfx.gl.Program.prototype.dispose = function ()
 
     // Delete program
     GL.ctx.deleteProgram(this.program);
-}
+};
 
 // + }}}
 
@@ -168,14 +168,15 @@ dan.gfx.gl.Program.prototype._compileShader = function (i_shader, i_sourceCode, 
     // [TODO?: VALID_STATUS]
 
     return true;
-}
+};
 
 
-// Type: VertexAttributeDeclaration
+// Type: VariableInfo
 //  (object with specific key-value properties)
 //  Keys/Values:
 //   name:
 //    (string)
+//    Name of uniform or vertex attribute variable.
 //   dataType:
 //    (integer number)
 //    One of:
@@ -187,12 +188,65 @@ dan.gfx.gl.Program.prototype._compileShader = function (i_shader, i_sourceCode, 
 //   location:
 //    (integer number)
 
-dan.gfx.gl.Program.prototype._extractVertexAttributesFromProgram = function (i_program, o_destVector)
+dan.gfx.gl.Program.prototype._extractActiveUniformsFromProgram = function (i_program, o_variableInfos)
+// Get information (name, type, location) about active uniforms in a program.
+//
 // Params:
 //  i_program:
 //   (WebGLProgram)
-//  o_destVector:
-//   (array of VertexAttributeDeclaration)
+//   Program should already have been linked.
+//  o_variableInfos:
+//   (object)
+//   Object has:
+//    Key:
+//     (string)
+//     Uniform variable name
+//    Value:
+//     (VariableInfo)
+//     Uniform variable info
+//
+// Returns:
+//  -
+{
+    // Get uniforms count
+    var uniformCount = GL.ctx.getProgramParameter(i_program, GL.ctx.ACTIVE_UNIFORMS);
+
+    // For each uniform
+    for (var uniformNo = 0; uniformNo < uniformCount; ++uniformNo)
+    {
+        var activeInfo = GL.ctx.getActiveUniform(i_program, uniformNo);
+
+        // Skip if it's a built-in GL uniform
+        if (activeInfo.name[0] == 'g' && activeInfo.name[1] == 'l' && activeInfo.name[2] == '_')
+            continue;
+
+        // Get the location (not necessarily the same as the attributeNo passed into glGetActiveAttrib() above!)
+        var location = GL.ctx.getUniformLocation(i_program, activeInfo.name);
+
+        //
+        o_variableInfos[activeInfo.name] = {
+            name: activeInfo.name,
+            dataType: activeInfo.type,
+            location: location};
+    }
+};
+
+dan.gfx.gl.Program.prototype._extractActiveVertexAttributesFromProgram = function (i_program, o_variableInfo)
+// Get information (name, type, location) about active vertex attributes in a program.
+//
+// Params:
+//  i_program:
+//   (WebGLProgram)
+//   Program should already have been linked.
+//  o_variableInfos:
+//   (object)
+//   Object has:
+//    Key:
+//     (string)
+//     Attribute variable name
+//    Value:
+//     (VariableInfo)
+//     Attribute variable info
 //  
 // Returns:
 //  -
@@ -203,24 +257,23 @@ dan.gfx.gl.Program.prototype._extractVertexAttributesFromProgram = function (i_p
     // For each attribute
     for (var attributeNo = 0; attributeNo < attributeCount; ++attributeNo)
     {
-        var attrib = GL.ctx.getActiveAttrib(i_program, attributeNo);
+        var activeInfo = GL.ctx.getActiveAttrib(i_program, attributeNo);
 
         // Skip if it's a built-in GL attribute
-        if (attrib.name[0] == 'g' && attrib.name[1] == 'l' && attrib.name[2] == '_')
+        if (activeInfo.name[0] == 'g' && activeInfo.name[1] == 'l' && activeInfo.name[2] == '_')
             continue;
 
-        // Get the location (not necessarily the same as the attributeNo passed into
-        // glGetActiveAttrib() above! Particularly it seems they can differ if the shader
-        // source uses "layout (location = ...)" statements to set locations explicitly).
-        var location = GL.ctx.getAttribLocation(i_program, attrib.name);
+        // Get the location (not necessarily the same as the attributeNo passed into glGetActiveAttrib() above!
+        // Particularly it seems they can differ if the shader source uses "layout (location = ...)" statements to set locations explicitly).
+        var location = GL.ctx.getAttribLocation(i_program, activeInfo.name);
 
         //
-        o_destVector[attrib.name] = {
-            name: attrib.name,
-            dataType: attrib.type,
+        o_variableInfo[activeInfo.name] = {
+            name: activeInfo.name,
+            dataType: activeInfo.type,
             location: location};
     }
-}
+};
 
 // + }}}
 
@@ -281,7 +334,7 @@ dan.gfx.gl.Program.prototype.addShader = function (i_shaderType, i_sourceCode, i
 
     // Compile
     return this._compileShader(shader, sourceCode, i_quietError);
-}
+};
 
 dan.gfx.gl.Program.prototype.addShaders = function (i_delimitedSourceCode, i_quietError)
 // Create and compile multiple shaders at once from delimited, concatenated code in a string,
@@ -358,7 +411,7 @@ dan.gfx.gl.Program.prototype.addShaders = function (i_delimitedSourceCode, i_qui
     }
 
     return true;
-}
+};
 
 dan.gfx.gl.Program.prototype.addShadersVSFS = function (i_vertexSourceCode, i_fragmentSourceCode, i_quietError)
 // Create and compile a vertex shader and a fragment shader from seperate code strings,
@@ -394,7 +447,7 @@ dan.gfx.gl.Program.prototype.addShadersVSFS = function (i_vertexSourceCode, i_fr
         return false;
 
     return true;
-}
+};
 
 
 /*
@@ -578,7 +631,7 @@ dan.gfx.gl.Program.prototype.link = function (i_quietError)
                              m_shared->attributeDeclarations[i].name.c_str());  GL_IEADTL();
     }
     */
-    // (Optionally, comment the above block and uncomment the call to extractVertexAttributesFromProgram() below
+    // (Optionally, comment the above block and uncomment the call to extractActiveVertexAttributesFromProgram() below
     // after linking to use the auto-assigned values)
 
     // Attach all shaders
@@ -614,13 +667,15 @@ dan.gfx.gl.Program.prototype.link = function (i_quietError)
         GL.ctx.deleteShader(oldShader);
     }
 
-    //
+    // Get info about active uniforms and vertex attributes
+    this.uniformDeclarations = {};
+    this._extractActiveUniformsFromProgram(this.program, this.uniformDeclarations);
     this.attributeDeclarations = {};
-    this._extractVertexAttributesFromProgram(this.program, this.attributeDeclarations);
+    this._extractActiveVertexAttributesFromProgram(this.program, this.attributeDeclarations);
 
     //
     return true;
-}
+};
 
 /*
 bool Program::isValid()
@@ -659,7 +714,7 @@ dan.gfx.gl.Program.prototype.load = function (i_delimitedSourceCode, i_quietErro
         return false;
 
     return this.link(i_quietError);
-}
+};
 
 dan.gfx.gl.Program.prototype.loadVSFS = function (i_vertexSourceCode, i_fragmentSourceCode, i_quietError)
 // Compile shaders and immediately link program.
@@ -689,7 +744,7 @@ dan.gfx.gl.Program.prototype.loadVSFS = function (i_vertexSourceCode, i_fragment
         return false;
 
     return this.link(i_quietError);
-}
+};
 
 /*
 dan.gfx.gl.Program.prototype.loadFromFile = function (i_delimitedSourceFilePath)
@@ -774,19 +829,49 @@ dan.gfx.gl.Program.prototype.bind = function ()
     GL.setProgram(this);  //GL_IEADTL();
     //sm_currentShaderProgram = this;
     //}
-}
+};
 
 dan.gfx.gl.Program.prototype.unbind = function ()
 {
     GL.setProgram(null);
     //sm_currentShaderProgram = 0;
-}
+};
 
 // + }}}
 
 // + Variables {{{
 
 // + + Uniforms {{{
+
+dan.gfx.gl.Program.prototype.set = function (i_name, i_value)
+// Set uniform variable value (of any type)
+//
+// Params:
+//  i_value:
+//   Value.
+{
+    var dataType = this.uniformDeclarations[i_name].dataType;
+    switch (dataType)
+    {
+    case GL.ctx.INT:
+        this.setInteger(i_name, i_value);
+        break;
+    case GL.ctx.FLOAT:
+        this.setFloat(i_name, i_value);
+        break;
+    case GL.ctx.FLOAT_VEC2:
+        this.setVector2(i_name, i_value);
+        break;
+    case GL.ctx.FLOAT_VEC3:
+        this.setVector3(i_name, i_value);
+        break;
+    case GL.ctx.FLOAT_VEC4:
+        this.setVector4(i_name, i_value);
+        break;
+    default:
+        throw "Program.set() unsupported datatype";
+    }
+};
 
 dan.gfx.gl.Program.prototype.setInteger = function (i_name, i_value)
 // Set uniform variable value
@@ -795,7 +880,7 @@ dan.gfx.gl.Program.prototype.setInteger = function (i_name, i_value)
 //  i_value:
 //   (integer number)
 {
-    var location = GL.ctx.getUniformLocation(this.program, i_name);
+    var location = this.uniformDeclarations[i_name].location;
     /*
         if (location == -1)
         {
@@ -804,7 +889,7 @@ dan.gfx.gl.Program.prototype.setInteger = function (i_name, i_value)
     */
     GL.setProgram(this); 
     GL.ctx.uniform1i(location, i_value);
-}
+};
 
 dan.gfx.gl.Program.prototype.setFloat = function (i_name, i_value)
 // Set uniform variable value
@@ -813,7 +898,7 @@ dan.gfx.gl.Program.prototype.setFloat = function (i_name, i_value)
 //  i_value:
 //   (floating point number)
 {
-    var location = GL.ctx.getUniformLocation(this.program, i_name);
+    var location = this.uniformDeclarations[i_name].location;
     /*
         if (location == -1)
         {
@@ -822,7 +907,7 @@ dan.gfx.gl.Program.prototype.setFloat = function (i_name, i_value)
     */
     GL.setProgram(this); 
     GL.ctx.uniform1f(location, i_value);
-}
+};
 
 dan.gfx.gl.Program.prototype.setVector2 = function (i_name, i_value)
 // Set uniform variable value
@@ -831,7 +916,7 @@ dan.gfx.gl.Program.prototype.setVector2 = function (i_name, i_value)
 //  i_value:
 //   (dan.Vector2)
 {
-    var location = GL.ctx.getUniformLocation(this.program, i_name);
+    var location = this.uniformDeclarations[i_name].location;
     /*
         if (location == -1)
         {
@@ -840,7 +925,7 @@ dan.gfx.gl.Program.prototype.setVector2 = function (i_name, i_value)
     */
     GL.setProgram(this); 
     GL.ctx.uniform2fv(location, i_value.elements);
-}
+};
 
 dan.gfx.gl.Program.prototype.setVector3 = function (i_name, i_value)
 // Set uniform variable value
@@ -849,7 +934,7 @@ dan.gfx.gl.Program.prototype.setVector3 = function (i_name, i_value)
 //  i_value:
 //   (dan.Vector3)
 {
-    var location = GL.ctx.getUniformLocation(this.program, i_name);
+    var location = this.uniformDeclarations[i_name].location;
     /*
         if (location == -1)
         {
@@ -858,12 +943,12 @@ dan.gfx.gl.Program.prototype.setVector3 = function (i_name, i_value)
     */
     GL.setProgram(this); 
     GL.ctx.uniform3fv(location, i_value.elements);
-}
+};
 
 dan.gfx.gl.Program.prototype.setVector4 = function (i_name, i_value)
 // Set uniform variable value
 {
-    var location = GL.ctx.getUniformLocation(this.program, i_name);
+    var location = this.uniformDeclarations[i_name].location;
     /*
         if (location == -1)
         {
@@ -872,12 +957,12 @@ dan.gfx.gl.Program.prototype.setVector4 = function (i_name, i_value)
     */
     GL.setProgram(this); 
     GL.ctx.uniform4fv(location, i_value.elements);
-}
+};
 
 dan.gfx.gl.Program.prototype.setColourRGBA = function (i_name, i_value)
 // Set uniform variable value
 {
-    var location = GL.ctx.getUniformLocation(this.program, i_name);
+    var location = this.uniformDeclarations[i_name].location;
     /*
         if (location == -1)
         {
@@ -886,7 +971,7 @@ dan.gfx.gl.Program.prototype.setColourRGBA = function (i_name, i_value)
     */
     GL.setProgram(this); 
     GL.ctx.uniform4fv(location, [i_value.r, i_value.g, i_value.b, i_value.a]);
-}
+};
 
 dan.gfx.gl.Program.prototype.setMatrix3 = function (i_name, i_value)
 // Set uniform variable value
@@ -895,7 +980,7 @@ dan.gfx.gl.Program.prototype.setMatrix3 = function (i_name, i_value)
 //  i_value:
 //   (dan.Matrix3)
 {
-    var location = GL.ctx.getUniformLocation(this.program, i_name);
+    var location = this.uniformDeclarations[i_name].location;
     /*
         if (location == -1)
         {
@@ -906,7 +991,7 @@ dan.gfx.gl.Program.prototype.setMatrix3 = function (i_name, i_value)
     GL.setProgram(this); 
     GL.ctx.uniformMatrix3fv(location, false,
                             i_value.toColumnMajorArray());
-}
+};
 
 dan.gfx.gl.Program.prototype.setMatrix4 = function (i_name, i_value)
 // Set uniform variable value
@@ -919,7 +1004,7 @@ dan.gfx.gl.Program.prototype.setMatrix4 = function (i_name, i_value)
     //    this.uniformLocations[i_name] = GL.ctx.getUniformLocation(this.program, i_name);
     //var location = this.uniformLocations[i_name];
 
-    var location = GL.ctx.getUniformLocation(this.program, i_name);
+    var location = this.uniformDeclarations[i_name].location;
     /*
         if (location == -1)
         {
@@ -929,14 +1014,33 @@ dan.gfx.gl.Program.prototype.setMatrix4 = function (i_name, i_value)
     GL.setProgram(this); 
     GL.ctx.uniformMatrix4fv(location, false,
                             i_value.toColumnMajorArray());
-}
+};
 
 // + + }}}
 
 // + + Attributes {{{
 
+dan.gfx.gl.Program.prototype.getUniformLocation = function (i_name)
+// Search the active uniform declarations to find
+// the numerical location of an uniform specified by name.
+//
+// Params:
+//  i_name:
+//   (string)
+//   The name of the uniform.
+//
+// Returns:
+//  (integer number)
+//  The numerical location, or -1 if an uniform with this name was not found.
+{
+    if (i_name in this.uniformDeclarations)
+        return this.uniformDeclarations[i_name].location;
+    else
+        return -1;
+};
+
 dan.gfx.gl.Program.prototype.getAttributeLocation = function (i_name)
-// Search the attribute declarations to find
+// Search the active attribute declarations to find
 // the numerical location of an attribute specified by name.
 //
 // Params:
@@ -952,7 +1056,7 @@ dan.gfx.gl.Program.prototype.getAttributeLocation = function (i_name)
         return this.attributeDeclarations[i_name].location;
     else
         return -1;
-}
+};
 
 // + + }}}
 

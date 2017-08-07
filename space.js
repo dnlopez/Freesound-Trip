@@ -1343,6 +1343,7 @@ function init()
 
     //
     g_camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 10000);
+    //g_camera.rotation.order = "ZYX";
 
     // Make a scene graph
     g_scene = new THREE.Scene();
@@ -1365,6 +1366,13 @@ function init()
         'dark-s_py.jpg', 'dark-s_ny.jpg',
         'dark-s_pz.jpg', 'dark-s_nz.jpg',
     ]);
+    //var cubeTextureLoader = new THREE.CubeTextureLoader();
+    //cubeTextureLoader.setPath('textures/cube/diagnostic_skybox/');
+    //var cubeTexture = cubeTextureLoader.load([
+    //    'px.png', 'nx.png',
+    //    'py.png', 'ny.png',
+    //    'pz.png', 'nz.png',
+    //]);
     g_scene.background = cubeTexture;
 
     //
@@ -1620,12 +1628,6 @@ function continueInit_onFontsLoaded()
     //
     var droidSansMono14CanvasFont = dan.text.CanvasFontFace.fromSystemFont("Droid Sans Mono", "normal", "normal", 14, [[32, 126], 176]);
     g_droidSansMono14TextureFont = dan.text.GlTextureFontFace.fromCanvasFont(droidSansMono14CanvasFont);
-
-    //
-    g_renderTexture = dan.gfx.gl.Texture2D.fromBlank(GL.ctx.RGBA, 0, window.innerWidth / 4, window.innerHeight / 4,
-                                                     null, null, null, true, false);
-    g_framebuffer = new dan.gfx.gl.Framebuffer();
-    g_framebuffer.attachToColourSlot(g_renderTexture);
 
     //
     window.addEventListener("resize", onWindowResize, false);
