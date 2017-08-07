@@ -2167,7 +2167,7 @@ function animate()
 
     //
     g_renderer.autoClear = false;
-    GL.ctx.enableVertexAttribArray(0);
+    g_renderer.resetGLState();
     g_renderer.render(g_scene, g_camera);
 
     GL.resetToGlState();
