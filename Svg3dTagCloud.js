@@ -100,8 +100,8 @@ function Svg3dTagCloud(i_container, i_params)
         var rect = i_svgElement.getBoundingClientRect();
 
         return {
-            x: event.clientX - rect.left,
-            y: event.clientY - rect.top
+            x: i_event.clientX - rect.left,
+            y: i_event.clientY - rect.top
         };
     };
 
