@@ -1,0 +1,38 @@
+
+.popupDialog {
+    visibility: hidden;
+
+    border-width: 1px;
+    border-style: solid;
+    //border-radius: 31px;
+
+    position: fixed;
+    padding: 0 1em;
+
+    width: 50%;
+
+    font-family: sans-serif;
+    line-height: 1.5;
+
+    z-index: 10;
+}
+
+.popupDialog .dialogButtons {
+    text-align: center;
+}
+
+.dialogButton {
+    background-color: black;
+    color: #ccc;
+    border: 1px solid #ccc;
+
+    padding: 3px 6px;
+    margin: 0 5px 0 0;
+    cursor: pointer;
+
+    font: 13.3333px sans-serif;
+}
+
+.dialogButton:hover {
+    border: 1px solid #77f;
+}

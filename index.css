@@ -1,0 +1,297 @@
+
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-image: url('fondo.jpg');
+    background-position-x: 1px;
+}
+
+/* + Intro (greeting, question and help) {{{ */
+
+#intro {
+    position: absolute;
+    color: rgba(255, 255, 255, 0.8);
+    padding: 32px;
+
+    font-family: Oswald, Arial, sans-serif;
+}
+
+#greeting {
+    font-size: 96px;
+    font-weight: 300;
+    margin: 0 0 8px 0;
+}
+
+#question {
+    font-size: 32px;
+}
+
+.helpButton {
+    background-color: black;
+    color: #ccc;
+    border: 1px solid #ccc;
+
+    padding: 3px 6px;
+    margin: 18px 5px 0 0;
+    cursor: pointer;
+}
+.helpButton:hover {
+    border: 1px solid #77f;
+}
+
+/* + + Help dialog {{{ */
+
+.helpDialog {
+    text-align: center;
+
+    background-color: rgba(128, 0, 0, 1);
+    border-color: #fdd;
+    box-shadow: 8px 8px #fdd;
+
+    color: #fdd;
+
+/*
+    text-shadow: 0px 0px 1px #f00;
+*/
+}
+.helpDialog a {
+    color: #f66;
+}
+.helpDialog a:hover {
+    color: #ff6;
+}
+
+/* + + }}} */
+
+/* + + Credits dialog {{{ */
+
+.creditsDialog {
+    text-align: left;
+
+    background-color: rgba(0, 0, 128, 1);
+    border-color: #ddf;
+    box-shadow: 8px 8px #ddf;
+
+    color: #ddf;
+
+/*
+    text-shadow: 0px 0px 5px #00f;
+*/
+}
+.creditsDialog a {
+    color: #0af;
+}
+.creditsDialog a:hover {
+    color: #fa0;
+}
+
+/* + + }}} */
+
+/* + }}} */
+
+/* + Tag cloud {{{ */
+
+#tagCloud {
+    /*
+    position: absolute;
+    width: 100%;
+    height: 100%;
+
+    display: flex;
+    flex-direction: column;
+   */
+    /*
+    height: 0;
+    flex-grow: 1;
+   */
+}
+
+#tagCloud a {
+    cursor: pointer;
+}
+
+/* + }}} */
+
+/* + Query row (selected tags and go button) {{{ */
+
+#queryRow {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+
+    /*background-color: rgba(44, 197, 199, 0.8);*/
+    /*width: 100%;*/
+    height: 40px;
+    padding: 32px;
+
+    font-family: Oswald, Arial, sans-serif !important;
+    text-transform: uppercase;
+    text-decoration: none;
+
+    color: white;
+}
+
+#go {
+    padding: 0px;
+    float: right;
+
+    z-index: 1;
+    cursor: pointer;
+}
+#go svg {
+    vertical-align: top;
+}
+
+
+#selectedTags {
+    float: right;
+}
+
+#selectedTags span {
+    margin-right: 16px;
+
+    padding: 0 10px;
+    line-height: 40px;
+    float: left;
+
+    z-index: 1;
+    cursor: pointer;
+}
+
+#selectedTags span:hover {
+    opacity: 0.5;
+}
+
+#selectedTags span.wanted {
+    animation-name: wantedFadingGlow;
+    animation-duration: 0.4s;
+    animation-timing-function: linear;
+    animation-iteration-count: 1;
+    background-color: rgba(22, 255, 22, 0.8);
+
+    color: white;
+}
+@keyframes wantedFadingGlow {
+    from {
+        text-shadow:
+        0px 0px 40px #fff,
+        0px 0px 40px #fff,
+        0px 0px 40px #fff,
+        0px 0px 40px #fff,
+        0px 0px 40px #fff;
+        background-color: rgba(255, 255, 255, 1.0);
+    }
+    to {
+        text-shadow: none;
+        background-color: rgba(22, 255, 22, 0.8);
+    }
+}
+
+#selectedTags span.unwanted {
+    animation-name: unwantedFadingGlow;
+    animation-duration: 0.4s;
+    animation-timing-function: linear;
+    animation-iteration-count: 1;
+    background-color: rgba(255, 22, 22, 0.8);
+
+    color: white;
+    text-decoration: line-through;
+}
+@keyframes unwantedFadingGlow {
+    from {
+        text-shadow:
+        0px 0px 40px #fff,
+        0px 0px 40px #fff,
+        0px 0px 40px #fff,
+        0px 0px 40px #fff,
+        0px 0px 40px #fff;
+        background-color: rgba(255, 255, 255, 1.0);
+    }
+    to {
+        text-shadow: none;
+        background-color: rgba(255, 22, 22, 0.8);
+    }
+}
+
+/* + }}} */
+
+/* + BPM control {{{ */
+
+#bpmControl {
+    position: fixed;
+    top: 60px;
+    right: 60px;
+    height: 450px;
+    width: 40px;
+    z-index: 1;
+}
+
+#bpmControl .heading {
+    color: #ccc;
+    font-family: Oswald, Arial, sans-serif !important;
+    font-size: 15px;
+
+    padding-bottom: 16px;
+
+    text-align: center;
+}
+
+#bpmControl .slider {
+    height: 100%;
+    width: 100%;
+
+    background-color: transparent;
+    border: none;
+}
+
+#bpmControl .slider .visibleGroove {
+    height: 100%;
+    width: 15px;
+
+    background-color: transparent;
+    border: 1px solid #ccc;
+    border-radius: 0;
+
+    margin: auto;  /* horizontally center */
+}
+
+#bpmControl .handle {
+    font-family: Oswald, Arial, sans-serif !important;
+    text-align: center;
+    padding: 6px 4px 4px 4px;
+    width: 100%;
+
+    background-color: black;
+    color: #ccc;
+    border: 1px solid #ccc;
+    border-radius: 0;
+}
+
+#bpmControl:hover, #bpmControl .handle:hover {
+    cursor: pointer;
+}
+
+#bpmControl:hover .handle {
+    border: 1px solid #77f;
+}
+
+/* + }}} */
+
+
+
+.help {
+    position: fixed;
+    top: 10%;
+    left: 10%;
+    right: 10%;
+    bottom: 10%;
+    z-index: 2;
+
+    background-color: #ee9;
+    border: 5px solid #aa5;
+
+    overflow-y: scroll;
+
+    padding: 1em;
+}

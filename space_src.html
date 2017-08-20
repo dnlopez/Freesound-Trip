@@ -5,6 +5,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 
+        <link rel="stylesheet" type="text/css" href="common.css">
         <link rel="stylesheet" type="text/css" href="space.css">
 
         <script type="x-shader/x-vertex" id="vertexshader">
@@ -51,6 +52,37 @@
         </script>
     </head>
     <body>
-        <!-- #require "space.js" -->
+      <div class="popupDialog controlsDialog">
+        <h2>Move</h2>
+        <ul>
+          <li><span class="keyboardControl">W</span> <span class="keyboardControl">S</span> <span class="keyboardControl">A</span> <span class="keyboardControl">D</span> : forward / backward / leftward / rightward</li>
+          <li><span class="keyboardControl">R</span> <span class="keyboardControl">F</span> : up / down</li>
+        </ul>
+        <h2>Rotate</h2>
+        <ul>
+          <li><span class="keyboardControl">arrow keys</span> or <span class="mouseControl">click+drag</span></li>
+        </ul>
+        <h2>Roll</h2>
+        <ul>
+          <li><span class="keyboardControl">Q</span> <span class="keyboardControl">E</span></li>
+        </ul>
+        <h2>Audio</h2>
+        <ul>
+          <li><span class="keyboardControl">Space</span> : stop/restart sequencer playback</li>
+          <li><span class="keyboardControl">G</span> : show the current sequence, on a grid
+          <li><span class="keyboardControl">P</span> : show the current sequence, in exportable text form
+          <li><span class="keyboardControl">C</span> : record audio</li>
+        </ul>
+        <h2>Freesound</h2>
+        <ul>
+          <li><span class="keyboardControl">I</span> : show Freesound IDs for stars underneath mouse pointer</li>
+          <li><span class="mouseControl">right-click</span> star : visit sound's page on freesound.org</li>
+        </ul>
+        <p class="dialogButtons">
+          <button class="dialogButton closeButton">BACK</button>
+        </p>
+      </div>
+
+      <!-- #require "space.js" -->
     </body>
 </html>

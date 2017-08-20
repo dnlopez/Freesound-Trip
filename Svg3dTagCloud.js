@@ -32,6 +32,8 @@ function Svg3dTagCloud(i_container, i_params)
 // Returns:
 //  false: Failed to initialize because i_params didn't have a non-empty 'entries' array
 {
+    var self = this;
+
     // + Validate / apply default arguments {{{
 
     // Default settings
@@ -93,7 +95,7 @@ function Svg3dTagCloud(i_container, i_params)
 
     var mousePos = { x: 0, y: 0 };
 
-    function getMousePos(i_svgElement, event)
+    function getMousePos(i_svgElement, i_event)
     {
         var rect = i_svgElement.getBoundingClientRect();
 
@@ -114,6 +116,12 @@ function Svg3dTagCloud(i_container, i_params)
     var center3D = { x: 0, y: 0, z: 0 };
 
     var svgNamespaceUri = 'http://www.w3.org/2000/svg';
+
+    this.stopRotation = function ()
+    {
+        mousePos.x = center2D.x;
+        mousePos.y = center2D.y;
+    };
 
     //---
 
@@ -294,8 +302,14 @@ function Svg3dTagCloud(i_container, i_params)
         if (i_entryObj.hasOwnProperty("target"))
             entry.link.setAttribute('target', i_entryObj.target);
 
-        entry.link.addEventListener('mouseover', mouseOverHandler, true);
-        entry.link.addEventListener('mouseout', mouseOutHandler, true);
+        entry.link.addEventListener("mouseover", entry_link_onMouseOver, true);
+        entry.link.addEventListener("mouseout", entry_link_onMouseOut, true);
+
+        if (i_entryObj.onMousedown)
+        {
+            entry.link.addEventListener("mousedown", i_entryObj.onMousedown.bind(i_entryObj));
+        }
+
         entry.link.appendChild(entry.element);
 
         entry.index = i_index;
@@ -388,6 +402,10 @@ function Svg3dTagCloud(i_container, i_params)
         var rotation_x = -(mousePos.y - center2D.y) * speed.y;
         var rotation_y = (mousePos.x - center2D.x) * speed.x;
 
+        // If no rotation is needed then bail to give the CPU a rest
+        if (rotation_x == 0 && rotation_y == 0)
+            return;
+
         // Convert degrees to radians
         rotation_x *= k_piDividedBy180;
         rotation_y *= k_piDividedBy180;
@@ -476,21 +494,21 @@ function Svg3dTagCloud(i_container, i_params)
 
     // + }}}
 
-    function mouseOverHandler(event)
+    function entry_link_onMouseOver(i_event)
     {
         mouseReact = false;
 
-        highlightEntry(event.target);
+        highlightEntry(i_event.target);
     };
 
-    function mouseOutHandler(event)
+    function entry_link_onMouseOut(i_event)
     {
         mouseReact = true;
     };
 
     //---
 
-    function window_onResize(event)
+    function window_onResize(i_event)
     {
         reInit();
     };

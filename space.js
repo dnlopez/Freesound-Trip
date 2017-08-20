@@ -28,11 +28,17 @@
 // #require <dan/text/GlTextureFontFace.js>
 
 // This program
+// #require "common.js"
 // #require "externals/freesound.js"
 // #require "externals/seedrandom.js"
 // #require "Float32ArrayWavetablePlayerWithGain.js"
 // #require "source_sounds.js"
 // #require "FlyControls.js"
+
+// For index.html
+// #require <dan/browsers.js>
+// #require <dan/movement/animation.js>
+// #require <dan/movement/easing.js>
 
 
 // + Configuration {{{
@@ -1274,13 +1280,33 @@ var g_sequencer;
 
 var g_autoFlyToSoundSite = null;
 
+var g_wantedTagsStr, g_wantedTags;
+var g_unwantedTags;
+
 function init()
 {
-    g_tagsStr = dan.getParameterValueFromQueryString("tags");
-    if (g_tagsStr == "")
-        g_tags = [];
+    g_wantedTagsStr = dan.getParameterValueFromQueryString("tags");
+    if (g_wantedTagsStr == "")
+    {
+        g_wantedTags = [];
+    }
     else
-        g_tags = g_tagsStr.split("+");
+    {
+        g_wantedTags = g_wantedTagsStr.split("+");
+        // Split g_tagsStr at '+' or '-' chars,
+        // using lookahead so those chars are not themselves included in the regex match and are included in the return array
+        //g_wantedTags = g_tagsStr.split(/(?=[+-])/);
+    }
+
+    g_unwantedTagsStr = dan.getParameterValueFromQueryString("unwantedTags");
+    if (g_unwantedTagsStr == "")
+    {
+        g_unwantedTags = [];
+    }
+    else
+    {
+        g_unwantedTags = g_unwantedTagsStr.split("+");
+    }
 
     var tempo = dan.getParameterValueFromQueryString("bpm");
     if (tempo != "")
@@ -1397,6 +1423,33 @@ function init()
     }
     addTestLog();
     */
+
+    // + Dialogs {{{
+
+    var controlsButton = $('<div class="controlsButton">CONTROLS</div>')[0];
+    controlsButton.style.position = "fixed";
+    controlsButton.style.top = "16px";
+    controlsButton.style.left = "16px";
+    document.body.appendChild(controlsButton);
+
+    var viewportDimmer = new ViewportDimmer();
+
+    $(".controlsButton").bind("click", function (i_event) {
+        viewportDimmer.dim();
+
+        var openerButtonClientRect = i_event.target.getBoundingClientRect();
+        popUpElement($(".controlsDialog")[0], openerButtonClientRect.right + 10, openerButtonClientRect.top);
+    });
+
+    function closeDialogs(i_event)
+    {
+        viewportDimmer.undim();
+        $(".controlsDialog").css("visibility", "hidden");
+    }
+    $(".closeButton").bind("click", closeDialogs);
+    viewportDimmer.bindClick(closeDialogs);
+
+    // + }}}
 
     //g_controls = new THREE.PointerLockControls(g_camera);
     g_controls = new THREE_FlyControls(g_camera, g_viewportDiv);
@@ -1745,6 +1798,16 @@ function assetLoader_onAll()
     var selectedPointInfos = [];
 
     function soundHasTag(i_soundId, i_tagName)
+    // Check whether a Freesound sound has a particular tag.
+    //
+    // Params:
+    //  i_soundId:
+    //
+    //  i_tagName:
+    //   (string)
+    //
+    // Returns:
+    //  (boolean)
     {
         var tagInfo = g_assetLoader["loaded"]["freesound_tags_indexed"][i_soundId];
         if (!tagInfo)
@@ -1754,24 +1817,46 @@ function assetLoader_onAll()
         return true;
     }
 
+    function soundHasTagFromList(i_soundId, i_tagNames)
+    // Check whether a Freesound sound has any one of a list of tags.
+    //
+    // Params:
+    //  i_soundId:
+    //
+    //  i_tagName:
+    //   (array of string)
+    //
+    // Returns:
+    //  (boolean)
+    {
+        for (var tagNameCount = i_tagNames.length, tagNameNo = 0; tagNameNo < tagNameCount; ++tagNameNo)
+        {
+            var tagName = i_tagNames[tagNameNo];
+
+            if (soundHasTag(i_soundId, tagName))
+                return true;
+        }
+
+        return false;
+    }
+
     //
     function selectSourcePoint(i_point)
     {
-        // Filter by tags
-        if (!g_soundsAlreadyFiltered && g_tags.length > 0)
+        if (!g_soundsAlreadyFiltered)
         {
-            var tagIsInFilter = false;
-            for (var tagCount = g_tags.length, tagNo = 0; tagNo < tagCount; ++tagNo)
+            // If any particular tags were asked for,
+            // then if the current point sound doesn't have any of those tags, bail out from this function to exclude it
+            // (but if no particular tags were asked for, do nothing to let everything through)
+            if (g_wantedTags.length > 0)
             {
-                var tag = g_tags[tagNo];
-
-                if (soundHasTag(i_point.id, tag))
-                {
-                    tagIsInFilter = true;
-                    break;
-                }
+                if (!soundHasTagFromList(i_point.id, g_wantedTags))
+                    return;
             }
-            if (!tagIsInFilter)
+
+            // If the current point sound has any tags that were specifically chosen as unwanted,
+            // bail out from this function to exclude it
+            if (soundHasTagFromList(i_point.id, g_unwantedTags))
                 return;
         }
 

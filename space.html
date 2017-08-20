@@ -5,6 +5,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 
+        <link rel="stylesheet" type="text/css" href="common.css">
         <link rel="stylesheet" type="text/css" href="space.css">
 
         <script type="x-shader/x-vertex" id="vertexshader">
@@ -51,73 +52,109 @@
         </script>
     </head>
     <body>
-        <!-- #require "space.js" -->
-        <!-- [JSPREP START] -->
-        <script type="text/javascript" src="externals/jquery-1.8.2.min.js"></script>
-        <script type="text/javascript" src="externals/kdTree.js"></script>
-        <script type="text/javascript" src="externals/three.js/three.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/dan.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/urls.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/numeric_helpers.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/gui/gui.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/gui/html/html.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/gui/html/PopupTextarea.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/snd/snd.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/snd/webaudio/webaudio.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/snd/webaudio/AudioContextOutputStream.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/snd/webaudio/Float32ArrayWavetablePlayer.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/loaders/loaders.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/loaders/AssetLoader.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/loaders/AssetLoader_threeTexture.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/gfx/gfx.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/gfx/canvas/canvas.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/gfx/gl/gl.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/math/math.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/math/Vector4.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/math/Matrix4.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/math/Quaternion.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/math/Euler.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/math/Vector3.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/math/Matrix3.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/math/Vector2.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/math/Rect2.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/gfx/gl/Context.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/gfx/gl/Program.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/gfx/gl/BufferObject.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/gfx/gl/FixedBufferObject.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/gfx/gl/sprites_getVertices.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/gfx/gl/SpriteBatch.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/DynamicArrayBuffer.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/gfx/gl/IncrementalBufferObject.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/math/Circle2.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/math/geometry.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/gfx/gl/primitives_getVertices.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/memory/memory.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/memory/NonGcStack.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/gfx/ColourRGB.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/gfx/ColourRGBA.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/gfx/gl/CompiledPrimitives.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/gfx/gl/beamPrimitives_getVertices.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/gfx/gl/CompiledBeamPrimitives.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/gfx/gl/Texture.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/gfx/gl/Texture2D.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/gfx/gl/SubTexture2D.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/gfx/canvas/ToGl.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/gfx/canvas3d/canvas3d.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/math/Parallelogram3.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/gfx/gl/SpriteBatch3D.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/gfx/canvas3d/ToGl.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/gfx/gl/Framebuffer.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/text/text.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/text/FontDetector.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/text/CanvasFontFace.js"></script>
-        <script type="text/javascript" src="externals/dan_reusable/dan/text/GlTextureFontFace.js"></script>
-        <script type="text/javascript" src="externals/freesound.js"></script>
-        <script type="text/javascript" src="externals/seedrandom.js"></script>
-        <script type="text/javascript" src="Float32ArrayWavetablePlayerWithGain.js"></script>
-        <script type="text/javascript" src="source_sounds.js"></script>
-        <script type="text/javascript" src="FlyControls.js"></script>
-        <script type="text/javascript" src="space.js"></script>
-        <!-- [JSPREP END] -->
+      <div class="popupDialog controlsDialog">
+        <h2>Move</h2>
+        <ul>
+          <li><span class="keyboardControl">W</span> <span class="keyboardControl">S</span> <span class="keyboardControl">A</span> <span class="keyboardControl">D</span> : forward / backward / leftward / rightward</li>
+          <li><span class="keyboardControl">R</span> <span class="keyboardControl">F</span> : up / down</li>
+        </ul>
+        <h2>Rotate</h2>
+        <ul>
+          <li><span class="keyboardControl">arrow keys</span> or <span class="mouseControl">click+drag</span></li>
+        </ul>
+        <h2>Roll</h2>
+        <ul>
+          <li><span class="keyboardControl">Q</span> <span class="keyboardControl">E</span></li>
+        </ul>
+        <h2>Audio</h2>
+        <ul>
+          <li><span class="keyboardControl">Space</span> : stop/restart sequencer playback</li>
+          <li><span class="keyboardControl">G</span> : show the current sequence, on a grid
+          <li><span class="keyboardControl">P</span> : show the current sequence, in exportable text form
+          <li><span class="keyboardControl">C</span> : record audio</li>
+        </ul>
+        <h2>Freesound</h2>
+        <ul>
+          <li><span class="keyboardControl">I</span> : show Freesound IDs for stars underneath mouse pointer</li>
+          <li><span class="mouseControl">right-click</span> star : visit sound's page on freesound.org</li>
+        </ul>
+        <p class="dialogButtons">
+          <button class="dialogButton closeButton">BACK</button>
+        </p>
+      </div>
+
+      <!-- #require "space.js" -->
+      <!-- [JSPREP START] -->
+      <script type="text/javascript" src="externals/jquery-1.8.2.min.js"></script>
+      <script type="text/javascript" src="externals/kdTree.js"></script>
+      <script type="text/javascript" src="externals/three.js/three.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/dan.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/urls.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/numeric_helpers.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/gui/gui.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/gui/html/html.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/gui/html/PopupTextarea.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/snd/snd.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/snd/webaudio/webaudio.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/snd/webaudio/AudioContextOutputStream.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/snd/webaudio/Float32ArrayWavetablePlayer.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/loaders/loaders.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/loaders/AssetLoader.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/loaders/AssetLoader_threeTexture.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/gfx/gfx.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/gfx/canvas/canvas.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/gfx/gl/gl.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/math/math.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/math/Vector4.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/math/Matrix4.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/math/Quaternion.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/math/Euler.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/math/Vector3.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/math/Matrix3.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/math/Vector2.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/math/Rect2.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/gfx/gl/Context.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/gfx/gl/Program.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/gfx/gl/BufferObject.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/gfx/gl/FixedBufferObject.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/gfx/gl/sprites_getVertices.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/gfx/gl/SpriteBatch.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/DynamicArrayBuffer.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/gfx/gl/IncrementalBufferObject.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/math/Circle2.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/math/geometry.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/gfx/gl/primitives_getVertices.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/memory/memory.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/memory/NonGcStack.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/gfx/ColourRGB.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/gfx/ColourRGBA.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/gfx/gl/CompiledPrimitives.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/gfx/gl/beamPrimitives_getVertices.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/gfx/gl/CompiledBeamPrimitives.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/gfx/gl/Texture.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/gfx/gl/Texture2D.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/gfx/gl/SubTexture2D.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/gfx/canvas/ToGl.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/gfx/canvas3d/canvas3d.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/math/Parallelogram3.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/gfx/gl/SpriteBatch3D.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/gfx/canvas3d/ToGl.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/gfx/gl/Framebuffer.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/text/text.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/text/FontDetector.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/text/CanvasFontFace.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/text/GlTextureFontFace.js"></script>
+      <script type="text/javascript" src="common.js"></script>
+      <script type="text/javascript" src="externals/freesound.js"></script>
+      <script type="text/javascript" src="externals/seedrandom.js"></script>
+      <script type="text/javascript" src="Float32ArrayWavetablePlayerWithGain.js"></script>
+      <script type="text/javascript" src="source_sounds.js"></script>
+      <script type="text/javascript" src="FlyControls.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/browsers.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/movement/movement.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/movement/animation.js"></script>
+      <script type="text/javascript" src="externals/dan_reusable/dan/movement/easing.js"></script>
+      <script type="text/javascript" src="space.js"></script>
+      <!-- [JSPREP END] -->
     </body>
 </html>
