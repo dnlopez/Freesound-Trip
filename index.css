@@ -21,10 +21,14 @@ body {
     font-size: 96px;
     font-weight: 300;
     margin: 0 0 8px 0;
+
+    text-shadow: 2px 2px 0px #000;
 }
 
 #question {
     font-size: 32px;
+
+    text-shadow: 2px 2px 0px #000;
 }
 
 .helpButton {
