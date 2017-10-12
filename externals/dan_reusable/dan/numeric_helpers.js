@@ -779,29 +779,45 @@ dan.mix = function (i_a, i_b, i_w)
 
 // + + Preprocessors for the weight parameter {{{
 
-dan.cubicSCurve = function (x)
+dan.cubicSCurve = function (i_x)
 // Cubic S-curve, -2x^3 + 3x^2
-// aka Hermite blending function
-// For input [0 .. 1],
-//  output is [0 .. 1]
-//  1st derivative is [0 .. 0]
-//  2nd derivative is [6 .. -6]
-// From http://libnoise.sourceforge.net/noisegen/index.html
+//
+// aka
+//  Hermite blending function
+//
+// Params:
+//  i_x:
+//   Input in range [0..1]
+//
+// Returns:
+//  Shaped output in range [0..1]
+//  Corresponding 1st derivative is [0 .. 0]
+//  Corresponding 2nd derivative is [6 .. -6]
+//
+// From
+//  http://libnoise.sourceforge.net/noisegen/index.html
 {
-    //return -2*x*x*x + 3*x*x;
-    return (-2*x + 3)*x*x;
+    //return -2*i_x*i_x*i_x + 3*i_x*i_x;
+    return (-2*i_x + 3)*i_x*i_x;
 };
 
-dan.quinticSCurve = function (x)
+dan.quinticSCurve = function (i_x)
 // Quintic S-curve, 6x^5 - 15x^4 + 10x^3
-// For input [0 .. 1],
-//  output is [0 .. 1]
-//  1st derivative is [0 .. 0]
-//  2nd derivative is [0 .. 0]
-// From http://libnoise.sourceforge.net/noisegen/index.html
+//
+// Params:
+//  i_x:
+//   Input in range [0..1]
+//
+// Returns:
+//  Shaped output in range [0..1]
+//  Corresponding 1st derivative is [0 .. 0]
+//  Corresponding 2nd derivative is [0 .. 0]
+//
+// From
+//  http://libnoise.sourceforge.net/noisegen/index.html
 {
-    //return 6*x*x*x*x*x - 15*x*x*x*x + 10*x*x*x;
-    return ((6*x - 15)*x + 10)*x*x*x;
+    //return 6*i_x*i_x*i_x*i_x*i_x - 15*i_x*i_x*i_x*i_x + 10*i_x*i_x*i_x;
+    return ((6*i_x - 15)*i_x + 10)*i_x*i_x*i_x;
 };
 
 // + + }}}
@@ -862,20 +878,22 @@ dan.smootherstep = function (i_edge0, i_edge1, i_w)
 
 // + }}}
 
-dan.sign = function (i_i_value)
+dan.sign = function (i_value)
 // Get the sign of a number.
 //
 // Params:
-//  i_i_value:
+//  i_value:
 //   (number)
 //   Number to get the sign of.
 //
 // Returns:
 //  (number)
-//  1 if i_i_value is positive or zero
-//  -1 if i_i_value is negative
+//  1 if i_value is positive or zero
+//  -1 if i_value is negative
+//
+// Not quite the same as the GLSL function, as that returns 0.0 for i_value = 0.0
 {
-    if (i_i_value >= 0.0)
+    if (i_value >= 0.0)
         return 1.0;
     else
         return -1.0;

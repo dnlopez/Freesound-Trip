@@ -549,9 +549,82 @@ dan.loaders.AssetLoader.prototype.loadJson = function (i_url, i_key)
     if (!i_key)
         i_key = this._generateUniqueKey();
 
-    // Create promise and store it in this.loading
+    // Call loadJson(),
+    // augment the resulting promise with our own cleanup behaviour,
+    // store augmented promise in this.loading
     var self = this;
-    this.loading[i_key] = new Promise(function (i_resolve, i_reject) {
+    this.loading[i_key] = dan.loaders.loadJson2(i_url).then(
+        function onResolved(i_json) 
+        {
+            // Remove augmented promise from this.loading, put asset in this.loaded
+            delete self.loading[i_key];
+            self.loaded[i_key] = i_json;
+
+            // Resolve augmented promise with this returned value
+            return {
+                key: i_key,
+                url: i_url,
+                asset: self.loaded[i_key]
+            };
+        },
+        function onRejected(i_errorDescription) 
+        {
+            // Remove promise from this.loading, save error description in this.failed
+            delete self.loading[i_key];
+            self.failed[i_key] = i_errorDescription;
+
+            // Reject augmented promise with this thrown value
+            throw {
+                key: i_key,
+                url: i_url,
+                errorDescription: i_errorDescription
+            };
+        }
+    );
+
+    // Return the promise
+    return this.loading[i_key];
+};
+
+dan.loaders.loadJson2 = function (i_url)
+// Params:
+//  i_url:
+//   (string)
+//   Path to load json from.
+//
+// Returns:
+//  (Promise)
+//  A promise to deliver the result of the load.
+//  If it resolves, handlers watching for that state have params:
+//   i_result:
+//    (object)
+//    Object has properties:
+//     asset:
+//      (object)
+//      The loaded and parsed json.
+//     url:
+//      (string)
+//      The i_url argument that was originally passed in to load this asset.
+//     key:
+//      (string)
+//      The short name for the asset (whether originally passed in as the i_key argument
+//      or auto-generated).
+//  Else if it fails, handlers watching for that state have params:
+//   i_result:
+//    (object)
+//    Object has properties:
+//     errorDescription:
+//      (string)
+//      A description of the error.
+//     url:
+//      (string)
+//      As for the fulfilled handler.
+//     key:
+//      (string)
+//      As for the fulfilled handler.
+{
+    // Create promise and return it
+    return new Promise(function (i_resolve, i_reject) {
 
         var xhr = new XMLHttpRequest();
         xhr.open("GET", i_url, true);
@@ -561,35 +634,17 @@ dan.loaders.AssetLoader.prototype.loadJson = function (i_url, i_key)
             // If done
             if (xhr.readyState == 4)
             {
-                // If successful
+                // If successful,
+                // resolve the promise with the JSON parsed into an object
                 if (xhr.status == 200)
                 {
-                    // Remove promise from this.loading, put asset in this.loaded
-                    delete self.loading[i_key];
-                    self.loaded[i_key] = JSON.parse(xhr.responseText);
-
-                    // Resolve the promise
-                    i_resolve({
-                        key: i_key,
-                        url: i_url,
-                        asset: self.loaded[i_key]
-                    });
+                    i_resolve(JSON.parse(xhr.responseText));
                 }
-                // Else if failed
+                // Else if failed,
+                // reject the promise with an error description
                 else
                 {
-                    var errorDescription = xhr.status + " " + xhr.statusText;
-
-                    // Remove promise from this.loading, save error description in this.failed
-                    delete self.loading[i_key];
-                    self.failed[i_key] = errorDescription;
-
-                    // Reject the promise
-                    i_reject({
-                        key: i_key,
-                        url: i_url,
-                        errorDescription: errorDescription
-                    });
+                    i_reject(xhr.status + " " + xhr.statusText);
                 }
             }
         };
@@ -597,9 +652,6 @@ dan.loaders.AssetLoader.prototype.loadJson = function (i_url, i_key)
         // Start asynchronous request
         xhr.send(null);
     });
-
-    // Return the promise
-    return this.loading[i_key];
 };
 
 dan.loaders.loadJsonSynchronously = function (i_url)

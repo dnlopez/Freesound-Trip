@@ -17,7 +17,7 @@ def getConfig(i_configurationName):
 
     #
 
-    cfg.htmlSrcFile = 'space_src.html'
+    cfg.htmlSrcFile = 'index_src.html'
 
     cfg.includeDirs = []
     cfg.includeDirs += ["/home/daniel/docs/code/js/reusable/checkout"]
@@ -91,7 +91,7 @@ def run():
     import platform
     if platform.system() == 'Linux':
         url = "http://localhost:8080" + os.path.splitdrive(os.getcwd())[1].replace("\\", "/") + "/" + cfg.htmlSrcFile.replace("_src.html", ".html")
-        fabricate_helpers.directStartArgs("chromium", url)
+        fabricate_helpers.directStartArgs("chromium", "--remote-debugging-port=9222", url)
     elif platform.system() == 'Windows' and platform.node().upper() == 'BYRNE':
         url = "http://localhost:8080" + os.path.splitdrive(os.getcwd())[1].replace("\\", "/") + "/" + cfg.htmlSrcFile.replace("_src.html", ".html")
         fabricate_helpers.shellRunArgs("chrome", url)

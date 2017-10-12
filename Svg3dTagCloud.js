@@ -475,7 +475,25 @@ function Svg3dTagCloud(i_container, i_params)
         //});
     };
 
-    //---
+    // + }}}
+
+    // + Render loop {{{
+
+    // + + Start and stop {{{
+
+    var running = false;
+    this.startRunning = function ()
+    {
+        running = true;
+        animloop();
+    }
+    this.stopRunning = function ()
+    {
+        running = false;
+    }
+
+
+    // + + }}}
 
     window.requestAnimFrame = (function () {
         return window.requestAnimationFrame ||
@@ -488,8 +506,11 @@ function Svg3dTagCloud(i_container, i_params)
 
     function animloop()
     {
-        render();
-        requestAnimFrame(animloop);
+        if (running)
+        {
+            render();
+            requestAnimFrame(animloop);
+        }
     };
 
     // + }}}

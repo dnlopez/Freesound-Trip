@@ -28,17 +28,15 @@
 // #require <dan/text/GlTextureFontFace.js>
 
 // This program
+// #require "mission_control.js"
 // #require "common.js"
+// #require "audio.js"
 // #require "externals/freesound.js"
 // #require "externals/seedrandom.js"
 // #require "Float32ArrayWavetablePlayerWithGain.js"
 // #require "source_sounds.js"
 // #require "FlyControls.js"
-
-// For index.html
-// #require <dan/browsers.js>
-// #require <dan/movement/animation.js>
-// #require <dan/movement/easing.js>
+// #require "numeric_helpers.js"
 
 
 // + Configuration {{{
@@ -150,677 +148,6 @@ function generateSequence(i_length, i_oneEveryNSteps, i_individualHitChance, i_m
 }
 
 // + }}}
-
-// + Audio {{{
-
-g_audioContext = dan.snd.getAudioContext();
-
-var g_showSequence = false;
-
-function Sequencer(i_tempo)
-// Params:
-//  i_tempo:
-//   (float number)
-//   In beats per minute
-{
-    this.playing = false;
-    // (boolean)
-
-    this.sequenceLength = 64;
-
-    this.tempo = i_tempo;
-    // (float number)
-    // In beats per minute
-
-    this.contextBufferTime = 0.1;
-    // (float number)
-    // Delay to add to the start time of scheduled sounds before sending them to the AudioContext.
-    // If just trigger notes immediately from the JavaScript (set this to 0) then the timing is
-    // audibly irregular.
-
-    this.currentBeatNo = 0;
-    // (integer number)
-
-    this.currentBeatStartedAtTime;
-    // The AudioContext currentTime at the time the current beat is/was instructed to
-    // start playing (includes delay for browser jitter compensation)
-
-    //
-    this.tick = this.tick.bind(this);
-
-    //
-    this.closestSiteCount = 376;
-}
-
-// + + Transport {{{
-
-Sequencer.prototype.start = function ()
-// Start playing
-{
-    // Flag that we're playing
-    this.playing = true;
-
-    // Set transport position to the start and get a logical time for it
-    this.currentBeatNo = 0;
-    this.currentBeatStartTime = g_audioContext.currentTime + this.contextBufferTime;
-
-    //
-    this.tick();
-};
-
-Sequencer.prototype.stop = function ()
-{
-    this.playing = false;
-};
-
-Sequencer.prototype.togglePlay = function ()
-{
-    if (this.playing)
-        this.stop();
-    else
-        this.start();
-};
-
-// + + }}}
-
-// + + Query sound sites {{{
-
-Sequencer.prototype._getClosestSoundSitesByKdTree = function (i_position, i_closestSiteCount)
-{
-    var nearestNeighbours = g_kdTree.nearest(i_position, i_closestSiteCount);
-
-    //
-    var closestSoundSites = [];
-    for (var nearestNeighbourCount = nearestNeighbours.length, nearestNeighbourNo = 0; nearestNeighbourNo < nearestNeighbourCount; ++nearestNeighbourNo)
-    {
-        var nearestNeighbour = nearestNeighbours[nearestNeighbourNo];
-
-        closestSoundSites.push({
-            distance: nearestNeighbour[1],
-            soundSite: nearestNeighbour[0].soundSite
-        });
-    }
-
-    /*
-    closestSoundSites = closestSoundSites.sort(function (i_a, i_b) {
-        if (i_a.distance < i_b.distance)
-            return -1;
-        else if (i_a.distance > i_b.distance)
-            return 1;
-        else
-            return 0;
-    });
-    */
-
-    return closestSoundSites;
-};
-
-Sequencer.prototype._getClosestSoundSitesByBruteSearch = function (i_position, i_closestSiteCount)
-{
-    if (i_closestSiteCount > g_soundSites.length)
-        i_closestSiteCount = g_soundSites.length;
-
-    // For each sound site [TODO: that is currently playing or newly close]
-    var closestSoundSites = [];
-    for (var soundSiteCount = g_soundSites.length, soundSiteNo = 0; soundSiteNo < soundSiteCount; ++soundSiteNo)
-    {
-        var soundSite = g_soundSites[soundSiteNo];
-
-        var d = soundSite.getPosition().distanceTo(i_position);
-        // HACK
-        if (d === undefined || d == 0)
-            continue;
-
-        closestSoundSites.push({
-            soundSite: soundSite,
-            distance: soundSite.getPosition().distanceTo(i_position)
-        });
-    }
-
-    // Sort the above
-    closestSoundSites = closestSoundSites.sort(function (i_a, i_b) {
-        if (i_a.distance < i_b.distance)
-            return -1;
-        else if (i_a.distance > i_b.distance)
-            return 1;
-        else
-            return 0;
-    });
-
-    // Truncate to the closest number we asked for
-    closestSoundSites.length = i_closestSiteCount;
-
-    //
-    return closestSoundSites;
-};
-
-Sequencer.prototype.k_distanceAtWhichSoundIsSilent = 300;
-
-Sequencer.prototype.distanceToGain = function (i_distance)
-// Params:
-//  i_distance:
-//   (float number)
-//
-// Returns:
-//  (float number)
-{
-    var closeness = (this.k_distanceAtWhichSoundIsSilent - i_distance) / this.k_distanceAtWhichSoundIsSilent;
-    closeness = Math.max(closeness, 0);
-    return closeness;
-};
-
-Sequencer.prototype.requery = function ()
-{
-    //var closestSoundSites = this._getClosestSoundSitesByBruteSearch(g_camera.position, this.closestSiteCount);
-    var closestSoundSites = this._getClosestSoundSitesByKdTree(g_camera.position, this.closestSiteCount);
-
-    // Sort in ascending distance order
-    closestSoundSites = closestSoundSites.sort(function (i_a, i_b) {
-        if (i_a.distance < i_b.distance)
-            return -1;
-        else if (i_a.distance > i_b.distance)
-            return 1;
-        else
-            return 0;
-    });
-
-    // Calculate and save gains until they're far enough to be silent
-    var audibleSoundSiteCount = closestSoundSites.length;
-    for (var closestSoundSiteCount = closestSoundSites.length, closestSoundSiteNo = 0; closestSoundSiteNo < closestSoundSiteCount; ++closestSoundSiteNo)
-    {
-        var closestSoundSite = closestSoundSites[closestSoundSiteNo];
-
-        var soundSite = closestSoundSite.soundSite;
-        var distance = closestSoundSite.distance;
-
-        // Choose gain according to distance,
-        // and save it in the soundSite object
-        soundSite.gain = this.distanceToGain(distance);
-        if (soundSite.gain <= 0)
-        {
-            audibleSoundSiteCount = closestSoundSiteNo;
-            break;
-        }
-    }
-
-    // Truncate array to just the audible ones
-    closestSoundSites.length = audibleSoundSiteCount;
-    this.audibleSoundSites = closestSoundSites;
-};
-
-// + + }}}
-
-Sequencer.prototype.tick = function ()
-{
-    if (!this.playing)
-        return;
-
-    // Convert beats per minute to seconds per beat,
-    // then get the start time of the next beat
-    var beatPeriod = 60.0/this.tempo;
-    var nextBeatStartTime = this.currentBeatStartTime + beatPeriod;
-
-    // If the time for the next beat has nearly arrived
-    if (g_audioContext.currentTime + this.contextBufferTime >= nextBeatStartTime)
-    {
-        // Advance the overall beat counter
-        ++this.currentBeatNo;
-        if (this.currentBeatNo >= this.sequenceLength)
-            this.currentBeatNo = 0;
-
-        //console.log("sequencer beat: " + this.currentBeatNo.toString());
-
-        // TODO: use 'audibleSoundSites' from the last call to requery() instead of requerying here
-
-        var closestSoundSites = this._getClosestSoundSitesByKdTree(g_camera.position, this.closestSiteCount);
-        //var closestSoundSites = this._getClosestSoundSitesByBruteSearch(g_camera.position, this.closestSiteCount);
-
-        // For all of the closest sound sites, load samples or trigger sounds
-        var closestSites = "";
-        for (var closestSoundSiteCount = closestSoundSites.length, closestSoundSiteNo = 0; closestSoundSiteNo < closestSoundSiteCount; ++closestSoundSiteNo)
-        {
-            var closestSoundSite = closestSoundSites[closestSoundSiteNo];
-
-            var soundSite = closestSoundSite.soundSite;
-            var distance = closestSoundSite.distance;
-
-            // Choose gain according to distance
-            //var distance = soundSite.getPosition().distanceTo(g_camera.position);
-            var gain = this.distanceToGain(distance);
-            if (gain > 0)
-            {
-                if (!soundSite.audioBuffer)
-                {
-                    var k_lookaheadSteps = Math.ceil(this.tempo / 120 * 4);
-                    for (var lookaheadStep = 0; lookaheadStep < k_lookaheadSteps; ++lookaheadStep)
-                    {
-                        var lookaheadBeatNo = (this.currentBeatNo + lookaheadStep) % this.sequenceLength;
-                        if (soundSite.sequence[lookaheadBeatNo] === 1 || soundSite.sequence[lookaheadBeatNo] === true)
-                            soundSite.loadSamplesIfNeeded();
-                    }
-                }
-                else
-                {
-                    if (soundSite.sequence[this.currentBeatNo] === 1 || soundSite.sequence[this.currentBeatNo] === true)
-                    {
-                        closestSites += soundSite.soundId + ": " + soundSite.soundUrl + ", " + soundSite.sequence.toString() + "\n";
-                        playNote(soundSite.audioBuffer, gain, nextBeatStartTime);
-                        soundSite.lastTriggerTime = performance.now() / 1000;
-                    }
-                }
-            }
-        }
-
-        //// Save for possible UI drawing
-        //this.closestSoundSites = closestSoundSites;
-        //document.body.querySelector("#infoText").innerText = closestSites;
-
-        // For each part, advance its beat cursor
-        /*
-        var parts = g_song.parts;
-        for (var partNo = 0; partNo < parts.length; ++partNo)
-        {
-            var part = parts[partNo];
-
-            var wrapped = part.currentBeat.advanceToNextBeat();
-
-            // This commented line...
-            //part.linearCurrentBeat.advanceToNextBeat();
-            // ... replaced with this equivalent for efficiency
-            if (wrapped)
-                part.linearCurrentBeat.beatNo = 0;
-            else
-                ++part.linearCurrentBeat.beatNo;
-
-            //
-            part.currentNote = -1;
-        }
-        */
-
-        // Take on the next beat start time as current
-        this.currentBeatStartTime = nextBeatStartTime;
-    }
-
-    // Do this again ASAP
-    setTimeout(this.tick, 0);
-};
-
-Sequencer.prototype.save = function ()
-{
-    //var closestSoundSites = this._getClosestSoundSitesByBruteSearch(g_camera.position, this.closestSiteCount);
-    var closestSoundSites = this._getClosestSoundSitesByKdTree(g_camera.position, this.closestSiteCount);
-
-    //
-    var notes = [];
-
-    for (var beatNo = 0; beatNo < this.sequenceLength; ++beatNo)
-    {
-        var closestSites = "";
-
-        for (var closestSoundSiteCount = closestSoundSites.length, closestSoundSiteNo = 0; closestSoundSiteNo < closestSoundSiteCount; ++closestSoundSiteNo)
-        {
-            var closestSoundSite = closestSoundSites[closestSoundSiteNo];
-
-            var soundSite = closestSoundSite.soundSite;
-            var distance = closestSoundSite.distance;
-
-            if (soundSite.sequence[beatNo] === 1 || soundSite.sequence[beatNo] === true)
-            {
-                // Choose gain according to distance
-                var gain = this.distanceToGain(distance);
-                if (gain > 0)
-                {
-                    closestSites += soundSite.soundId + ": " + soundSite.soundUrl + ", " + soundSite.sequence.toString() + "\n";
-                    notes.push([beatNo, soundSite.soundId, gain]);
-                }
-            }
-        }
-    }
-
-    return notes;
-};
-
-// + + UI {{{
-
-Sequencer.prototype.relayout = function ()
-{
-    // Config
-    var margin = 10;
-    var padding = 4;
-
-    var idColumn_width = 60;
-    var gainColumn_leftPadding = 8;
-    var gainColumn_width = 40;
-
-    //
-    this.layout = {};
-
-    //
-    this.layout.gridSquareHeight = 20;
-    this.layout.gridSquareWidth = (window.innerWidth - margin*2 - padding*2 - idColumn_width - (gainColumn_leftPadding+gainColumn_width)) / this.sequenceLength;
-    if (this.layout.gridSquareWidth > 20)
-        this.layout.gridSquareWidth = 20;
-
-    //
-    this.layout.backgroundRect = dan.math.Rect2.fromXYWH(margin, margin,
-                                                         padding + idColumn_width + this.layout.gridSquareWidth * this.sequenceLength + gainColumn_leftPadding+gainColumn_width + padding,
-                                                         padding + (this.audibleSoundSites.length + 1) * this.layout.gridSquareHeight + padding);
-
-    if (window.innerWidth > this.layout.backgroundRect.width())
-        this.layout.backgroundRect.moveByLeftTop([Math.floor((window.innerWidth - this.layout.backgroundRect.width()) / 2), 0]);
-
-    // Sound ID column, width 60px
-    this.layout.soundIdsHeaderRect = dan.math.Rect2.fromSS(dan.math.Vector2.add(this.layout.backgroundRect.leftTop(), [padding, padding]),
-                                                           [idColumn_width, this.layout.gridSquareHeight]);
-    this.layout.soundIdsRect = dan.math.Rect2.fromSS(this.layout.soundIdsHeaderRect.leftBottom(),
-                                                     [idColumn_width, this.audibleSoundSites.length * this.layout.gridSquareHeight]);
-
-    // Grid
-    this.layout.gridHeaderRect = dan.math.Rect2.fromSS(this.layout.soundIdsHeaderRect.rightTop(),
-                                                       [this.sequenceLength * this.layout.gridSquareWidth, this.layout.gridSquareHeight]);
-    this.layout.gridRect = dan.math.Rect2.fromSS(this.layout.gridHeaderRect.leftBottom(),
-                                                 [this.sequenceLength * this.layout.gridSquareWidth, this.audibleSoundSites.length * this.layout.gridSquareHeight]);
-
-    // Gain column, width 80px
-    this.layout.gainHeaderRect = dan.math.Rect2.fromSS(dan.math.Vector2.add(this.layout.gridHeaderRect.rightTop(), [gainColumn_leftPadding, 0]),
-                                                       [gainColumn_width, this.layout.gridSquareHeight]);
-    this.layout.gainRect = dan.math.Rect2.fromSS(this.layout.gainHeaderRect.leftBottom(),
-                                                 [gainColumn_width, this.audibleSoundSites.length * this.layout.gridSquareHeight]);
-};
-
-Sequencer.prototype.draw = function ()
-{
-    var this_layout = this.layout;
-
-    //
-    var droidSansMono14TextureFont_xHeight = 8;
-    var droidSansMono14TextureFont_yOffsetToAlignWithGridSquare = (this_layout.gridSquareHeight + droidSansMono14TextureFont_xHeight) / 2;
-
-    //
-    g_danCanvas.drawRectFill(this_layout.backgroundRect.leftTop(), this_layout.backgroundRect.size(), new dan.gfx.ColourRGBA(0, 0, 0, 0.5));
-
-    // Headings
-    g_danCanvas.drawTextT(g_droidSansMono14TextureFont, "ID", new dan.gfx.ColourRGBA(1, 1, 0, 1),
-                          dan.math.Vector2.add(this_layout.soundIdsHeaderRect.leftTop(), [0, droidSansMono14TextureFont_yOffsetToAlignWithGridSquare]));
-    g_danCanvas.drawTextT(g_droidSansMono14TextureFont, "Pattern", new dan.gfx.ColourRGBA(1, 1, 0, 1),
-                          dan.math.Vector2.add(this_layout.gridHeaderRect.leftTop(), [0, droidSansMono14TextureFont_yOffsetToAlignWithGridSquare]));
-    g_danCanvas.drawTextT(g_droidSansMono14TextureFont, "Gain", new dan.gfx.ColourRGBA(1, 1, 0, 1),
-                          dan.math.Vector2.add(this_layout.gainHeaderRect.leftTop(), [0, droidSansMono14TextureFont_yOffsetToAlignWithGridSquare]));
-
-    //
-    for (var audibleSoundSiteCount = this.audibleSoundSites.length, audibleSoundSiteNo = 0; audibleSoundSiteNo < audibleSoundSiteCount; ++audibleSoundSiteNo)
-    {
-        var audibleSoundSite = this.audibleSoundSites[audibleSoundSiteNo];
-
-        var soundSite = audibleSoundSite.soundSite;
-        var distance = audibleSoundSite.distance;
-
-        //
-        var colour;
-        if (soundSite.audioBuffer)
-            colour = new dan.gfx.ColourRGBA(1, 1, 0, 1);
-        else
-            colour = new dan.gfx.ColourRGBA(1, 1, 0, 0.3);
-
-        // For each beat
-        for (var beatNo = 0; beatNo < this.sequenceLength; ++beatNo)
-        {
-            if (soundSite.sequence[beatNo] === 1 || soundSite.sequence[beatNo] === true)
-            {
-                g_danCanvas.drawCircleFill(dan.math.Vector2.add(this_layout.gridRect.leftTop(), [(beatNo + 0.5) * this_layout.gridSquareWidth, (audibleSoundSiteNo + 0.5) * this_layout.gridSquareHeight]),
-                                           this_layout.gridSquareWidth / 2 - 2,
-                                           colour);
-            }
-        }
-
-        // ID
-        g_danCanvas.drawTextT(g_droidSansMono14TextureFont, soundSite.soundId.toString(), new dan.gfx.ColourRGBA(1, 0, 1, 1),
-                              dan.math.Vector2.add(this_layout.soundIdsRect.leftTop(), [0, audibleSoundSiteNo * this_layout.gridSquareHeight + droidSansMono14TextureFont_yOffsetToAlignWithGridSquare]));
-
-        // Gain
-        g_danCanvas.drawTextT(g_droidSansMono14TextureFont, soundSite.gain.toString().substr(0, 5), new dan.gfx.ColourRGBA(1, 0, 1, 1),
-                              dan.math.Vector2.add(this_layout.gainRect.leftTop(), [0, audibleSoundSiteNo * this_layout.gridSquareHeight + this_layout.gridSquareHeight - 5]));
-    }
-
-    // Draw grid horizontal lines
-    for (var audibleSoundSiteCount = this.audibleSoundSites.length, audibleSoundSiteNo = 0; audibleSoundSiteNo <= audibleSoundSiteCount; ++audibleSoundSiteNo)
-    {
-        g_danCanvas.drawLineStroke(dan.math.Vector2.add(this_layout.gridRect.leftTop(), [0, audibleSoundSiteNo * this_layout.gridSquareHeight]),
-                                   dan.math.Vector2.add(this_layout.gridRect.leftTop(), [this.sequenceLength * this_layout.gridSquareWidth, audibleSoundSiteNo * this_layout.gridSquareHeight]),
-                                   1, 0, new dan.gfx.ColourRGBA(1, 1, 0, 0.5));
-    }
-    // Draw grid vertical lines
-    for (var beatNo = 0; beatNo <= this.sequenceLength; ++beatNo)
-    {
-        g_danCanvas.drawLineStroke(dan.math.Vector2.add(this_layout.gridRect.leftTop(), [beatNo * this_layout.gridSquareWidth, 0]),
-                                   dan.math.Vector2.add(this_layout.gridRect.leftTop(), [beatNo * this_layout.gridSquareWidth, audibleSoundSiteCount * this_layout.gridSquareHeight]),
-                                   1, 0, new dan.gfx.ColourRGBA(1, 1, 0, 0.5));
-    }
-
-    // Highlight column for current beat
-    if (this.playing)
-    {
-        g_danCanvas.drawRectFill(dan.math.Vector2.add(this_layout.gridRect.leftTop(), [this.currentBeatNo * this_layout.gridSquareWidth, 0]),
-                                 [this_layout.gridSquareWidth, audibleSoundSiteCount * this_layout.gridSquareHeight],
-                                 new dan.gfx.ColourRGBA(0, 1, 1, 0.5));
-    }
-
-    //g_danCanvas.drawCircleFill([(beatNo + 0.5) * this_layout.gridSquareSize, (audibleSoundSiteNo + 0.5) * this_layout.gridSquareSize],
-    //                           this_layout.gridSquareSize / 2, new dan.gfx.ColourRGBA(1, 1, 0, 1));
-};
-
-Sequencer.prototype.onMouseDown = function (i_event)
-{
-    var this_layout = this.layout;
-
-    var mousePos = dan.math.Vector2.fromXY(i_event.pageX, i_event.pageY);
-
-    if (this_layout.soundIdsRect.contains(mousePos))
-    {
-        var positionInSoundIdsRect = dan.math.Vector2.sub(mousePos, this_layout.soundIdsRect.leftTop());
-
-        var audibleSoundSiteNo = Math.floor(positionInSoundIdsRect[1] / this_layout.gridSquareHeight);
-        //g_scrollingLog.addText(this.audibleSoundSites[audibleSoundSiteNo].soundSite.soundId);
-        g_autoFlyToSoundSite = this.audibleSoundSites[audibleSoundSiteNo].soundSite;
-
-        g_showSequence = false;
-    }
-};
-
-// + + }}}
-
-function playNote(i_buffer,
-                  //i_pan, i_panPositionX, i_panPositionY, i_panPositionZ,
-                  //i_sendGain,
-                  i_mainGain,
-                  //i_cutoff, i_resonance,
-                  i_startTime)
-// Params:
-//  i_buffer:
-//   (AudioBuffer)
-//  i_pan:
-//   (bool)
-//  i_panPositionX, i_panPositionY, i_panPositionZ:
-//   (float number)
-//   Coordinates in 3D space
-//  i_sendGain:
-//   (float number)
-//   Gain for wet mix (including reverb)
-//  i_mainGain:
-//   (float number)
-//   Gain for dry mix (skipping reverb)
-//  i_cutoff:
-//   (float number)
-//   Filter cutoff frequency
-//  i_resonance:
-//   (float number)
-//   Filter Q value
-//  i_startTime:
-//   (float number)
-//   Time at which to start note, in seconds, relative to now.
-{
-    // Create the note
-    var voice = g_audioContext.createBufferSource();  // (AudioBufferSourceNode)
-    voice.buffer = i_buffer;
-
-    //
-
-    /*
-    // Connect to filter
-    //var hasBiquadFilter = g_audioContext.createBiquadFilter;
-    //var filter = hasBiquadFilter ? g_audioContext.createBiquadFilter() : g_audioContext.createLowPass2Filter();
-    var filter;
-    if (g_audioContext.createBiquadFilter) {
-        filter = g_audioContext.createBiquadFilter();
-        filter.frequency.value = i_cutoff;
-        filter.Q.value = i_resonance; // this is actually resonance in dB
-    }
-    else {
-        filter = g_audioContext.createLowPass2Filter();
-        filter.cutoff.value = i_cutoff;
-        filter.resonance.value = i_resonance;
-    }
-    voice.connect(filter);
-
-    // Optionally, connect to a panner
-    var finalNode;
-    if (i_pan) {
-        var panner = g_audioContext.createPanner();
-        panner.panningModel = "HRTF";
-        panner.setPosition(i_panPositionX, i_panPositionY, i_panPositionZ);
-        filter.connect(panner);
-        finalNode = panner;
-    }
-    else {
-        finalNode = filter;
-    }
-    */
-
-    // Connect to dry mix
-    var dryGainNode = g_audioContext.createGain();
-    dryGainNode.gain.value = i_mainGain;
-    voice.connect(dryGainNode);
-    dryGainNode.connect(g_audioContext.destination);
-
-    if (g_audioRecorder !== null)
-        dryGainNode.connect(g_audioRecorder.mediaStreamDestination);
-    /*
-    // Connect to wet mix
-    var wetGainNode = g_audioContext.createGain();
-    wetGainNode.gain.value = i_sendGain;
-    finalNode.connect(wetGainNode);
-    wetGainNode.connect(g_convolver);
-    */
-
-    voice.start(i_startTime);
-}
-
-// + }}}
-
-// + Audio recording {{{
-
-function AudioRecorder()
-{
-    this.mediaStreamDestination = g_audioContext.createMediaStreamDestination();
-    this.blobs = [];
-}
-
-AudioRecorder.prototype.start = function ()
-{
-    this.mediaRecorder = new MediaRecorder(this.mediaStreamDestination.stream);
-
-    var me = this;
-    this.mediaRecorder.ondataavailable = function (i_event) {
-        me.blobs.push(i_event.data);
-    };
-
-    this.mediaRecorder.start();
-}
-
-AudioRecorder.prototype.stop = function ()
-{
-    var me = this;
-    this.mediaRecorder.onstop = function (i_event) {
-        var blob = new Blob(me.blobs, { "type": "audio/ogg; codecs=opus" });
-        var url = URL.createObjectURL(blob);
-
-        debugger;
-
-        //var audioElement = new Audio();
-        //audioElement.src = URL.createObjectURL(blob);
-
-        var aElement = document.createElement("a");
-        document.body.appendChild(aElement);
-        //aElement.style = "display: none";
-        aElement.href = url;
-        aElement.download = "recording.opus";
-        aElement.click();
-        URL.revokeObjectURL(url);
-    };
-
-    this.mediaRecorder.stop();
-}
-
-var g_audioRecorder = null;
-
-// + }}}
-
-function lowTendingRandom(i_power, i_linearRandomGeneratorFunc)
-// Params:
-//  i_power:
-//   (number)
-//  i_linearRandomGeneratorFunc:
-//   Either (function)
-//    Function has:
-//     Params:
-//      -
-//     Returns:
-//      (float number)
-//      In half-open range [0 .. 1)
-//   or (null or undefined)
-//    Use default of Math.random()
-//
-// FIXME:
-//  If i_power is high, 
-{
-    if (i_linearRandomGeneratorFunc === null || i_linearRandomGeneratorFunc === undefined)
-        i_linearRandomGeneratorFunc = Math.random;
-
-    return Math.pow(i_linearRandomGeneratorFunc(), i_power);
-}
-
-function highTendingRandom(i_power, i_linearRandomGeneratorFunc)
-// Params:
-//  i_power:
-//   (number)
-//  i_linearRandomGeneratorFunc:
-//   Either (function)
-//    Function has:
-//     Params:
-//      -
-//     Returns:
-//      (float number)
-//      In half-open range [0 .. 1)
-//   or (null or undefined)
-//    Use default of Math.random()
-{
-    return 1 - Number.EPSILON - lowTendingRandom(i_power, i_linearRandomGeneratorFunc);
-}
-
-function map01ToRange(i_value,
-                      i_toStart, i_toEnd)
-// Params:
-//  i_value:
-//   (number)
-//  i_toStart, i_toEnd
-//   (number)
-//
-// Returns:
-//  (float number)
-//  In half-open range [i_toStart .. i_toEnd)
-{
-    return (i_value * (i_toEnd - i_toStart)) + i_toStart;
-};
 
 // + Sound site {{{
 
@@ -1122,140 +449,7 @@ function findSoundSiteNoById(i_soundId)
 
 // + }}}
 
-// + Scrolling log {{{
-
-// + + Construction {{{
-
-function ScrollingLog()
-{
-    this.rootDomElement = document.createElement("div");
-    this.rootDomElement.setAttribute("id", "scrollingLog");
-
-    this.rootDomElement.style.position = "fixed";
-    this.rootDomElement.style.top = "0";
-    this.rootDomElement.style.bottom = "0";
-    this.rootDomElement.style.left = "0";
-    this.rootDomElement.style.right = "0";
-    //this.rootDomElement.style.border = "3px solid red";
-    this.rootDomElement.style.padding = "4px";
-    this.rootDomElement.style.color = "#f00";
-    this.rootDomElement.style.textShadow = "1px 1px 1px rgba(0, 0, 0, 0.5)";
-    this.rootDomElement.style.fontWeight = "bold";
-    this.rootDomElement.style.backgroundColor = "transparent";
-    //this.rootDomElement.style.overflowY = "scroll";
-
-    this.rootDomElement.style.pointerEvents = "none";
-
-    // Show first element at bottom
-    this.rootDomElement.style.display = "flex";
-    this.rootDomElement.style.flexDirection = "column-reverse";
-
-    // Default time in seconds for each log element to remain visible for
-    this.timeout = 3;
-
-    //
-    this.entries = [];
-}
-
-// + + }}}
-
-// + + Root DOM element {{{
-
-ScrollingLog.prototype.getRootDomElement = function ()
-{
-    return this.rootDomElement;
-};
-
-// + + }}}
-
-// + + Add entries {{{
-
-ScrollingLog.prototype.addText = function (i_text, i_timeout)
-// Params:
-//  i_text:
-//   (string)
-//  i_timeout:
-//   Either (float number)
-//    Time in seconds from now after which the log element should be removed (by removeTimedOutEntries()).
-//    Infinity: Don't automatically remove.
-//   or (null or undefined)
-//    Use the default timeout (as set in constructor).
-{
-    // Apply default arguments
-    if (i_timeout === null || i_timeout === undefined)
-        i_timeout = this.timeout;
-
-    // Create DOM element, containing text
-    var domElement = document.createElement("div");
-    domElement.appendChild(document.createTextNode(i_text));
-
-    // Create an entry, with its timeout
-    this.entries.push([performance.now() / 1000 + i_timeout, domElement]);
-
-    // Add DOM element
-    // and scroll to bottom
-    this.rootDomElement.insertBefore(domElement, this.rootDomElement.firstChild);
-    this.rootDomElement.scrollTop = this.rootDomElement.scrollHeight;
-};
-
-// + + }}}
-
-ScrollingLog.prototype.resetEntryTimeouts = function (i_timeout)
-// Params:
-//  i_timeout:
-//   Either (float number)
-//    Time in seconds from now after which all existing log elements should be removed (by removeTimedOutEntries()).
-//    Infinity: Don't automatically remove.
-//   or (null or undefined)
-//    Use the default timeout (as set in constructor).
-{
-    // Apply default arguments
-    if (i_timeout === null || i_timeout === undefined)
-        i_timeout = this.timeout;
-
-    //
-    for (var entryCount = this.entries.length, entryNo = 0; entryNo < entryCount; ++entryNo)
-    {
-        this.entries[entryNo][0] = performance.now() / 1000 + i_timeout;
-    }
-};
-
-ScrollingLog.prototype.removeTimedOutEntries = function ()
-// Typically to be called from the animation loop.
-{
-    var currentTime = performance.now() / 1000;
-    var entryNo = 0;
-    while (entryNo < this.entries.length)
-    {
-        var entry = this.entries[entryNo];
-
-        if (currentTime >= entry[0])
-        {
-            this.rootDomElement.removeChild(entry[1]);
-            this.entries.splice(entryNo, 1);
-        }
-        else
-        {
-            ++entryNo;
-        }
-    }
-};
-
-ScrollingLog.prototype.removeAllEntries = function ()
-{
-    // Clear entries array
-    this.entries.length = 0;
-
-    // Remove log elements from DOM
-    while (this.rootDomElement.lastChild)
-    {
-        this.rootDomElement.removeChild(this.rootDomElement.lastChild);
-    }
-};
-
-// + }}}
-
-var controlsEnabled = false;
+//var controlsEnabled = false;
 
 var moveForward = false;
 var moveBackward = false;
@@ -1267,10 +461,10 @@ var prevTime = performance.now();
 
 var g_mousePositionInViewport = [0, 0];
 var g_mousePositionInViewport_normalized = [0, 0];
-function body_onMouseMove(i_event)
+function space_body_onMouseMove(i_event)
 {
-    // Get mouse position relative to top-left of g_viewportDiv
-    var boundingClientRect = g_viewportDiv.getBoundingClientRect();
+    // Get mouse position relative to top-left of g_space_viewportDiv
+    var boundingClientRect = g_space_viewportDiv.getBoundingClientRect();
     g_mousePositionInViewport = [i_event.clientX - boundingClientRect.left, i_event.clientY - boundingClientRect.top];
     g_mousePositionInViewport_normalized = [g_mousePositionInViewport[0] / boundingClientRect.width * 2 - 1,
                                             g_mousePositionInViewport[1] / boundingClientRect.height * 2 - 1];
@@ -1280,72 +474,277 @@ var g_sequencer;
 
 var g_autoFlyToSoundSite = null;
 
-var g_wantedTagsStr, g_wantedTags;
-var g_unwantedTags;
-
-function init()
+function getSpaceParamsFromQueryString()
 {
-    g_wantedTagsStr = dan.getParameterValueFromQueryString("tags");
-    if (g_wantedTagsStr == "")
+    var wantedTagsStr = dan.getParameterValueFromQueryString("tags");
+    if (wantedTagsStr == "")
     {
-        g_wantedTags = [];
+        g_spaceParam_wantedTags = [];
     }
     else
     {
-        g_wantedTags = g_wantedTagsStr.split("+");
-        // Split g_tagsStr at '+' or '-' chars,
+        g_spaceParam_wantedTags = wantedTagsStr.split("+");
+        // Split wantedTagsStr at '+' or '-' chars,
         // using lookahead so those chars are not themselves included in the regex match and are included in the return array
-        //g_wantedTags = g_tagsStr.split(/(?=[+-])/);
+        //g_spaceParam_wantedTags = wantedTagsStr.split(/(?=[+-])/);
     }
 
-    g_unwantedTagsStr = dan.getParameterValueFromQueryString("unwantedTags");
-    if (g_unwantedTagsStr == "")
+    var unwantedTagsStr = dan.getParameterValueFromQueryString("unwantedTags");
+    if (unwantedTagsStr == "")
     {
-        g_unwantedTags = [];
+        g_spaceParam_unwantedTags = [];
     }
     else
     {
-        g_unwantedTags = g_unwantedTagsStr.split("+");
+        g_spaceParam_unwantedTags = g_unwantedTagsStr.split("+");
     }
 
-    var tempo = dan.getParameterValueFromQueryString("bpm");
-    if (tempo != "")
-        tempo = parseInt(tempo);
+    var bpmStr = dan.getParameterValueFromQueryString("bpm");
+    if (bpmStr != "")
+    {
+        g_spaceParam_bpm = parseInt(bpmStr);
+    }
     else
-        tempo = 120;
+    {
+        g_spaceParam_bpm = 120;
+    }
+}
 
-    g_sequencer = new Sequencer(tempo);
-
-    //
-    g_viewportDiv = document.createElement("div");
-    document.body.appendChild(g_viewportDiv);
-    document.body.addEventListener("mousemove", body_onMouseMove);
-    g_viewportDiv.addEventListener("mousedown", function (i_event) {
-        if (g_showSequence)
+function space_viewportDiv_onMouseDown(i_event)
+{
+    if (g_showSequence)
+    {
+        g_sequencer.onMouseDown(i_event);
+    }
+    else
+    {
+        // If pressed the right mouse button
+        if (i_event.button == 2)
         {
-            g_sequencer.onMouseDown(i_event);
+            var pointedAtSoundSites = getSoundSitesAtViewportPosition(new THREE.Vector2(g_mousePositionInViewport_normalized[0], -g_mousePositionInViewport_normalized[1]));
+            if (pointedAtSoundSites.length > 0)
+            {
+                var webUrl = g_parsed_sound_index[pointedAtSoundSites[0].soundId]["web-url"];
+                g_scrollingLog.addText(webUrl);
+                window.open(webUrl, "_blank");
+                //
+                i_event.stopPropagation();
+                i_event.stopImmediatePropagation();
+                g_controls.resetInputs();
+            }
+        }
+    }
+}
+
+function space_document_onKeyDown(event)
+{
+    //console.log(event.keyCode);
+
+    switch (event.keyCode)
+    {
+    case 38: // up
+    case 87: // w
+        moveForward = true;
+        break;
+
+    case 37: // left
+    case 65: // a
+        moveLeft = true;
+        break;
+
+    case 40: // down
+    case 83: // s
+        moveBackward = true;
+        break;
+
+    case 39: // right
+    case 68: // d
+        moveRight = true;
+        break;
+
+    //case 71: // g
+    //    g_showSoundSiteRanges = !g_showSoundSiteRanges;
+    //    break;
+
+    case 71: // g
+        g_showSequence = !g_showSequence;
+        break;
+
+    case 73: // i
+        if (!g_showSoundSiteIdsOnMouseover)
+        {
+            g_scrollingLog.addText("Freesound ID inspection ON (put mouse on a star).");
+            g_showSoundSiteIdsOnMouseover = true;
         }
         else
         {
-            // If pressed the right mouse button
-            if (i_event.button == 2)
-            {
-                var pointedAtSoundSites = getSoundSitesAtViewportPosition(new THREE.Vector2(g_mousePositionInViewport_normalized[0], -g_mousePositionInViewport_normalized[1]));
-                if (pointedAtSoundSites.length > 0)
-                {
-                    var webUrl = g_assetLoader.loaded["sound_index"][pointedAtSoundSites[0].soundId]["web-url"];
-                    g_scrollingLog.addText(webUrl);
-                    window.open(webUrl, "_blank");
-                    //
-                    i_event.stopPropagation();
-                    i_event.stopImmediatePropagation();
-                    g_controls.resetInputs();
-                }
-            }
+            g_scrollingLog.addText("Freesound ID inspection OFF.");
+            g_showSoundSiteIdsOnMouseover = false;
         }
-    });
+        break;
 
-    // Create canvas element, add to document body
+    case 67: // c
+        if (g_audioRecorder === null)
+        {
+            g_scrollingLog.addText("Starting audio capture. Press C again to stop/save.");
+            g_audioRecorder = new AudioRecorder();
+            g_audioRecorder.start();
+        }
+        else
+        {
+            g_audioRecorder.stop();
+            g_audioRecorder = null;
+        }
+        break;
+
+    case 80: // p
+        event.preventDefault();
+        dan.gui.html.PopupTextarea(
+            [70, 70], "%", "Current sequence:",
+            "// This is a JSON array,\n" +
+            "// where each element is itself an array with elements:\n" +
+            "//  0: (integer number) sequencer pattern step number, in range [0 .. " + (g_sequencer.sequenceLength - 1).toString() + ")\n" +
+            "//  1: (string) Freesound sound ID\n" +
+            "//  2: (float number) gain of sound, in range [0 .. 1]\n" +
+            "\n" +
+            JSON.stringify(g_sequencer.save()).replace("[[", "[\n[").replace("]]", "]\n]").replace(/\],\[/g, "], ["),
+            [
+                ["OK", function (i_buttonNo, i_value, i_event) {
+                    return true;
+                }, [13, 27]],
+            ],
+            true);
+
+    case 77: // m
+        missionControl_toggle();
+        break;
+
+    case 78: // n
+        space_toggle();
+        break;
+
+    case 27: // Escape
+        missionControl_show();
+        space_hide();
+        space_uninstallEventHandlers();
+        space_exit();
+        g_sequencer.stop();
+        g_scrollingLog.addText("Sequencer stopped.");
+        break;
+
+    case 32: // space
+        g_sequencer.togglePlay();
+        if (g_sequencer.playing)
+            g_scrollingLog.addText("Sequencer started.");
+        else
+            g_scrollingLog.addText("Sequencer stopped.");
+        break;
+    }
+}
+
+function space_document_onKeyUp(event)
+{
+    switch (event.keyCode)
+    {
+    case 38: // up
+    case 87: // w
+        moveForward = false;
+        break;
+
+    case 37: // left
+    case 65: // a
+        moveLeft = false;
+        break;
+
+    case 40: // down
+    case 83: // s
+        moveBackward = false;
+        break;
+
+    case 39: // right
+    case 68: // d
+        moveRight = false;
+        break;
+    }
+}
+
+function space_installEventHandlers()
+{
+    // Mouse actions on main viewport
+    document.body.addEventListener("mousemove", space_body_onMouseMove);
+    g_space_viewportDiv.addEventListener("mousedown", space_viewportDiv_onMouseDown);
+
+    //
+    document.addEventListener("keydown", space_document_onKeyDown, false);
+    document.addEventListener("keyup", space_document_onKeyUp, false);
+}
+
+function space_uninstallEventHandlers()
+{
+    // Mouse actions on main viewport
+    document.body.removeEventListener("mousemove", space_body_onMouseMove);
+    g_space_viewportDiv.removeEventListener("mousedown", space_viewportDiv_onMouseDown);
+
+    //
+    document.removeEventListener("keydown", space_document_onKeyDown, false);
+    document.removeEventListener("keyup", space_document_onKeyUp, false);
+}
+
+// + space_construct() {{{
+
+function space_construct()
+{
+    g_space_controlsDialogElement = dan.htmlToDom(dan.hereDoc(function () {/*!
+<div class="popupDialog controlsDialog">
+  <div class="column">
+    <h2>Move</h2>
+    <ul>
+      <li><span class="keyboardControl">W</span> <span class="keyboardControl">S</span> <span class="keyboardControl">A</span> <span class="keyboardControl">D</span> : forward / backward / leftward / rightward</li>
+      <li><span class="keyboardControl">R</span> <span class="keyboardControl">F</span> : up / down</li>
+    </ul>
+    <h2>Rotate</h2>
+    <ul>
+      <li><span class="keyboardControl">arrow keys</span> or <span class="mouseControl">click+drag</span></li>
+    </ul>
+    <h2>Roll</h2>
+    <ul>
+      <li><span class="keyboardControl">Q</span> <span class="keyboardControl">E</span></li>
+    </ul>
+  </div>
+  <div class="column">
+    <h2>Audio</h2>
+    <ul>
+      <li><span class="keyboardControl">Space</span> : stop/restart sequencer playback</li>
+      <li><span class="keyboardControl">G</span> : show the current sequence, on a grid
+      <li><span class="keyboardControl">P</span> : show the current sequence, in exportable text form
+      <li><span class="keyboardControl">C</span> : record audio</li>
+    </ul>
+    <h2>Freesound</h2>
+    <ul>
+      <li><span class="keyboardControl">I</span> : show Freesound IDs for stars underneath mouse pointer</li>
+      <li><span class="mouseControl">right-click</span> star : visit sound's page on freesound.org</li>
+    </ul>
+    <h2>Session</h2>
+    <ul>
+      <li><span class="keyboardControl">Esc</span> : return to mission control</li>
+    </ul>
+  </div>
+  <p class="dialogButtons" style="clear: both; padding-top: 1.5em;">
+    <button class="dialogButton closeButton">BACK</button>
+  </p>
+</div>
+*/}));
+    //$(g_space_controlsDialogElement).hide();
+    document.body.appendChild(g_space_controlsDialogElement);
+
+
+    g_sequencer = new Sequencer();
+
+    // Create div to contain the space viewport
+    g_space_viewportDiv = document.createElement("div");
+    document.body.appendChild(g_space_viewportDiv);
+
+    // Create canvas element
     var canvas = document.createElement("canvas");
     canvas.width = 1;
     canvas.height = 1;
@@ -1356,12 +755,13 @@ function init()
         throw "Error creating WebGL context";
     }
 
-    //
+    // Create THREE renderer using above context,
+    // add canvas element to viewport
     g_renderer = new THREE.WebGLRenderer(ctx);
     g_renderer.setClearColor(0xffffff);
     g_renderer.setPixelRatio(window.devicePixelRatio);
     //g_renderer.setSize(window.innerWidth, window.innerHeight);
-    g_viewportDiv.appendChild(g_renderer.domElement);
+    g_space_viewportDiv.appendChild(g_renderer.domElement);
 
     //
     GL = new dan.gfx.gl.Context(g_renderer.context);
@@ -1410,27 +810,14 @@ function init()
     infoTextDiv.setAttribute("id", "infoText");
     document.body.appendChild(infoTextDiv);
 
-    g_scrollingLog = new ScrollingLog();
-    document.body.appendChild(g_scrollingLog.getRootDomElement());
-    /*
-    var n = 0;
-    function addTestLog()
-    {
-        g_scrollingLog.addText("hello " + n.toString());
-        ++n;
-        if (n < 50)
-            setTimeout(addTestLog, 50);
-    }
-    addTestLog();
-    */
-
     // + Dialogs {{{
 
-    var controlsButton = $('<div class="controlsButton">CONTROLS</div>')[0];
-    controlsButton.style.position = "fixed";
-    controlsButton.style.top = "16px";
-    controlsButton.style.left = "16px";
-    document.body.appendChild(controlsButton);
+    g_space_controlsButton = $('<div class="controlsButton">CONTROLS</div>')[0];
+    g_space_controlsButton.style.position = "fixed";
+    g_space_controlsButton.style.top = "16px";
+    g_space_controlsButton.style.left = "16px";
+    $(g_space_controlsButton).hide();
+    document.body.appendChild(g_space_controlsButton);
 
     var viewportDimmer = new ViewportDimmer();
 
@@ -1452,127 +839,13 @@ function init()
     // + }}}
 
     //g_controls = new THREE.PointerLockControls(g_camera);
-    g_controls = new THREE_FlyControls(g_camera, g_viewportDiv);
+    g_controls = new THREE_FlyControls(g_camera, g_space_viewportDiv);
     g_controls.movementSpeed = 1000;
-    g_controls.domElement = g_viewportDiv;
+    g_controls.domElement = g_space_viewportDiv;
     g_controls.rollSpeed = Math.PI / 4;
     g_controls.mouse_mustHoldButtonToLook = true;
     //g_scene.add(g_controls.getObject());
 
-
-    var onKeyDown = function (event) {
-        switch (event.keyCode)
-        {
-        case 38: // up
-        case 87: // w
-            moveForward = true;
-            break;
-
-        case 37: // left
-        case 65: // a
-            moveLeft = true;
-            break;
-
-        case 40: // down
-        case 83: // s
-            moveBackward = true;
-            break;
-
-        case 39: // right
-        case 68: // d
-            moveRight = true;
-            break;
-
-        //case 71: // g
-        //    g_showSoundSiteRanges = !g_showSoundSiteRanges;
-        //    break;
-
-        case 71: // g
-            g_showSequence = !g_showSequence;
-            break;
-
-        case 73: // i
-            if (!g_showSoundSiteIdsOnMouseover)
-            {
-                g_scrollingLog.addText("Freesound ID inspection ON (put mouse on a star).");
-                g_showSoundSiteIdsOnMouseover = true;
-            }
-            else
-            {
-                g_scrollingLog.addText("Freesound ID inspection OFF.");
-                g_showSoundSiteIdsOnMouseover = false;
-            }
-            break;
-
-        case 67: // c
-            if (g_audioRecorder === null)
-            {
-                g_scrollingLog.addText("Starting audio capture. Press C again to stop/save.");
-                g_audioRecorder = new AudioRecorder();
-                g_audioRecorder.start();
-            }
-            else
-            {
-                g_audioRecorder.stop();
-                g_audioRecorder = null;
-            }
-            break;
-
-        case 80: // p
-            event.preventDefault();
-            dan.gui.html.PopupTextarea(
-                [70, 70], "%", "Current sequence:",
-                "// This is a JSON array,\n" +
-                "// where each element is itself an array with elements:\n" +
-                "//  0: (integer number) sequencer pattern step number, in range [0 .. " + (g_sequencer.sequenceLength - 1).toString() + ")\n" +
-                "//  1: (string) Freesound sound ID\n" +
-                "//  2: (float number) gain of sound, in range [0 .. 1]\n" +
-                "\n" +
-                JSON.stringify(g_sequencer.save()).replace("[[", "[\n[").replace("]]", "]\n]").replace(/\],\[/g, "], ["),
-                [
-                    ["OK", function (i_buttonNo, i_value, i_event) {
-                        return true;
-                    }, [13, 27]],
-                ],
-                true);
-
-        case 32: // space
-            g_sequencer.togglePlay();
-            if (g_sequencer.playing)
-                g_scrollingLog.addText("Sequencer started.");
-            else
-                g_scrollingLog.addText("Sequencer stopped.");
-            break;
-        }
-    };
-
-    var onKeyUp = function (event) {
-        switch (event.keyCode)
-        {
-        case 38: // up
-        case 87: // w
-            moveForward = false;
-            break;
-
-        case 37: // left
-        case 65: // a
-            moveLeft = false;
-            break;
-
-        case 40: // down
-        case 83: // s
-            moveBackward = false;
-            break;
-
-        case 39: // right
-        case 68: // d
-            moveRight = false;
-            break;
-        }
-    };
-
-    document.addEventListener("keydown", onKeyDown, false);
-    document.addEventListener("keyup", onKeyUp, false);
 
     g_raycaster = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(0, -1, 0), 0, 1000);
 
@@ -1589,7 +862,7 @@ function init()
     }
 
     //
-    continueInit();
+    space_construct_continue();
 }
 
 var g_kdTree = null;
@@ -1658,7 +931,7 @@ function buildTreeOfSoundSites()
     // + }}}
 }
 
-function onWindowResize()
+function space_onWindowResize()
 {
     g_camera.aspect = window.innerWidth / window.innerHeight;
     g_camera.updateProjectionMatrix();
@@ -1669,29 +942,32 @@ function onWindowResize()
     GL.setViewport(0, 0, window.innerWidth, window.innerHeight);
 }
 
-function continueInit()
+function space_construct_continue()
 {
     //
     g_scrollingLog.addText("Loading fonts...");
-    dan.text.loadFont("fonts/DroidSansMono-Regular.ttf", "DroidSansMono").then(continueInit_onFontsLoaded);
+    dan.text.loadFont("fonts/DroidSansMono-Regular.ttf", "DroidSansMono").then(space_construct_onFontsLoaded);
 }
 
-function continueInit_onFontsLoaded()
+var g_space_assetLoader;
+var g_space_assetsLoaded = false;
+
+function space_construct_onFontsLoaded()
 {
     //
     var droidSansMono14CanvasFont = dan.text.CanvasFontFace.fromSystemFont("Droid Sans Mono", "normal", "normal", 14, [[32, 126], 176]);
     g_droidSansMono14TextureFont = dan.text.GlTextureFontFace.fromCanvasFont(droidSansMono14CanvasFont);
 
     //
-    window.addEventListener("resize", onWindowResize, false);
-    onWindowResize();
+    window.addEventListener("resize", space_onWindowResize, false);
+    space_onWindowResize();
 
     //
     /*
     loadResultsOfFreesoundSearchIntoSoundSites("dogs", function () {
         buildTreeOfSoundSites();
 
-        startMainLoop();
+        space_startMainLoop();
     });
     */
 
@@ -1726,60 +1002,155 @@ function continueInit_onFontsLoaded()
         });
     }
 
-    g_assetLoader = new dan.loaders.AssetLoader();
+    g_space_assetLoader = new dan.loaders.AssetLoader();
 
     g_scrollingLog.addText("Loading data and graphics...");
 
-    loadWithLog(g_assetLoader, g_assetLoader.loadTexture, "sprites/shapes.png", "shapes");
+    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadTexture, "sprites/shapes.png", "shapes");
 
+    // Load asset "points"
     if (dan.getParameterValueFromQueryString("datasource") == "dynamic")
     {
-        loadWithLog(g_assetLoader, g_assetLoader.loadJson, "http://54.215.134.50:5000/tsne?tags=" + g_tagsStr, "points");
-        //loadWithLog(g_assetLoader, g_assetLoader.loadJson, "http://ec2-54-215-134-50.us-west-1.compute.amazonaws.com:5000/tsne?tags=" + g_tagsStr, "points");
+        loadWithLog(g_space_assetLoader, g_space_assetLoader.loadText, "http://54.215.134.50:5000/tsne?tags=" + g_tagsStr, "points");
+        //loadWithLog(g_space_assetLoader, g_space_assetLoader.loadText, "http://ec2-54-215-134-50.us-west-1.compute.amazonaws.com:5000/tsne?tags=" + g_tagsStr, "points");
         g_soundsAlreadyFiltered = true;
     }
     else if (dan.getParameterValueFromQueryString("datasource") == "test_splash")
     {
-        loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/tsne_splash.json", "points");
+        loadWithLog(g_space_assetLoader, g_space_assetLoader.loadText, "metadata/tsne_splash.json", "points");
         g_soundsAlreadyFiltered = true;
     }
     else
     {
-        loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/27k_collection.json", "points");
+        loadWithLog(g_space_assetLoader, g_space_assetLoader.loadText, "metadata/27k_collection.json", "points");
         g_soundsAlreadyFiltered = false;
     }
 
-    //loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/tag_summary.json", "tag_summary");
-    //loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/tags_to_ids.json", "tags_to_ids");
-    loadWithLog(g_assetLoader, g_assetLoader.loadJson, "metadata/freesound_tags_indexed.json", "freesound_tags_indexed");
+    //loadWithLog(g_space_assetLoader, g_space_assetLoader.loadText, "metadata/tag_summary.json", "tag_summary");
+    //loadWithLog(g_space_assetLoader, g_space_assetLoader.loadText, "metadata/tags_to_ids.json", "tags_to_ids");
+    // Load asset "freesound_tags_indexed"
+    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadText, "metadata/freesound_tags_indexed.json", "freesound_tags_indexed");
 
     if (k_soundSource == "index")
-        loadWithLog(g_assetLoader, g_assetLoader.loadJson, k_soundSource_indexUrl, "sound_index");
+        // Load asset "sound_index"
+        loadWithLog(g_space_assetLoader, g_space_assetLoader.loadText, k_soundSource_indexUrl, "sound_index");
 
-    g_assetLoader.all().then(assetLoader_onAll);
+    g_space_assetLoader.all().then(function () {
+        // + Create custom shader for sound sites, that draws from crate texture {{{
+
+        //var imagePreviewTexture = g_space_assetLoader.loadTexture("textures/crate.gif", "crate").asset;
+        //var imagePreviewTexture = textureLoader.load("textures/crate.gif");
+        var imagePreviewTexture = g_space_assetLoader.loaded["shapes"];
+        imagePreviewTexture.minFilter = THREE.LinearMipMapLinearFilter;
+        imagePreviewTexture.magFilter = THREE.LinearFilter;
+
+        g_pointShaderMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                u_texture1: { value: imagePreviewTexture },
+                u_zoom: { value: 9.0 }  // not used
+            },
+            vertexShader: document.getElementById('vertexshader').textContent,
+            fragmentShader: document.getElementById('fragmentshader').textContent,
+            transparent: true,
+            depthTest: false
+        });
+
+        // + }}}
+
+        g_space_assetsLoaded = true;
+    });
 
     // + }}}
 }
 
-function assetLoader_onAll()
+// + }}}
+
+function enterSpaceWhenAssetsReady()
 {
+    if (!g_space_assetsLoaded)
+    {
+        g_space_assetLoader.all().then(function () {
+            space_installEventHandlers();
+            space_enter();
+        });
+    }
+    else
+    {
+        space_installEventHandlers();
+        space_enter();
+    }
+}
+
+var g_space_visible = false;
+
+function space_show()
+{
+    $(g_space_viewportDiv).show();
+    $(g_space_controlsButton).show();
+
+    g_scrollingLog.setHeight(null);
+    g_scrollingLog.setOpacity(1);
+
+    g_space_visible = true;
+}
+
+function space_hide()
+{
+    $(g_space_viewportDiv).hide();
+    $(g_space_controlsButton).hide();
+
+    g_space_visible = false;
+}
+
+function space_toggle()
+{
+    if (g_space_visible)
+        space_hide();
+    else
+        space_show();
+}
+
+var g_parsed_points = null;
+var g_parsed_freesound_tags_indexed = null;
+var g_parsed_sound_index = null;
+
+function space_enter()
+// Params:
+//  g_spaceParam_wantedTags:
+//   (array of string)
+//  g_spaceParam_unwantedTags:
+//   (array of string)
+//  g_spaceParam_bpm:
+//   (number)
+{
+    g_sequencer.setTempo(g_spaceParam_bpm);
+
     //g_fullScreenFragmentShader = new FullScreenFragmentShader();
 
-    // + Count data points in loaded JSON {{{
+    // If not done already, convert loaded JSON texts to objects
+    // (this may cause jank)
+    if (g_parsed_points === null)
+        g_parsed_points = JSON.parse(g_space_assetLoader.loaded["points"]);
+    if (g_parsed_freesound_tags_indexed === null)
+        g_parsed_freesound_tags_indexed = JSON.parse(g_space_assetLoader.loaded["freesound_tags_indexed"]);
+    if (g_parsed_sound_index === null)
+        g_parsed_sound_index = JSON.parse(g_space_assetLoader.loaded["sound_index"]);
+
+    // + Count total data points in loaded JSON {{{
 
     var dataPointCount;
 
     // If points loaded and converted from JSON are in format where the top-level of the structure is an array,
     // count them as you do for an array
-    if (g_assetLoader.loaded["points"].constructor === Array)
+    if (g_parsed_points.constructor === Array)
     {
-        dataPointCount = g_assetLoader.loaded["points"].length;
+        dataPointCount = g_parsed_points.length;
     }
     // Else if points loaded and converted from JSON are in format where the top-level of the structure is an object,
     // count them as you do for an object
-    else if (g_assetLoader.loaded["points"].constructor === Object)
+    else if (g_parsed_points.constructor === Object)
     {
-        dataPointCount = Object.keys(g_assetLoader.loaded["points"]).length;
+        dataPointCount = Object.keys(g_parsed_points).length;
     }
     // Else if points loaded and converted from JSON are in some other format,
     // abort with error
@@ -1791,7 +1162,7 @@ function assetLoader_onAll()
 
     // + }}}
 
-    // + Load data points {{{
+    // + Select which data points of loaded JSON to use {{{
 
     // + + Select points, determine sound URLs {{{
 
@@ -1809,7 +1180,7 @@ function assetLoader_onAll()
     // Returns:
     //  (boolean)
     {
-        var tagInfo = g_assetLoader["loaded"]["freesound_tags_indexed"][i_soundId];
+        var tagInfo = g_parsed_freesound_tags_indexed[i_soundId];
         if (!tagInfo)
             return false;
         if (tagInfo["tags"].indexOf(i_tagName) == -1)
@@ -1848,15 +1219,15 @@ function assetLoader_onAll()
             // If any particular tags were asked for,
             // then if the current point sound doesn't have any of those tags, bail out from this function to exclude it
             // (but if no particular tags were asked for, do nothing to let everything through)
-            if (g_wantedTags.length > 0)
+            if (g_spaceParam_wantedTags.length > 0)
             {
-                if (!soundHasTagFromList(i_point.id, g_wantedTags))
+                if (!soundHasTagFromList(i_point.id, g_spaceParam_wantedTags))
                     return;
             }
 
             // If the current point sound has any tags that were specifically chosen as unwanted,
             // bail out from this function to exclude it
-            if (soundHasTagFromList(i_point.id, g_unwantedTags))
+            if (soundHasTagFromList(i_point.id, g_spaceParam_unwantedTags))
                 return;
         }
 
@@ -1868,12 +1239,12 @@ function assetLoader_onAll()
             soundUrl = k_soundSource_pattern.replace("*", i_point.id);
             break;
         case "index":
-            if (!(i_point.id in g_assetLoader["loaded"]["sound_index"]))
+            if (!(i_point.id in g_parsed_sound_index))
             {
                 console.log("Don't have a sound_index entry for " + i_point.id.toString() + " so don't know URL, skipping");
                 return;
             }
-            soundUrl = g_assetLoader["loaded"]["sound_index"][i_point.id]["url"];
+            soundUrl = g_parsed_sound_index[i_point.id]["url"];
             break;
         }
         //  Convert it from http to https if it isn't already
@@ -1886,21 +1257,21 @@ function assetLoader_onAll()
 
     // If points loaded and converted from JSON are in format where the top-level of the structure is an array,
     // iterate them as you do for an array
-    if (g_assetLoader.loaded["points"].constructor === Array)
+    if (g_parsed_points.constructor === Array)
     {
         for (var dataPointNo = 0; dataPointNo < dataPointCount; ++dataPointNo)
         {
-            var point = g_assetLoader.loaded["points"][dataPointNo];
+            var point = g_parsed_points[dataPointNo];
             selectSourcePoint(point);
         }
     }
     // Else if points loaded and converted from JSON are in format where the top-level of the structure is an object,
     // iterate them as you do for an object
-    else if (g_assetLoader.loaded["points"].constructor === Object)
+    else if (g_parsed_points.constructor === Object)
     {
-        for (var dataPointId in g_assetLoader.loaded["points"])
+        for (var dataPointId in g_parsed_points)
         {
-            var point = g_assetLoader.loaded["points"][dataPointId];
+            var point = g_parsed_points[dataPointId];
             point.id = dataPointId;
             selectSourcePoint(point);
         }
@@ -1952,6 +1323,12 @@ function assetLoader_onAll()
     console.log(selectedPointSummary);
 
     // + + }}}
+
+    // + }}}
+
+    // + Load data points, creating space-specific structures {{{
+
+    g_soundSites.length = 0;
 
     // + + Create sound sites {{{
 
@@ -2018,7 +1395,7 @@ function assetLoader_onAll()
         g_bufferGeometry_colours[soundSiteNo*4 + 2] = soundSite.dataPoint.b;
         g_bufferGeometry_colours[soundSiteNo*4 + 3] = 1.0;
 
-        var firstFamily = g_assetLoader.loaded["freesound_tags_indexed"][soundSite.soundId]["families"][0];
+        var firstFamily = g_parsed_freesound_tags_indexed[soundSite.soundId]["families"][0];
         switch (firstFamily)
         {
         case "human":
@@ -2051,27 +1428,6 @@ function assetLoader_onAll()
 
     // + }}}
 
-    // + Create custom shader for points, that draws from crate texture {{{
-
-    //var imagePreviewTexture = g_assetLoader.loadTexture("textures/crate.gif", "crate").asset;
-    //var imagePreviewTexture = textureLoader.load("textures/crate.gif");
-    var imagePreviewTexture = g_assetLoader.loaded["shapes"];
-    imagePreviewTexture.minFilter = THREE.LinearMipMapLinearFilter;
-    imagePreviewTexture.magFilter = THREE.LinearFilter;
-
-    var pointShaderMaterial = new THREE.ShaderMaterial({
-        uniforms: {
-            u_texture1: { value: imagePreviewTexture },
-            u_zoom: { value: 9.0 }  // not used
-        },
-        vertexShader: document.getElementById('vertexshader').textContent,
-        fragmentShader: document.getElementById('fragmentshader').textContent,
-        transparent: true,
-        depthTest: false
-    });
-
-    // + }}}
-
     // + Create points in a BufferGeometry {{{
 
     // Make a THREE.BufferGeometry that contains 'position' and 'alpha' vertex attributes,
@@ -2085,19 +1441,24 @@ function assetLoader_onAll()
     g_bufferGeometry.addAttribute('a_spriteUv', new THREE.BufferAttribute(g_bufferGeometry_spriteUvs, 2));
 
     // Make a renderable THREE.Points object that uses the above buffer geometry
-    var points = new THREE.Points(g_bufferGeometry, pointShaderMaterial);
+    g_space_scenePoints = new THREE.Points(g_bufferGeometry, g_pointShaderMaterial);
 
     // Add point objects to scene
-    g_scene.add(points);
+    g_scene.add(g_space_scenePoints);
 
     // + }}}
 
     g_scrollingLog.addText("... ready!");
     g_scrollingLog.resetEntryTimeouts();
-    startMainLoop();
+    space_startMainLoop();
 }
 
-function startMainLoop()
+function space_exit()
+{
+    g_scene.remove(g_space_scenePoints);
+}
+
+function space_startMainLoop()
 {
     g_sequencer.start();
 
@@ -2273,9 +1634,9 @@ function animate()
             var positionInClipSpace = pointedAtSoundSite.position.clone().applyMatrix4(g_camera.matrixWorldInverse).applyMatrix4(g_camera.projectionMatrix);
             //g_scrollingLog.addText("pointing at: " + pointedAtSoundSite.soundId + ", " + Vector3_toString(p) + ", " + Vector3_toString(positionInClipSpace));
 
-            var boundingClientRect = g_viewportDiv.getBoundingClientRect();
+            var boundingClientRect = g_space_viewportDiv.getBoundingClientRect();
             var positionInViewport = new dan.math.Vector2.fromXY((positionInClipSpace.x + 1) / 2 * boundingClientRect.width,
-                                                (-positionInClipSpace.y + 1) / 2 * boundingClientRect.height);
+                                                                 (-positionInClipSpace.y + 1) / 2 * boundingClientRect.height);
             //positionInViewport[0] -= 12;
             //g_scrollingLog.addText("pointing at: " + pointedAtSoundSite.soundId + ", " + Vector2_toString(positionInViewport));
             g_danCanvas.drawTextT(g_droidSansMono14TextureFont, pointedAtSoundSite.soundId.toString(), new dan.gfx.ColourRGBA(0, 0, 0, 1), dan.math.Vector2.add(positionInViewport, [1, 1]));
@@ -2296,99 +1657,3 @@ function animate()
 
     g_scrollingLog.removeTimedOutEntries();
 }
-
-init();
-
-// + Communication with Freesound {{{
-
-// Working cURL example:
-//  curl -H "Authorization: Token 3c5dd7395a593748acfcd7385372df519cdcaeab" 'https://freesound.org/apiv2/search/text/?&page=1&page_size=60&group_by_pack=0&fields=id,previews,namequery=dogs&format=json'
-// Example from Freesound Explorer:
-//  https://freesound.org/apiv2/search/text/?&page=1&page_size=60&group_by_pack=0&filter=duration:[0%20TO%205]&fields=id,previews,name,analysis,url,username,duration,tags,license&descriptors=lowlevel.mfcc.mean,sfx.tristimulus.mean,tonal.hpcp.mean&query=dogs&format=json
-
-function searchFreesound(i_nameQuery, i_onPage)
-// Params:
-//  i_nameQuery:
-//   (string)
-//  i_onPage:
-//   (function)
-{
-    searchFreesound_getPage(i_nameQuery, 1, 5, i_onPage);
-    // TODO: repeat till got all pages
-}
-
-function searchFreesound_getPage(i_nameQuery, i_pageNo, i_resultsPerPage, i_onPage)
-// Params:
-//  i_nameQuery:
-//   (string)
-//  i_pageNo:
-//   (integer number)
-//  i_resultsPerPage:
-//   (integer number)
-//  i_onPage:
-//   (function)
-{
-    var queryUrl = 'https://freesound.org/apiv2/search/text/?';
-    queryUrl += '&fields=id,name,previews,namequery=' + i_nameQuery;
-    queryUrl += '&format=json';
-    queryUrl += '&page=' + i_pageNo.toString();
-    queryUrl += '&page_size=' + i_resultsPerPage.toString();
-    queryUrl += '&group_by_pack=0';
-
-    var xhr = new XMLHttpRequest();
-    xhr.open("GET", queryUrl);
-    xhr.responseType = "json";
-    xhr.setRequestHeader("Authorization", "Token S6iCeqkOguD4uIKGwmgzrxW7XwTznx4PMj6HrPp4");
-    xhr.onreadystatechange = function () {
-        if (this.readyState == XMLHttpRequest.DONE)
-        {
-            //console.log(xhr.response);
-
-            var results = xhr.response.results;  // TODO: defend against exception on this line if Freesound is inaccessible
-            i_onPage(results);
-        }
-    };
-    xhr.send();
-}
-
-function fstest2()
-{
-    var audioMediaElement = new Audio("https://www.freesound.org/data/previews/242/242403_4165591-lq.mp3");
-
-    // Create a MediaElementAudioSourceNode to draw from the above Audio node
-    var mediaElementAudioSourceNode = g_audioContext.createMediaElementSource(audioMediaElement);
-}
-
-function freesound_getPreviewUrl(i_soundId, i_onDone)
-// Get the URL of a Freesound preview in low-quality MP3 format.
-//
-// Params:
-//  i_soundId:
-//   (integer number)
-//  i_onDone:
-//   (function)
-//   Function has:
-//    Params:
-//     i_url:
-//      (string)
-{
-    var queryUrl = 'https://freesound.org/apiv2/sounds/';
-    queryUrl += i_soundId.toString() + "/?";
-    queryUrl += '&fields=id,previews';
-
-    var xhr = new XMLHttpRequest();
-    xhr.open("GET", queryUrl);
-    xhr.responseType = "json";
-    xhr.setRequestHeader("Authorization", "Token S6iCeqkOguD4uIKGwmgzrxW7XwTznx4PMj6HrPp4");
-    xhr.onreadystatechange = function () {
-        if (this.readyState == XMLHttpRequest.DONE)
-        {
-            //console.log(xhr.response);
-
-            i_onDone(xhr.response["previews"]["preview-lq-mp3"]);
-        }
-    };
-    xhr.send();
-}
-
-// + }}}

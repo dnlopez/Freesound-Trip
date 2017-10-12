@@ -1,3 +1,7 @@
+// Functions about web browser UI.
+//
+// Note, these relate to user-interface, not browser-specific programmer utilities like htmlToDom() which are currently in documents.js.
+
 
 // This namespace
 // #require "dan.js"

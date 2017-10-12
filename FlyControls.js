@@ -93,7 +93,7 @@ var THREE_FlyControls = function (i_object, i_eventTarget)
 
         if (this.mouse_mustHoldButtonToLook)
         {
-            console.log("++");
+            //console.log("++");
             this.mouse_isDragging = true;
         }
         else
