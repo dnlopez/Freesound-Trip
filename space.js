@@ -639,6 +639,20 @@ function space_document_onKeyDown(event)
         else
             g_scrollingLog.addText("Sequencer stopped.");
         break;
+
+    case 49: // 0
+    case 50: // 1
+    case 51: // 2
+    case 52: // 3
+    case 53: // 4
+    case 54: // 5
+    case 55: // 6
+    case 56: // 7
+    case 57: // 8
+    case 58: // 9
+        g_controls.movementSpeed = 150 + (event.keyCode - 53) * 20;
+        //g_scrollingLog.addText("Set movement speed to " + g_controls.movementSpeed.toString()  + ".");
+        break;
     }
 }
 
@@ -1588,7 +1602,6 @@ function animate()
 
     prevTime = time;
 
-	g_controls.movementSpeed = 150;
 	g_controls.update(delta);
 
 
