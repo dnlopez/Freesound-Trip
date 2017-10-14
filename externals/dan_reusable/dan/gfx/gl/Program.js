@@ -1,7 +1,15 @@
 
 // This namespace
 // #require "gl.js"
-// #require "Context.js"
+
+// Dan reusable
+// #require <dan/math/Vector2.js>
+// #require <dan/math/Vector3.js>
+// #require <dan/math/Vector4.js>
+// #require <dan/gfx/ColourRGB.js>
+// #require <dan/gfx/ColourRGBA.js>
+// #require <dan/math/Matrix3.js>
+// #require <dan/math/Matrix4.js>
 
 
 // + Construction/disposal {{{
@@ -247,7 +255,7 @@ dan.gfx.gl.Program.prototype._extractActiveVertexAttributesFromProgram = functio
 //    Value:
 //     (VariableInfo)
 //     Attribute variable info
-//  
+//
 // Returns:
 //  -
 {
@@ -873,8 +881,9 @@ dan.gfx.gl.Program.prototype.set = function (i_name, i_value)
     }
 };
 
-dan.gfx.gl.Program.prototype.setInteger = function (i_name, i_value)
+dan.gfx.gl.Program.prototype.set_int = function (i_name, i_value)
 // Set uniform variable value
+// of GLSL type int
 //
 // Params:
 //  i_value:
@@ -887,12 +896,13 @@ dan.gfx.gl.Program.prototype.setInteger = function (i_name, i_value)
             LOG.print(string("In Program::set(), glGetUniformLocation() returned -1 for ") + i_name + "\n");
         }
     */
-    GL.setProgram(this); 
+    GL.setProgram(this);
     GL.ctx.uniform1i(location, i_value);
 };
 
-dan.gfx.gl.Program.prototype.setFloat = function (i_name, i_value)
+dan.gfx.gl.Program.prototype.set_float = function (i_name, i_value)
 // Set uniform variable value
+// of GLSL type float
 //
 // Params:
 //  i_value:
@@ -905,16 +915,198 @@ dan.gfx.gl.Program.prototype.setFloat = function (i_name, i_value)
             LOG.print(string("In Program::set(), glGetUniformLocation() returned -1 for ") + i_name + "\n");
         }
     */
-    GL.setProgram(this); 
+    GL.setProgram(this);
+    GL.ctx.uniform1f(location, i_value);
+};
+
+dan.gfx.gl.Program.prototype.set_vec2 = function (i_name, i_value)
+// Set uniform variable value
+// of GLSL type vec2
+//
+// Params:
+//  i_value:
+//   Either (dan.math.Vector2)
+//   or (array of 2 numbers)
+{
+    // Normalize overloaded arguments
+    if (i_value instanceof dan.math.Vector2)
+        i_value = i_value.elements;
+
+    //
+    var location = this.uniformDeclarations[i_name].location;
+    /*
+        if (location == -1)
+        {
+            LOG.print(string("In Program::set(), glGetUniformLocation() returned -1 for ") + i_name + "\n");
+        }
+    */
+    GL.setProgram(this);
+    GL.ctx.uniform2fv(location, i_value);
+};
+
+dan.gfx.gl.Program.prototype.set_vec3 = function (i_name, i_value)
+// Set uniform variable value
+// of GLSL type vec3
+//
+// Params:
+//  i_value:
+//   Either (dan.math.Vector3)
+//   or (array of 3 numbers)
+//   or (dan.gfx.ColourRGB)
+{
+    // Normalize overloaded arguments
+    if (i_value instanceof dan.math.Vector3)
+        i_value = i_value.elements;
+    else if (i_value instanceof dan.gfx.ColourRGB)
+        i_value = [i_value.r, i_value.g, i_value.b];
+
+    //
+    var location = this.uniformDeclarations[i_name].location;
+    /*
+        if (location == -1)
+        {
+            LOG.print(string("In Program::set(), glGetUniformLocation() returned -1 for ") + i_name + "\n");
+        }
+    */
+    GL.setProgram(this);
+    GL.ctx.uniform3fv(location, i_value);
+};
+
+dan.gfx.gl.Program.prototype.set_vec4 = function (i_name, i_value)
+// Set uniform variable value
+// of GLSL type vec4
+//
+// Params:
+//  i_value:
+//   Either (dan.math.Vector4)
+//   or (array of 4 numbers)
+//   or (dan.gfx.ColourRGBA)
+{
+    // Normalize overloaded arguments
+    if (i_value instanceof dan.math.Vector4)
+        i_value = i_value.elements;
+    else if (i_value instanceof dan.gfx.ColourRGBA)
+        i_value = [i_value.r, i_value.g, i_value.b, i_value.a];
+
+    //
+    var location = this.uniformDeclarations[i_name].location;
+    /*
+        if (location == -1)
+        {
+            LOG.print(string("In Program::set(), glGetUniformLocation() returned -1 for ") + i_name + "\n");
+        }
+    */
+    GL.setProgram(this);
+    GL.ctx.uniform4fv(location, i_value);
+};
+
+dan.gfx.gl.Program.prototype.set_mat3 = function (i_name, i_value)
+// Set uniform variable value
+// of GLSL type mat3
+//
+// Params:
+//  i_value:
+//   Either (dan.math.Matrix3)
+//   or (array of 9 numbers)
+//    Matrix elements in column-major order
+{
+    // Normalize overloaded arguments
+    if (i_value instanceof dan.math.Matrix3)
+        i_value = i_value.toColumnMajorArray();
+
+    //
+    var location = this.uniformDeclarations[i_name].location;
+    /*
+        if (location == -1)
+        {
+            LOG.print(string("In Program::set(), glGetUniformLocation() returned -1 for ") + i_name + "\n");
+        }
+    */
+
+    GL.setProgram(this);
+    GL.ctx.uniformMatrix3fv(location, false, i_value);
+};
+
+dan.gfx.gl.Program.prototype.set_mat4 = function (i_name, i_value)
+// Set uniform variable value
+// of GLSL type mat4
+//
+// Params:
+//  i_value:
+//   Either (dan.math.Matrix4)
+//   or (array of 16 numbers)
+//    Matrix elements in column-major order
+{
+    //if (!(i_name in this.uniformLocations))
+    //    this.uniformLocations[i_name] = GL.ctx.getUniformLocation(this.program, i_name);
+    //var location = this.uniformLocations[i_name];
+
+    // Normalize overloaded arguments
+    if (i_value instanceof dan.math.Matrix4)
+        i_value = i_value.toColumnMajorArray();
+
+    //
+    var location = this.uniformDeclarations[i_name].location;
+    /*
+        if (location == -1)
+        {
+            LOG.print(string("In Program::set(), glGetUniformLocation() returned -1 for ") + i_name + "\n");
+        }
+    */
+    GL.setProgram(this);
+    GL.ctx.uniformMatrix4fv(location, false, i_value);
+};
+
+// + + + Deprecated {{{
+
+dan.gfx.gl.Program.prototype.setInteger = function (i_name, i_value)
+// Set uniform variable value
+// of GLSL type int
+// with a JS number
+//
+// Params:
+//  i_value:
+//   (integer number)
+{
+    var location = this.uniformDeclarations[i_name].location;
+    /*
+        if (location == -1)
+        {
+            LOG.print(string("In Program::set(), glGetUniformLocation() returned -1 for ") + i_name + "\n");
+        }
+    */
+    GL.setProgram(this);
+    GL.ctx.uniform1i(location, i_value);
+};
+
+dan.gfx.gl.Program.prototype.setFloat = function (i_name, i_value)
+// Set uniform variable value
+// of GLSL type float
+// with a JS number
+//
+// Params:
+//  i_value:
+//   (floating point number)
+{
+    var location = this.uniformDeclarations[i_name].location;
+    /*
+        if (location == -1)
+        {
+            LOG.print(string("In Program::set(), glGetUniformLocation() returned -1 for ") + i_name + "\n");
+        }
+    */
+    GL.setProgram(this);
     GL.ctx.uniform1f(location, i_value);
 };
 
 dan.gfx.gl.Program.prototype.setVector2 = function (i_name, i_value)
 // Set uniform variable value
+// of GLSL type vec2
+// with a JS dan.math.Vector2
 //
 // Params:
 //  i_value:
-//   (dan.Vector2)
+//   (dan.math.Vector2)
 {
     var location = this.uniformDeclarations[i_name].location;
     /*
@@ -923,16 +1115,18 @@ dan.gfx.gl.Program.prototype.setVector2 = function (i_name, i_value)
             LOG.print(string("In Program::set(), glGetUniformLocation() returned -1 for ") + i_name + "\n");
         }
     */
-    GL.setProgram(this); 
+    GL.setProgram(this);
     GL.ctx.uniform2fv(location, i_value.elements);
 };
 
 dan.gfx.gl.Program.prototype.setVector3 = function (i_name, i_value)
 // Set uniform variable value
+// of GLSL type vec3
+// with a JS dan.math.Vector3
 //
 // Params:
 //  i_value:
-//   (dan.Vector3)
+//   (dan.math.Vector3)
 {
     var location = this.uniformDeclarations[i_name].location;
     /*
@@ -941,12 +1135,18 @@ dan.gfx.gl.Program.prototype.setVector3 = function (i_name, i_value)
             LOG.print(string("In Program::set(), glGetUniformLocation() returned -1 for ") + i_name + "\n");
         }
     */
-    GL.setProgram(this); 
+    GL.setProgram(this);
     GL.ctx.uniform3fv(location, i_value.elements);
 };
 
 dan.gfx.gl.Program.prototype.setVector4 = function (i_name, i_value)
 // Set uniform variable value
+// of GLSL type vec4
+// with a JS dan.math.Vector4
+//
+// Params:
+//  i_value:
+//   (dan.math.Vector4)
 {
     var location = this.uniformDeclarations[i_name].location;
     /*
@@ -955,12 +1155,18 @@ dan.gfx.gl.Program.prototype.setVector4 = function (i_name, i_value)
             LOG.print(string("In Program::set(), glGetUniformLocation() returned -1 for ") + i_name + "\n");
         }
     */
-    GL.setProgram(this); 
+    GL.setProgram(this);
     GL.ctx.uniform4fv(location, i_value.elements);
 };
 
 dan.gfx.gl.Program.prototype.setColourRGBA = function (i_name, i_value)
 // Set uniform variable value
+// of GLSL type vec4
+// with a JS dan.gfx.ColourRGBA
+//
+// Params:
+//  i_value:
+//   (dan.gfx.ColourRGBA)
 {
     var location = this.uniformDeclarations[i_name].location;
     /*
@@ -969,16 +1175,18 @@ dan.gfx.gl.Program.prototype.setColourRGBA = function (i_name, i_value)
             LOG.print(string("In Program::set(), glGetUniformLocation() returned -1 for ") + i_name + "\n");
         }
     */
-    GL.setProgram(this); 
+    GL.setProgram(this);
     GL.ctx.uniform4fv(location, [i_value.r, i_value.g, i_value.b, i_value.a]);
 };
 
 dan.gfx.gl.Program.prototype.setMatrix3 = function (i_name, i_value)
 // Set uniform variable value
+// of GLSL type mat3
+// with a JS dan.math.Matrix3
 //
 // Params:
 //  i_value:
-//   (dan.Matrix3)
+//   Either (dan.math.Matrix3)
 {
     var location = this.uniformDeclarations[i_name].location;
     /*
@@ -987,18 +1195,20 @@ dan.gfx.gl.Program.prototype.setMatrix3 = function (i_name, i_value)
             LOG.print(string("In Program::set(), glGetUniformLocation() returned -1 for ") + i_name + "\n");
         }
     */
-    
-    GL.setProgram(this); 
+
+    GL.setProgram(this);
     GL.ctx.uniformMatrix3fv(location, false,
                             i_value.toColumnMajorArray());
 };
 
 dan.gfx.gl.Program.prototype.setMatrix4 = function (i_name, i_value)
 // Set uniform variable value
+// of GLSL type mat4
+// with a JS dan.math.Matrix4
 //
 // Params:
 //  i_value:
-//   (dan.Matrix4)
+//   (dan.math.Matrix4)
 {
     //if (!(i_name in this.uniformLocations))
     //    this.uniformLocations[i_name] = GL.ctx.getUniformLocation(this.program, i_name);
@@ -1011,10 +1221,12 @@ dan.gfx.gl.Program.prototype.setMatrix4 = function (i_name, i_value)
             LOG.print(string("In Program::set(), glGetUniformLocation() returned -1 for ") + i_name + "\n");
         }
     */
-    GL.setProgram(this); 
+    GL.setProgram(this);
     GL.ctx.uniformMatrix4fv(location, false,
                             i_value.toColumnMajorArray());
 };
+
+// + + + }}}
 
 // + + }}}
 

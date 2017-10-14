@@ -1,6 +1,5 @@
 
 // This namespace
-// #require "Context.js"
 // #require "Texture2D.js"
 
 // Dan reusable

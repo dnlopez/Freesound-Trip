@@ -1,7 +1,6 @@
 
 // This namespace
 // #require "gl.js"
-// #require "Context.js"
 // #require "Texture2D.js"
 // //#require "Renderbuffer.js"
 

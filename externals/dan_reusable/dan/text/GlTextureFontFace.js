@@ -105,7 +105,7 @@ dan.text.GlTextureFontFace.prototype.charmap_count = function ()
 // Returns:
 //  (integer number)
 {
-    return this.charmaps.length();
+    return this.charmaps.length;
 };
 
 //unsigned int charmap_charCount() const { return m_shared->m_charmaps.front().size(); }
@@ -126,7 +126,7 @@ dan.text.GlTextureFontFace.prototype.getGlyph = function (i_charmapNo, i_charCod
 // Returns:
 //  (GlTextureFontGlyph)
 {
-    if (i_charmapNo >= this.charmaps.length())
+    if (i_charmapNo >= this.charmaps.length)
         throw("in GlTextureFontFace::getChar, i_charmapNo out of range");
     var charmap = this.charmaps[i_charmapNo];
 
@@ -149,7 +149,7 @@ dan.text.GlTextureFontFace.prototype.getGlyphTexture = function (i_charmapNo, i_
 // Returns:
 //  (dan.gfx.gl.Texture2D)
 {
-    if (i_charmapNo >= this.charmaps.length())
+    if (i_charmapNo >= this.charmaps.length)
         throw("in GlTextureFontFace::getCharTexture, i_charmapNo out of range");
     var charmap = this.charmaps[i_charmapNo];
 
@@ -172,7 +172,7 @@ dan.text.GlTextureFontFace.prototype.getGlyphRect = function (i_charmapNo, i_cha
 // Returns:
 //  (dan.math.Rect2)
 {
-    if (i_charmapNo >= this.charmaps.length())
+    if (i_charmapNo >= this.charmaps.length)
         throw("in GlTextureFontFace::getCharRect, i_charmapNo out of range");
     var charmap = this.charmaps[i_charmapNo];
 

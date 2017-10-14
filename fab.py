@@ -21,7 +21,7 @@ def getConfig(i_configurationName):
 
     cfg.includeDirs = []
     cfg.includeDirs += ["/home/daniel/docs/code/js/reusable/checkout"]
-    # Using dan_reusable commit: 05648ce
+    # Using dan_reusable commit: 28c9870
     cfg.includeDirs += ["/home/daniel/docs/code/js/refactored"]
     cfg.includeDirs += [("externals", None)]
 

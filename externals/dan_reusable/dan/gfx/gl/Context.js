@@ -1,6 +1,8 @@
 
 // This namespace
 // #require "gl.js"
+// #require "SubTexture2D.js"
+// #require "Texture.js"
 
 // Dan reusable
 // #require <dan/math/Rect2.js>

@@ -518,6 +518,60 @@ dan.gfx.canvas.ToGl.prototype.drawTextT = function (
     return penPosition;
 };
 
+dan.gfx.canvas.ToGl.prototype.drawTextTST = function (
+    i_glTextureFontFace,
+    i_text,
+    i_colour,
+    i_preTranslation, i_scale, i_postTranslation)
+// Params:
+//  i_glTextureFontFace:
+//   (dan.text.GlTextureFontFace)
+//  i_text:
+//   (string)
+//  i_colour:
+//   (dan.gfx.ColourRGBA)
+//  i_preTranslation:
+//   Either (dan.math.Vector2)
+//   or (array of 2 floats)
+//  i_scale:
+//   Either (dan.math.Vector2)
+//   or (array of 2 floats)
+//  i_postTranslation:
+//   Either (dan.math.Vector2)
+//   or (array of 2 floats)
+//
+// Returns:
+//  (dan.math.Vector2)
+//  The new pen position at the end of the text which was drawn.
+{
+    var penPosition = dan.math.Vector2.fromElements(0, 0);
+    for (var charNo = 0; charNo < i_text.length; ++charNo)
+    {
+        var glyph = i_glTextureFontFace.charmaps[0][i_text.charCodeAt(charNo)];
+
+        var srcSubTexture = new dan.gfx.gl.SubTexture2D(i_glTextureFontFace.textures[glyph.textureNo], glyph.rect);
+
+        // If the built-in sprite batch is already in progress,
+        // flush only if we want to change the texture or if it's full
+        if (this.builtInSpriteBatch_srcTexture != null)
+        {
+            if (!dan.gfx.canvas.ToGl.isSameBaseTexture(this.builtInSpriteBatch_srcTexture, srcSubTexture.texture) ||
+                this.builtInSpriteBatch.remainingCapacity() <= 0)
+                this.flush();
+        }
+        // Else flush to draw and empty whichever other built-in batch may currently be in progress
+        else
+            this.flush();
+
+        this.builtInSpriteBatch.addSpriteTST(srcSubTexture, i_colour, dan.math.Vector2.add(i_preTranslation, dan.math.Vector2.add(penPosition, glyph.bearing)), i_scale, i_postTranslation);
+        this.builtInSpriteBatch_srcTexture = srcSubTexture;
+
+        penPosition.add(glyph.advance);
+    }
+
+    return penPosition;
+};
+
 // [In C version but not here: drawMultilineTextT]
 
 // + + + }}}

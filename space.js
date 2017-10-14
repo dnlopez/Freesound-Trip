@@ -17,6 +17,7 @@
 // #require <dan/loaders/AssetLoader.js>
 // #require <dan/loaders/AssetLoader_threeTexture.js>
 // #require <dan/gfx/canvas/ToGl.js>
+// #require <dan/gfx/canvas/ToGl_advanced_text.js>
 // #require <dan/gfx/canvas3d/ToGl.js>
 // #require <dan/gfx/gl/Context.js>
 // #require <dan/gfx/gl/BufferObject.js>
@@ -974,6 +975,10 @@ function space_construct_onFontsLoaded()
     g_droidSansMono14TextureFont = dan.text.GlTextureFontFace.fromCanvasFont(droidSansMono14CanvasFont);
 
     //
+    var droidSansMono72CanvasFont = dan.text.CanvasFontFace.fromSystemFont("Droid Sans Mono", "normal", "normal", 72, [[32, 126], 176]);
+    g_droidSansMono72TextureFont = dan.text.GlTextureFontFace.fromCanvasFont(droidSansMono72CanvasFont);
+
+    //
     window.addEventListener("resize", space_onWindowResize, false);
     space_onWindowResize();
 
@@ -1070,9 +1075,9 @@ void main()
     v_spriteUv = a_spriteUv;
     v_colour = a_colour;
 
-    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-    gl_PointSize = 16.0 * (300.0 / -mvPosition.z);
-    gl_Position = projectionMatrix * mvPosition;
+    vec4 viewSpacePositionition = modelViewMatrix * vec4(position, 1.0);
+    gl_PointSize = 16.0 * (300.0 / -viewSpacePositionition.z);
+    gl_Position = projectionMatrix * viewSpacePositionition;
 }
 `;
 
@@ -1696,7 +1701,8 @@ function animate()
         {
             var pointedAtSoundSite = pointedAtSoundSites[pointedAtSoundSiteNo];
 
-            var positionInClipSpace = pointedAtSoundSite.position.clone().applyMatrix4(g_camera.matrixWorldInverse).applyMatrix4(g_camera.projectionMatrix);
+            var positionInViewSpace = pointedAtSoundSite.position.clone().applyMatrix4(g_camera.matrixWorldInverse);
+            var positionInClipSpace = positionInViewSpace.clone().applyMatrix4(g_camera.projectionMatrix);
             //g_scrollingLog.addText("pointing at: " + pointedAtSoundSite.soundId + ", " + Vector3_toString(p) + ", " + Vector3_toString(positionInClipSpace));
 
             var boundingClientRect = g_space_viewportDiv.getBoundingClientRect();
@@ -1704,8 +1710,31 @@ function animate()
                                                                  (-positionInClipSpace.y + 1) / 2 * boundingClientRect.height);
             //positionInViewport[0] -= 12;
             //g_scrollingLog.addText("pointing at: " + pointedAtSoundSite.soundId + ", " + Vector2_toString(positionInViewport));
-            g_danCanvas.drawTextT(g_droidSansMono14TextureFont, pointedAtSoundSite.soundId.toString(), new dan.gfx.ColourRGBA(0, 0, 0, 1), dan.math.Vector2.add(positionInViewport, [1, 1]));
-            g_danCanvas.drawTextT(g_droidSansMono14TextureFont, pointedAtSoundSite.soundId.toString(), new dan.gfx.ColourRGBA(1, 1, 1, 1), positionInViewport);
+            var soundIdString = pointedAtSoundSite.soundId.toString();
+
+            var r = textLine_measure(g_droidSansMono72TextureFont, soundIdString, true, true);
+
+            var pointSize = 16.0 * (300.0 / -positionInViewSpace.z);
+            var targetPixelWidth = pointSize;
+            if (targetPixelWidth < 48)
+                targetPixelWidth = 48;
+            var scalingFactor = targetPixelWidth / r.width();
+
+            //// Position the text below the star
+            //positionInViewport[1] += pointSize / 2;
+
+            //g_danCanvas.drawTextT(g_droidSansMono72TextureFont, soundIdString, new dan.gfx.ColourRGBA(0, 0, 0, 1), dan.math.Vector2.add(positionInViewport, [1, 1]));
+            //g_danCanvas.drawTextT(g_droidSansMono72TextureFont, soundIdString, new dan.gfx.ColourRGBA(1, 1, 1, 1), positionInViewport);
+            //g_danCanvas.drawTextTST(g_droidSansMono72TextureFont, soundIdString, new dan.gfx.ColourRGBA(1, 1, 1, 1), [0, 0], [3, 3], positionInViewport);
+            //g_danCanvas.drawTextTST(g_droidSansMono72TextureFont, soundIdString, new dan.gfx.ColourRGBA(1, 1, 1, 1), positionInViewport, [3, 3], [0, 0]);
+            //g_danCanvas.drawTextTST(g_droidSansMono72TextureFont, soundIdString, new dan.gfx.ColourRGBA(0, 0, 0, 1), dan.math.Vector2.fromXY(-r.width() / 2, r.height() / 2), [scalingFactor, scalingFactor], positionInViewport);
+            //scalingFactor *= 0.9;
+            g_danCanvas.drawTextTST(g_droidSansMono72TextureFont,
+                                    soundIdString,
+                                    new dan.gfx.ColourRGBA(1, 1, 1, 1),
+                                    dan.math.Vector2.fromXY(-r.width() / 2, 0),//r.height() / 3),
+                                    [scalingFactor, scalingFactor],
+                                    positionInViewport);
         }
     }
 
