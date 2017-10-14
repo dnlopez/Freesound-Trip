@@ -1053,6 +1053,49 @@ function space_construct_onFontsLoaded()
     g_space_assetLoader.all().then(function () {
         // + Create custom shader for sound sites, that draws from crate texture {{{
 
+        var vertexShaderSource = `
+//uniform float u_zoom;
+
+attribute float a_glow;
+attribute vec2 a_spriteUv;
+attribute vec4 a_colour;
+
+varying float v_glow;
+varying vec2 v_spriteUv;
+varying vec4 v_colour;
+
+void main()
+{
+    v_glow = a_glow;
+    v_spriteUv = a_spriteUv;
+    v_colour = a_colour;
+
+    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+    gl_PointSize = 16.0 * (300.0 / -mvPosition.z);
+    gl_Position = projectionMatrix * mvPosition;
+}
+`;
+
+        var fragmentShaderSource = `
+varying float v_glow;
+
+varying vec2 v_spriteUv;
+varying vec4 v_colour;
+
+uniform sampler2D u_texture1;
+
+void main()
+{
+    vec2 textureCoords = gl_PointCoord / 2.0;
+    textureCoords += v_spriteUv;
+
+    gl_FragColor = texture2D(u_texture1, textureCoords) * v_colour;
+    //gl_FragColor.r = (1.0 - gl_FragColor.r) * v_alpha + gl_FragColor.r;
+    gl_FragColor.rgb = gl_FragColor.rgb * (1.0 - v_glow) + vec3(v_glow);
+    //gl_FragColor = gl_FragColor * (1.0);
+}
+`;
+
         //var imagePreviewTexture = g_space_assetLoader.loadTexture("textures/crate.gif", "crate").asset;
         //var imagePreviewTexture = textureLoader.load("textures/crate.gif");
         var imagePreviewTexture = g_space_assetLoader.loaded["shapes"];
@@ -1064,8 +1107,8 @@ function space_construct_onFontsLoaded()
                 u_texture1: { value: imagePreviewTexture },
                 u_zoom: { value: 9.0 }  // not used
             },
-            vertexShader: document.getElementById('vertexshader').textContent,
-            fragmentShader: document.getElementById('fragmentshader').textContent,
+            vertexShader: vertexShaderSource,
+            fragmentShader: fragmentShaderSource,
             transparent: true,
             depthTest: false
         });
