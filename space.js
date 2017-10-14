@@ -37,6 +37,7 @@
 // #require "source_sounds.js"
 // #require "FlyControls.js"
 // #require "numeric_helpers.js"
+// #require "three_helpers.js"
 
 
 // + Configuration {{{
@@ -1139,6 +1140,10 @@ function space_enter()
 {
     g_sequencer.setTempo(g_spaceParam_bpm);
 
+    // Reset camera to default position and orientation
+    g_camera.position.set(0, 0, 0);
+    g_camera.rotation.setFromVector3(new THREE.Vector3(0,0,0));
+
     //g_fullScreenFragmentShader = new FullScreenFragmentShader();
 
     // If not done already, convert loaded JSON texts to objects
@@ -1381,7 +1386,9 @@ function space_enter()
         // Create sound site
         var soundSite = new SoundSite(g_audioContext, selectedPointInfo[0],
                                       selectedPointInfo[1],
-                                      new THREE.Vector3(selectedPointInfo[0].x * coordinateExpansionFactor, selectedPointInfo[0].y * coordinateExpansionFactor, selectedPointInfo[0].z * coordinateExpansionFactor),
+                                      new THREE.Vector3(selectedPointInfo[0].x * coordinateExpansionFactor,
+                                                        selectedPointInfo[0].y * coordinateExpansionFactor,
+                                                        selectedPointInfo[0].z * coordinateExpansionFactor),
                                       g_soundSites.length);
         g_soundSites.push(soundSite);
     }
@@ -1604,6 +1611,8 @@ function animate()
 
 	g_controls.update(delta);
 
+    // Show current position
+    //g_scrollingLog.addText(threeVector3ToString(new THREE.Vector3().setFromMatrixPosition(g_camera.matrix)));
 
     // Light up recently played stars
     var timeInSeconds = time / 1000;
