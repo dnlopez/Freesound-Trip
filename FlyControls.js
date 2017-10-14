@@ -54,8 +54,8 @@ var THREE_FlyControls = function (i_object, i_eventTarget)
 
     // API
 
-    this.movementSpeed = 1.0;
-    this.rollSpeed = 0.005;
+    this.translationalSpeed = 1.0;
+    this.rotationalSpeed = 0.005;
 
     this.mouse_mustHoldButtonToLook = false;
     // (boolean)
@@ -108,7 +108,7 @@ var THREE_FlyControls = function (i_object, i_eventTarget)
                 break;
             }
 
-            this.updateMovementVector();
+            this.updateTranslationalVelocity();
         }
 
         //
@@ -128,7 +128,7 @@ var THREE_FlyControls = function (i_object, i_eventTarget)
             this.inputState.yawLeft = -((i_event.pageX - eventTarget.offset[0]) - halfWidth) / halfWidth;
             this.inputState.pitchDown = ((i_event.pageY - eventTarget.offset[1]) - halfHeight) / halfHeight;
 
-            this.updateRotationVector();
+            this.updateRotationalVelocity();
         }
     };
     this.eventTarget.addEventListener('mousemove', bind(this, this.mousemove), false);
@@ -154,10 +154,10 @@ var THREE_FlyControls = function (i_object, i_eventTarget)
                 break;
             }
 
-            this.updateMovementVector();
+            this.updateTranslationalVelocity();
         }
 
-        this.updateRotationVector();
+        this.updateRotationalVelocity();
 
         //
         i_event.preventDefault();
@@ -177,7 +177,7 @@ var THREE_FlyControls = function (i_object, i_eventTarget)
         switch (i_event.keyCode)
         {
         case 16:
-            /* shift */ this.movementSpeedMultiplier = 0.1;
+            /* shift */ this.translationalSpeedMultiplier = 0.1;
             break;
 
         case 87:
@@ -223,8 +223,8 @@ var THREE_FlyControls = function (i_object, i_eventTarget)
             break;
         }
 
-        this.updateMovementVector();
-        this.updateRotationVector();
+        this.updateTranslationalVelocity();
+        this.updateRotationalVelocity();
 
         //i_event.preventDefault();
     };
@@ -235,7 +235,7 @@ var THREE_FlyControls = function (i_object, i_eventTarget)
         switch (i_event.keyCode)
         {
         case 16:
-            /* shift */ this.movementSpeedMultiplier = 1;
+            /* shift */ this.translationalSpeedMultiplier = 1;
             break;
 
         case 87:
@@ -281,8 +281,8 @@ var THREE_FlyControls = function (i_object, i_eventTarget)
             break;
         }
 
-        this.updateMovementVector();
-        this.updateRotationVector();
+        this.updateTranslationalVelocity();
+        this.updateRotationalVelocity();
     };
     this.eventTarget.addEventListener('keyup', bind(this, this.keyup), false);
 
@@ -324,8 +324,8 @@ var THREE_FlyControls = function (i_object, i_eventTarget)
             rollRight: 0
         };
 
-        this.updateMovementVector();
-        this.updateRotationVector();
+        this.updateTranslationalVelocity();
+        this.updateRotationalVelocity();
 
         //if (this.mouse_isDragging > 0)
         //    this.mouse_isDragging = 0;
@@ -335,29 +335,29 @@ var THREE_FlyControls = function (i_object, i_eventTarget)
 
     // + Convert input state to unit-sized mathematical elements for movement {{{
 
-    this.movementVector = new THREE.Vector3(0, 0, 0);
-    this.updateMovementVector = function ()
-    // Set this.movementVector to a direction according to current inputState movement components
+    this.translationalVelocity = new THREE.Vector3(0, 0, 0);
+    this.updateTranslationalVelocity = function ()
+    // Set this.translationalVelocity to a direction according to current inputState movement components
     {
-        this.movementVector.x = (-this.inputState.left + this.inputState.right);
-        this.movementVector.y = (-this.inputState.down + this.inputState.up);
-        this.movementVector.z = (-this.inputState.forward + this.inputState.back);
+        this.translationalVelocity.x = (-this.inputState.left + this.inputState.right);
+        this.translationalVelocity.y = (-this.inputState.down + this.inputState.up);
+        this.translationalVelocity.z = (-this.inputState.forward + this.inputState.back);
 
-        //console.log('move:', [this.movementVector.x, this.movementVector.y, this.movementVector.z]);
+        //console.log('move:', [this.translationalVelocity.x, this.translationalVelocity.y, this.translationalVelocity.z]);
     };
-    this.updateMovementVector();
+    this.updateTranslationalVelocity();
 
-    this.rotationVector = new THREE.Vector3(0, 0, 0);
-    this.updateRotationVector = function ()
-    // Set this.rotationVector to a direction according to current inputState rotation components
+    this.rotationalVelocity = new THREE.Vector3(0, 0, 0);
+    this.updateRotationalVelocity = function ()
+    // Set this.rotationalVelocity to a direction according to current inputState rotation components
     {
-        this.rotationVector.x = (-this.inputState.pitchDown + this.inputState.pitchUp);
-        this.rotationVector.y = (-this.inputState.yawRight + this.inputState.yawLeft);
-        this.rotationVector.z = (-this.inputState.rollRight + this.inputState.rollLeft);
+        this.rotationalVelocity.x = (-this.inputState.pitchDown + this.inputState.pitchUp);
+        this.rotationalVelocity.y = (-this.inputState.yawRight + this.inputState.yawLeft);
+        this.rotationalVelocity.z = (-this.inputState.rollRight + this.inputState.rollLeft);
 
-        //console.log('rotate:', [this.rotationVector.x, this.rotationVector.y, this.rotationVector.z]);
+        //console.log('rotate:', [this.rotationalVelocity.x, this.rotationalVelocity.y, this.rotationalVelocity.z]);
     };
-    this.updateRotationVector();
+    this.updateRotationalVelocity();
 
     // + }}}
 
@@ -367,17 +367,17 @@ var THREE_FlyControls = function (i_object, i_eventTarget)
 
     this.update = function (i_delta)
     {
-        // Translate this.object by movementVector
-        var movementDelta = this.movementSpeed * i_delta;
-        this.object.translateX(this.movementVector.x * movementDelta);
-        this.object.translateY(this.movementVector.y * movementDelta);
-        this.object.translateZ(this.movementVector.z * movementDelta);
+        // Translate this.object by translationalVelocity
+        var translationalDelta = this.translationalSpeed * i_delta;
+        this.object.translateX(this.translationalVelocity.x * translationalDelta);
+        this.object.translateY(this.translationalVelocity.y * translationalDelta);
+        this.object.translateZ(this.translationalVelocity.z * translationalDelta);
 
         // Rotate
-        var rollDelta = this.rollSpeed * i_delta;
-        this.tmpQuaternion.set(this.rotationVector.x * rollDelta,
-                               this.rotationVector.y * rollDelta,
-                               this.rotationVector.z * rollDelta,
+        var rotationalDelta = this.rotationalSpeed * i_delta;
+        this.tmpQuaternion.set(this.rotationalVelocity.x * rotationalDelta,
+                               this.rotationalVelocity.y * rotationalDelta,
+                               this.rotationalVelocity.z * rotationalDelta,
                                1).normalize();
         this.object.quaternion.multiply(this.tmpQuaternion);
 
