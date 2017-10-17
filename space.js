@@ -1051,11 +1051,20 @@ function space_construct_onFontsLoaded()
         loadWithLog(g_space_assetLoader, g_space_assetLoader.loadText, k_soundSource_indexUrl, "sound_index");
 
     g_space_assetLoader.all().then(function () {
-        // + Create custom shader for sound sites, that draws from crate texture {{{
+        // + Create custom shader for star sprites {{{
 
-        var vertexShaderSource = `
-//uniform float u_zoom;
+        // Set texture parameters
+        var imagePreviewTexture = g_space_assetLoader.loaded["shapes"];
+        imagePreviewTexture.minFilter = THREE.LinearMipMapLinearFilter;
+        imagePreviewTexture.magFilter = THREE.LinearFilter;
 
+        g_starSprites_shaderMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                u_texture1: { value: imagePreviewTexture }
+                //u_zoom: { value: 9.0 }  // not used
+            },
+
+            vertexShader: `
 attribute float a_glow;
 attribute vec2 a_spriteUv;
 attribute vec4 a_colour;
@@ -1070,13 +1079,13 @@ void main()
     v_spriteUv = a_spriteUv;
     v_colour = a_colour;
 
-    vec4 viewSpacePositionition = modelViewMatrix * vec4(position, 1.0);
-    gl_PointSize = 16.0 * (300.0 / -viewSpacePositionition.z);
-    gl_Position = projectionMatrix * viewSpacePositionition;
+    vec4 viewSpacePosition = modelViewMatrix * vec4(position, 1.0);
+    gl_PointSize = 16.0 * (300.0 / -viewSpacePosition.z);
+    gl_Position = projectionMatrix * viewSpacePosition;
 }
-`;
+`,
 
-        var fragmentShaderSource = `
+            fragmentShader: `
 varying float v_glow;
 
 varying vec2 v_spriteUv;
@@ -1094,21 +1103,61 @@ void main()
     gl_FragColor.rgb = gl_FragColor.rgb * (1.0 - v_glow) + vec3(v_glow);
     //gl_FragColor = gl_FragColor * (1.0);
 }
-`;
+`,
+            transparent: true,
+            depthTest: false
+        });
 
-        //var imagePreviewTexture = g_space_assetLoader.loadTexture("textures/crate.gif", "crate").asset;
-        //var imagePreviewTexture = textureLoader.load("textures/crate.gif");
-        var imagePreviewTexture = g_space_assetLoader.loaded["shapes"];
-        imagePreviewTexture.minFilter = THREE.LinearMipMapLinearFilter;
-        imagePreviewTexture.magFilter = THREE.LinearFilter;
+        // + }}}
 
-        g_pointShaderMaterial = new THREE.ShaderMaterial({
+        g_starGlows_shaderMaterial = new THREE.ShaderMaterial({
             uniforms: {
-                u_texture1: { value: imagePreviewTexture },
-                u_zoom: { value: 9.0 }  // not used
+                u_texture1: { value: imagePreviewTexture }
+                //u_zoom: { value: 9.0 }  // not used
             },
-            vertexShader: vertexShaderSource,
-            fragmentShader: fragmentShaderSource,
+
+            vertexShader: `
+attribute float a_glow;
+attribute vec2 a_spriteUv;
+attribute vec4 a_colour;
+
+varying float v_glow;
+varying vec2 v_spriteUv;
+varying vec4 v_colour;
+
+void main()
+{
+    v_glow = a_glow;
+    v_spriteUv = a_spriteUv;
+    v_colour = a_colour;
+
+    vec4 viewSpacePosition = modelViewMatrix * vec4(position, 1.0);
+    gl_PointSize = 16.0 * (300.0 / -viewSpacePosition.z);
+    gl_PointSize += 64.0 * (1.0 - a_glow);
+    gl_Position = projectionMatrix * viewSpacePosition;
+}
+`,
+
+            fragmentShader: `
+varying float v_glow;
+
+varying vec2 v_spriteUv;
+varying vec4 v_colour;
+
+uniform sampler2D u_texture1;
+
+void main()
+{
+    vec2 textureCoords = gl_PointCoord / 2.0;
+    textureCoords += v_spriteUv;
+
+    gl_FragColor = texture2D(u_texture1, textureCoords)* v_colour;
+    //gl_FragColor.r = (1.0 - gl_FragColor.r) * v_alpha + gl_FragColor.r;
+    //gl_FragColor.rgb = gl_FragColor.rgb * (1.0 - v_glow) + vec3(v_glow);
+    //gl_FragColor = gl_FragColor * (1.0);
+    gl_FragColor.a *= v_glow;
+}
+`,
             transparent: true,
             depthTest: false
         });
@@ -1440,72 +1489,135 @@ function space_enter()
 
     buildTreeOfSoundSites();
 
-    // + Fill vertex arrays for graphic objects {{{
+    // + Star sprites {{{
 
-    g_stars_bufferGeometry_positions = new Float32Array(g_soundSites.length * 3);
-    g_stars_bufferGeometry_glows = new Float32Array(g_soundSites.length);
-    g_stars_bufferGeometry_colours = new Float32Array(g_soundSites.length * 4);
-    g_stars_bufferGeometry_spriteUvs = new Float32Array(g_soundSites.length * 2);
+    // Make vertex arrays
+    g_starSprites_positions = new Float32Array(g_soundSites.length * 3);
+    g_starSprites_glows = new Float32Array(g_soundSites.length);
+    g_starSprites_colours = new Float32Array(g_soundSites.length * 4);
+    g_starSprites_spriteUvs = new Float32Array(g_soundSites.length * 2);
 
+    // Fill vertex arrays
     for (var soundSiteCount = g_soundSites.length, soundSiteNo = 0; soundSiteNo < soundSiteCount; ++soundSiteNo)
     {
         var soundSite = g_soundSites[soundSiteNo];
 
-        g_stars_bufferGeometry_positions[soundSiteNo*3 + 0] = soundSite.position.x;
-        g_stars_bufferGeometry_positions[soundSiteNo*3 + 1] = soundSite.position.y;
-        g_stars_bufferGeometry_positions[soundSiteNo*3 + 2] = soundSite.position.z;
-        g_stars_bufferGeometry_glows[soundSiteNo] = 0;
+        g_starSprites_positions[soundSiteNo*3 + 0] = soundSite.position.x;
+        g_starSprites_positions[soundSiteNo*3 + 1] = soundSite.position.y;
+        g_starSprites_positions[soundSiteNo*3 + 2] = soundSite.position.z;
 
-        g_stars_bufferGeometry_colours[soundSiteNo*4 + 0] = soundSite.dataPoint.r;
-        g_stars_bufferGeometry_colours[soundSiteNo*4 + 1] = soundSite.dataPoint.g;
-        g_stars_bufferGeometry_colours[soundSiteNo*4 + 2] = soundSite.dataPoint.b;
-        g_stars_bufferGeometry_colours[soundSiteNo*4 + 3] = 1.0;
+        g_starSprites_glows[soundSiteNo] = 0;
+
+        g_starSprites_colours[soundSiteNo*4 + 0] = soundSite.dataPoint.r;
+        g_starSprites_colours[soundSiteNo*4 + 1] = soundSite.dataPoint.g;
+        g_starSprites_colours[soundSiteNo*4 + 2] = soundSite.dataPoint.b;
+        g_starSprites_colours[soundSiteNo*4 + 3] = 1.0;
 
         var firstFamily = g_parsed_freesound_tags_indexed[soundSite.soundId]["families"][0];
         switch (firstFamily)
         {
         case "human":
-            g_stars_bufferGeometry_spriteUvs[soundSiteNo*2 + 0] = 0.0;
-            g_stars_bufferGeometry_spriteUvs[soundSiteNo*2 + 1] = 0.0;
+            g_starSprites_spriteUvs[soundSiteNo*2 + 0] = 0.0;
+            g_starSprites_spriteUvs[soundSiteNo*2 + 1] = 0.0;
             break;
         case "objects":
-            g_stars_bufferGeometry_spriteUvs[soundSiteNo*2 + 0] = 0.5;
-            g_stars_bufferGeometry_spriteUvs[soundSiteNo*2 + 1] = 0.0;
+            g_starSprites_spriteUvs[soundSiteNo*2 + 0] = 0.5;
+            g_starSprites_spriteUvs[soundSiteNo*2 + 1] = 0.0;
             break;
         case "scifi":
-            g_stars_bufferGeometry_spriteUvs[soundSiteNo*2 + 0] = 0.0;
-            g_stars_bufferGeometry_spriteUvs[soundSiteNo*2 + 1] = 0.5;
+            g_starSprites_spriteUvs[soundSiteNo*2 + 0] = 0.0;
+            g_starSprites_spriteUvs[soundSiteNo*2 + 1] = 0.5;
             break;
         case "animals":
-            g_stars_bufferGeometry_spriteUvs[soundSiteNo*2 + 0] = 0.5;
-            g_stars_bufferGeometry_spriteUvs[soundSiteNo*2 + 1] = 0.5;
+            g_starSprites_spriteUvs[soundSiteNo*2 + 0] = 0.5;
+            g_starSprites_spriteUvs[soundSiteNo*2 + 1] = 0.5;
             break;
         default:
-            g_stars_bufferGeometry_spriteUvs[soundSiteNo*2 + 0] = 0.0;
-            g_stars_bufferGeometry_spriteUvs[soundSiteNo*2 + 1] = 0.0;
+            g_starSprites_spriteUvs[soundSiteNo*2 + 0] = 0.0;
+            g_starSprites_spriteUvs[soundSiteNo*2 + 1] = 0.0;
             break;
         }
     }
 
+    // Load vertex arrays into a THREE.BufferGeometry,
+    // make a renderable THREE.Points object pairing it with a shader
+    g_starSprites_threeBufferGeometry = new THREE.BufferGeometry();
+    g_starSprites_threeBufferGeometry.addAttribute('position', new THREE.BufferAttribute(g_starSprites_positions, 3));
+    g_starSprites_threeBufferGeometry.addAttribute('a_glow', new THREE.BufferAttribute(g_starSprites_glows, 1));
+    g_starSprites_threeBufferGeometry.addAttribute('a_colour', new THREE.BufferAttribute(g_starSprites_colours, 4));
+    g_starSprites_threeBufferGeometry.addAttribute('a_spriteUv', new THREE.BufferAttribute(g_starSprites_spriteUvs, 2));
+    g_starSprites_scenePoints = new THREE.Points(g_starSprites_threeBufferGeometry, g_starSprites_shaderMaterial);
+
+    // Add Points object to scene
+    g_scene.add(g_starSprites_scenePoints);
+
     // + }}}
 
-    // + Create points in a BufferGeometry {{{
+    // + Star glows {{{
 
-    // Make a THREE.BufferGeometry that contains 'position' and 'alpha' vertex attributes,
-    // with the components of those things split and flattened into typed arrays
+    // Make vertex arrays
+    g_starGlows_maximumCount = 100;
+    g_starGlows_positions = new Float32Array(g_starGlows_maximumCount * 3);
+    g_starGlows_glows = new Float32Array(g_starGlows_maximumCount);
+    g_starGlows_colours = new Float32Array(g_starGlows_maximumCount * 4);
+    g_starGlows_spriteUvs = new Float32Array(g_starGlows_maximumCount * 2);
 
-    g_stars_bufferGeometry = new THREE.BufferGeometry();
+    // Fill vertex arrays
+    for (var soundSiteCount = g_soundSites.length, soundSiteNo = 0; soundSiteNo < soundSiteCount; ++soundSiteNo)
+    {
+        var soundSite = g_soundSites[soundSiteNo];
 
-    g_stars_bufferGeometry.addAttribute('position', new THREE.BufferAttribute(g_stars_bufferGeometry_positions, 3));
-    g_stars_bufferGeometry.addAttribute('a_glow', new THREE.BufferAttribute(g_stars_bufferGeometry_glows, 1));
-    g_stars_bufferGeometry.addAttribute('a_colour', new THREE.BufferAttribute(g_stars_bufferGeometry_colours, 4));
-    g_stars_bufferGeometry.addAttribute('a_spriteUv', new THREE.BufferAttribute(g_stars_bufferGeometry_spriteUvs, 2));
+        g_starGlows_positions[soundSiteNo*3 + 0] = soundSite.position.x;
+        g_starGlows_positions[soundSiteNo*3 + 1] = soundSite.position.y;
+        g_starGlows_positions[soundSiteNo*3 + 2] = soundSite.position.z;
 
-    // Make a renderable THREE.Points object that uses the above buffer geometry
-    g_space_scenePoints = new THREE.Points(g_stars_bufferGeometry, g_pointShaderMaterial);
+        g_starGlows_glows[soundSiteNo] = 0;
 
-    // Add point objects to scene
-    g_scene.add(g_space_scenePoints);
+        g_starGlows_colours[soundSiteNo*4 + 0] = soundSite.dataPoint.r;
+        g_starGlows_colours[soundSiteNo*4 + 1] = soundSite.dataPoint.g;
+        g_starGlows_colours[soundSiteNo*4 + 2] = soundSite.dataPoint.b;
+        g_starGlows_colours[soundSiteNo*4 + 3] = 1.0;
+
+        var firstFamily = g_parsed_freesound_tags_indexed[soundSite.soundId]["families"][0];
+        switch (firstFamily)
+        {
+        case "human":
+            g_starGlows_spriteUvs[soundSiteNo*2 + 0] = 0.0;
+            g_starGlows_spriteUvs[soundSiteNo*2 + 1] = 0.0;
+            break;
+        case "objects":
+            g_starGlows_spriteUvs[soundSiteNo*2 + 0] = 0.5;
+            g_starGlows_spriteUvs[soundSiteNo*2 + 1] = 0.0;
+            break;
+        case "scifi":
+            g_starGlows_spriteUvs[soundSiteNo*2 + 0] = 0.0;
+            g_starGlows_spriteUvs[soundSiteNo*2 + 1] = 0.5;
+            break;
+        case "animals":
+            g_starGlows_spriteUvs[soundSiteNo*2 + 0] = 0.5;
+            g_starGlows_spriteUvs[soundSiteNo*2 + 1] = 0.5;
+            break;
+        default:
+            g_starGlows_spriteUvs[soundSiteNo*2 + 0] = 0.0;
+            g_starGlows_spriteUvs[soundSiteNo*2 + 1] = 0.0;
+            break;
+        }
+    }
+
+    // Load vertex arrays into a THREE.BufferGeometry,
+    // make a renderable THREE.Points object pairing it with a shader
+    g_starGlows_threeBufferGeometry = new THREE.BufferGeometry();
+    g_starGlows_threeBufferGeometry.addAttribute('position', new THREE.BufferAttribute(g_starGlows_positions, 3));
+    g_starGlows_threeBufferGeometry.addAttribute('a_glow', new THREE.BufferAttribute(g_starGlows_glows, 1));
+    g_starGlows_threeBufferGeometry.addAttribute('a_colour', new THREE.BufferAttribute(g_starGlows_colours, 4));
+    g_starGlows_threeBufferGeometry.addAttribute('a_spriteUv', new THREE.BufferAttribute(g_starGlows_spriteUvs, 2));
+    g_starGlows_scenePoints = new THREE.Points(g_starGlows_threeBufferGeometry, g_starGlows_shaderMaterial);
+
+    //
+    g_starGlows_threeBufferGeometry.setDrawRange(0, 0);
+
+    // Add Points object to scene
+    g_scene.add(g_starGlows_scenePoints);
 
     // + }}}
 
@@ -1516,7 +1628,8 @@ function space_enter()
 
 function space_exit()
 {
-    g_scene.remove(g_space_scenePoints);
+    g_scene.remove(g_starSprites_scenePoints);
+    g_scene.remove(g_starGlows_scenePoints);
 }
 
 function space_startMainLoop()
@@ -1655,14 +1768,40 @@ function animate()
     //g_scrollingLog.addText(threeVector3ToString(new THREE.Vector3().setFromMatrixPosition(g_camera.matrix)));
 
     // Light up recently played stars
+    var glowCount = 0;
     var timeInSeconds = time / 1000;
     for (var soundSiteCount = g_soundSites.length, soundSiteNo = 0; soundSiteNo < soundSiteCount; ++soundSiteNo)
     {
         var soundSite = g_soundSites[soundSiteNo];
 
-        g_stars_bufferGeometry_glows[soundSiteNo] = 1.0 - dan.clamp(timeInSeconds - soundSite.lastTriggerTime, 0, 1);
+        g_starSprites_glows[soundSiteNo] = 1.0 - dan.clamp(timeInSeconds - soundSite.lastTriggerTime, 0, 1);
+
+        if (g_starSprites_glows[soundSiteNo] > 0 && glowCount < g_starGlows_maximumCount)
+        {
+            g_starGlows_positions[glowCount*3] = g_starSprites_positions[soundSiteNo*3];
+            g_starGlows_positions[glowCount*3 + 1] = g_starSprites_positions[soundSiteNo*3 + 1];
+            g_starGlows_positions[glowCount*3 + 2] = g_starSprites_positions[soundSiteNo*3 + 2];
+
+            g_starGlows_glows[glowCount] = g_starSprites_glows[soundSiteNo];
+
+            g_starGlows_colours[glowCount*4] = g_starSprites_colours[soundSiteNo*4];
+            g_starGlows_colours[glowCount*4 + 1] = g_starSprites_colours[soundSiteNo*4 + 1];
+            g_starGlows_colours[glowCount*4 + 2] = g_starSprites_colours[soundSiteNo*4 + 2];
+            g_starGlows_colours[glowCount*4 + 3] = g_starSprites_colours[soundSiteNo*4 + 3];
+
+            g_starGlows_spriteUvs[glowCount*2] = g_starSprites_spriteUvs[soundSiteNo*2];
+            g_starGlows_spriteUvs[glowCount*2 + 1] = g_starSprites_spriteUvs[soundSiteNo*2 + 1];
+
+            ++glowCount;
+        }
     }
-    g_stars_bufferGeometry.attributes.a_glow.needsUpdate = true;
+    g_starSprites_threeBufferGeometry.attributes.a_glow.needsUpdate = true;
+
+    g_starGlows_threeBufferGeometry.setDrawRange(0, glowCount);
+    g_starGlows_threeBufferGeometry.attributes.position.needsUpdate = true;
+    g_starGlows_threeBufferGeometry.attributes.a_glow.needsUpdate = true;
+    g_starGlows_threeBufferGeometry.attributes.a_colour.needsUpdate = true;
+    g_starGlows_threeBufferGeometry.attributes.a_spriteUv.needsUpdate = true;
 
 
     // Show/hide all range wireframes according to current setting
