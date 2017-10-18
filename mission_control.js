@@ -71,7 +71,7 @@ function missionControl_constructDialogs()
     </p>
   </div>
 */}));
-    $(g_missionControl_helpDialogElement).hide();
+    //$(g_missionControl_helpDialogElement).hide();
     document.body.appendChild(g_missionControl_helpDialogElement);
 
     // Create credits dialog and add it to document
@@ -85,7 +85,7 @@ function missionControl_constructDialogs()
     </p>
   </div>
 */}));
-    $(g_missionControl_creditsDialogElement).hide();
+    //$(g_missionControl_creditsDialogElement).hide();
     document.body.appendChild(g_missionControl_creditsDialogElement);
 
     $(".creditsButton").bind("click", function (i_event) {
@@ -115,6 +115,14 @@ function missionControl_construct()
     document.body.appendChild(g_missionControl_backgroundImage);
 
     //
+    g_missionControl_tagCloudElement = dan.htmlToDom(dan.hereDoc(function () {/*!
+  <div id="tagCloud">
+  </div>
+*/}));
+    //$(g_missionControl_tagCloudElement).hide();
+    document.body.appendChild(g_missionControl_tagCloudElement);
+
+    //
     g_missionControl_introElement = dan.htmlToDom(dan.hereDoc(function () {/*!
   <div id="intro">
     <h1 id="greeting">Hi explorer!</h1>
@@ -131,14 +139,6 @@ function missionControl_construct()
         var openerButtonClientRect = i_event.target.getBoundingClientRect();
         popUpElement($(".helpDialog")[0], openerButtonClientRect.right + 10, openerButtonClientRect.top);
     });
-
-    //
-    g_missionControl_tagCloudElement = dan.htmlToDom(dan.hereDoc(function () {/*!
-  <div id="tagCloud">
-  </div>
-*/}));
-    //$(g_missionControl_tagCloudElement).hide();
-    document.body.appendChild(g_missionControl_tagCloudElement);
 
     //
     g_missionControl_bpmControlElement = dan.htmlToDom(dan.hereDoc(function () {/*!
