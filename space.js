@@ -244,7 +244,7 @@ SoundSite.prototype.loadSamplesIfNeeded = function (i_onReady)
         return;
     this.loadSamplesStarted = true;
 
-    console.log("loadSamplesIfNeeded: " + this.soundId);
+    //console.log("loadSamplesIfNeeded: " + this.soundId);
 
     var loadTimeStart = performance.now() / 1000;
 
@@ -628,7 +628,7 @@ function space_document_onKeyDown(event)
             space_uninstallEventHandlers();
             space_exit();
             g_sequencer.stop();
-            g_scrollingLog.addText("Sequencer stopped.");
+            //g_scrollingLog.addText("Sequencer stopped.");
         }
         break;
 
@@ -1444,12 +1444,14 @@ function space_enter()
         (selectedPoints_maxPositions.y - selectedPoints_minPositions.y) *
         (selectedPoints_maxPositions.z - selectedPoints_minPositions.z);
 
-    var selectedPointSummary = "Selected " + selectedPointInfos.length.toString() + " points" +
+    var shortSelectedPointSummary = "Entering space with " + selectedPointInfos.length.toString() + " stars...";
+    g_scrollingLog.addText(shortSelectedPointSummary);
+
+    var longSelectedPointSummary = "Selected " + selectedPointInfos.length.toString() + " points" +
         ", bounding box: [" + selectedPoints_minPositions.x.toString() + ", " + selectedPoints_minPositions.y.toString() + ", " + selectedPoints_minPositions.z.toString() + "]" +
         " .. [" + selectedPoints_maxPositions.x.toString() + ", " + selectedPoints_maxPositions.y.toString() + ", " + selectedPoints_maxPositions.z.toString() + "]" +
         ", volume: " + boundingBoxVolume.toString();
-    g_scrollingLog.addText(selectedPointSummary);
-    console.log(selectedPointSummary);
+    console.log(longSelectedPointSummary);
 
     // + + }}}
 
@@ -1639,7 +1641,7 @@ function space_enter()
 
     // + }}}
 
-    g_scrollingLog.addText("... ready!");
+    //g_scrollingLog.addText("... ready!");
     g_scrollingLog.resetEntryTimeouts();
     space_startMainLoop();
 }
