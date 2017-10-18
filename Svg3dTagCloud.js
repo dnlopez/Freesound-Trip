@@ -221,6 +221,10 @@ function Svg3dTagCloud(i_container, i_params)
         //---
 
         setEntryPositions(radius);
+
+        // Hack which avoids the SVG element obscuring whatever elements are beneath it
+        // (over the whole viewport even if the SVG element isn't filling the area)
+        svgElement.style.position = "absolute";
     };
 
     //---
