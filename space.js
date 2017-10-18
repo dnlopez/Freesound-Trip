@@ -621,12 +621,15 @@ function space_document_onKeyDown(event)
         break;
 
     case 27: // Escape
-        missionControl_show();
-        space_hide();
-        space_uninstallEventHandlers();
-        space_exit();
-        g_sequencer.stop();
-        g_scrollingLog.addText("Sequencer stopped.");
+        if (!g_missionControl_visible)
+        {
+            missionControl_show();
+            space_hide();
+            space_uninstallEventHandlers();
+            space_exit();
+            g_sequencer.stop();
+            g_scrollingLog.addText("Sequencer stopped.");
+        }
         break;
 
     case 32: // space
@@ -705,50 +708,6 @@ function space_uninstallEventHandlers()
 
 function space_construct()
 {
-    g_space_controlsDialogElement = dan.htmlToDom(dan.hereDoc(function () {/*!
-<div class="popupDialog controlsDialog">
-  <div class="column">
-    <h2>Move</h2>
-    <ul>
-      <li><span class="keyboardControl">W</span> <span class="keyboardControl">S</span> <span class="keyboardControl">A</span> <span class="keyboardControl">D</span> : forward / backward / leftward / rightward</li>
-      <li><span class="keyboardControl">R</span> <span class="keyboardControl">F</span> : up / down</li>
-    </ul>
-    <h2>Rotate</h2>
-    <ul>
-      <li><span class="keyboardControl">arrow keys</span> or <span class="mouseControl">click+drag</span></li>
-    </ul>
-    <h2>Roll</h2>
-    <ul>
-      <li><span class="keyboardControl">Q</span> <span class="keyboardControl">E</span></li>
-    </ul>
-  </div>
-  <div class="column">
-    <h2>Audio</h2>
-    <ul>
-      <li><span class="keyboardControl">Space</span> : stop/restart sequencer playback</li>
-      <li><span class="keyboardControl">G</span> : show the current sequence, on a grid
-      <li><span class="keyboardControl">P</span> : show the current sequence, in exportable text form
-      <li><span class="keyboardControl">C</span> : record audio</li>
-    </ul>
-    <h2>Freesound</h2>
-    <ul>
-      <li><span class="keyboardControl">I</span> : show Freesound IDs for stars underneath mouse pointer</li>
-      <li><span class="mouseControl">right-click</span> star : visit sound's page on freesound.org</li>
-    </ul>
-    <h2>Session</h2>
-    <ul>
-      <li><span class="keyboardControl">Esc</span> : return to mission control</li>
-    </ul>
-  </div>
-  <p class="dialogButtons" style="clear: both; padding-top: 1.5em;">
-    <button class="dialogButton closeButton">BACK</button>
-  </p>
-</div>
-*/}));
-    //$(g_space_controlsDialogElement).hide();
-    document.body.appendChild(g_space_controlsDialogElement);
-
-
     g_sequencer = new Sequencer();
 
     // Create div to contain the space viewport
@@ -821,33 +780,7 @@ function space_construct()
     infoTextDiv.setAttribute("id", "infoText");
     document.body.appendChild(infoTextDiv);
 
-    // + Dialogs {{{
-
-    g_space_controlsButton = $('<div class="controlsButton">CONTROLS</div>')[0];
-    g_space_controlsButton.style.position = "fixed";
-    g_space_controlsButton.style.top = "16px";
-    g_space_controlsButton.style.left = "16px";
-    $(g_space_controlsButton).hide();
-    document.body.appendChild(g_space_controlsButton);
-
-    var viewportDimmer = new ViewportDimmer();
-
-    $(".controlsButton").bind("click", function (i_event) {
-        viewportDimmer.dim();
-
-        var openerButtonClientRect = i_event.target.getBoundingClientRect();
-        popUpElement($(".controlsDialog")[0], openerButtonClientRect.right + 10, openerButtonClientRect.top);
-    });
-
-    function closeDialogs(i_event)
-    {
-        viewportDimmer.undim();
-        $(".controlsDialog").css("visibility", "hidden");
-    }
-    $(".closeButton").bind("click", closeDialogs);
-    viewportDimmer.bindClick(closeDialogs);
-
-    // + }}}
+    space_constructDialogs();
 
     //g_controls = new THREE.PointerLockControls(g_camera);
     g_controls = new THREE_FlyControls(g_camera, g_space_viewportDiv);
@@ -875,6 +808,88 @@ function space_construct()
     //
     space_construct_continue();
 }
+
+// + Dialogs {{{
+
+var g_space_viewportDimmer;
+
+function space_constructDialogs()
+{
+    //
+    g_space_viewportDimmer = new ViewportDimmer();
+    g_space_viewportDimmer.bindClick(space_closeDialogs);
+
+    // Create controls dialog and add it to document
+    g_space_controlsDialogElement = dan.htmlToDom(dan.hereDoc(function () {/*!
+<div class="popupDialog controlsDialog">
+  <div class="column">
+    <h2>Move</h2>
+    <ul>
+      <li><span class="keyboardControl">W</span> <span class="keyboardControl">S</span> <span class="keyboardControl">A</span> <span class="keyboardControl">D</span> : forward / backward / leftward / rightward</li>
+      <li><span class="keyboardControl">R</span> <span class="keyboardControl">F</span> : up / down</li>
+    </ul>
+    <h2>Rotate</h2>
+    <ul>
+      <li><span class="keyboardControl">arrow keys</span> or <span class="mouseControl">click+drag</span></li>
+    </ul>
+    <h2>Roll</h2>
+    <ul>
+      <li><span class="keyboardControl">Q</span> <span class="keyboardControl">E</span></li>
+    </ul>
+  </div>
+  <div class="column">
+    <h2>Audio</h2>
+    <ul>
+      <li><span class="keyboardControl">Space</span> : stop/restart sequencer playback</li>
+      <li><span class="keyboardControl">G</span> : show the current sequence, on a grid
+      <li><span class="keyboardControl">P</span> : show the current sequence, in exportable text form
+      <li><span class="keyboardControl">C</span> : record audio</li>
+    </ul>
+    <h2>Freesound</h2>
+    <ul>
+      <li><span class="keyboardControl">I</span> : show Freesound IDs for stars underneath mouse pointer</li>
+      <li><span class="mouseControl">right-click</span> star : visit sound's page on freesound.org</li>
+    </ul>
+    <h2>Session</h2>
+    <ul>
+      <li><span class="keyboardControl">Esc</span> : return to mission control</li>
+    </ul>
+  </div>
+  <p class="dialogButtons" style="clear: both; padding-top: 1.5em;">
+    <button class="dialogButton closeButton">BACK</button>
+  </p>
+</div>
+*/}));
+    //$(g_space_controlsDialogElement).hide();
+    document.body.appendChild(g_space_controlsDialogElement);
+
+    // Create button to open controls dialog and add it to document
+    g_space_controlsButton = $('<div class="controlsButton">CONTROLS</div>')[0];
+    g_space_controlsButton.style.position = "fixed";
+    g_space_controlsButton.style.top = "16px";
+    g_space_controlsButton.style.left = "16px";
+    $(g_space_controlsButton).hide();
+    document.body.appendChild(g_space_controlsButton);
+
+    //
+    $(".closeButton").bind("click", space_closeDialogs);
+
+    // When button clicked, open dialog
+    $(".controlsButton").bind("click", function (i_event) {
+        g_space_viewportDimmer.dim();
+
+        var openerButtonClientRect = i_event.target.getBoundingClientRect();
+        popUpElement($(".controlsDialog")[0], openerButtonClientRect.right + 10, openerButtonClientRect.top);
+    });
+}
+
+function space_closeDialogs()
+{
+    g_space_viewportDimmer.undim();
+    $(".controlsDialog").css("visibility", "hidden");
+}
+
+// + }}}
 
 var g_kdTree = null;
 
@@ -1174,6 +1189,7 @@ void main()
 
 function enterSpaceWhenAssetsReady()
 {
+    console.log("enterSpaceWhenAssetsReady");
     if (!g_space_assetsLoaded)
     {
         g_space_assetLoader.all().then(function () {
@@ -1205,6 +1221,7 @@ function space_hide()
 {
     $(g_space_viewportDiv).hide();
     $(g_space_controlsButton).hide();
+    space_closeDialogs();
 
     g_space_visible = false;
 }
@@ -1644,7 +1661,7 @@ function space_startMainLoop()
     }
 
     // Trigger first frame
-    animate();
+    space_mainLoop();
 }
 
 function getSoundSitesAtViewportPosition(i_position)
@@ -1714,9 +1731,9 @@ function flyTowardsPoint(i_point)
 
 var g_showSoundSiteIdsOnMouseover = false;
 
-function animate()
+function space_mainLoop()
 {
-    requestAnimationFrame(animate);
+    requestAnimationFrame(space_mainLoop);
 
     //
     var time = performance.now();
@@ -1764,9 +1781,6 @@ function animate()
 
 	g_controls.update(delta);
 
-    // Show current position
-    //g_scrollingLog.addText(threeVector3ToString(new THREE.Vector3().setFromMatrixPosition(g_camera.matrix)));
-
     // Light up recently played stars
     var glowCount = 0;
     var timeInSeconds = time / 1000;
@@ -1813,6 +1827,18 @@ function animate()
 		soundSite.rangeSphereMesh.visible = g_showSoundSiteRanges;
     }
     */
+
+    //
+    space_render();
+
+    //
+    g_scrollingLog.removeTimedOutEntries();
+}
+
+function space_render()
+{
+    // Show current position
+    //g_scrollingLog.addText(threeVector3ToString(new THREE.Vector3().setFromMatrixPosition(g_camera.matrix)));
 
     //
     g_renderer.autoClear = false;
@@ -1879,6 +1905,4 @@ function animate()
     }
 
     g_danCanvas.flush();
-
-    g_scrollingLog.removeTimedOutEntries();
 }

@@ -46,51 +46,17 @@ var g_spaceParam_unwantedTags;
 var g_spaceParam_bpm;
 // (number)
 
-function missionControl_construct()
+// + Dialogs {{{
+
+var g_missionControl_viewportDimmer;
+
+function missionControl_constructDialogs()
 {
-    g_missionControl_introElement = dan.htmlToDom(dan.hereDoc(function () {/*!
-  <div id="intro">
-    <h1 id="greeting">Hi explorer!</h1>
-    <div id="question">How would you like your trip?</div>
-    <button class="helpButton">HELP</button>
-  </div>
-*/}));
-    $(g_missionControl_introElement).hide();
-    document.body.appendChild(g_missionControl_introElement);
+    //
+    g_missionControl_viewportDimmer = new ViewportDimmer();
+    g_missionControl_viewportDimmer.bindClick(missionControl_closeDialogs);
 
-    g_missionControl_tagCloudElement = dan.htmlToDom(dan.hereDoc(function () {/*!
-  <div id="tagCloud">
-  </div>
-*/}));
-    //$(g_missionControl_tagCloudElement).hide();
-    document.body.appendChild(g_missionControl_tagCloudElement);
-
-    g_missionControl_bpmControlEmenet = dan.htmlToDom(dan.hereDoc(function () {/*!
-  <div id="bpmControl">
-    <div class="heading">BPM</div>
-    <div class="slider">
-      <div class="visibleGroove"></div>
-      <div class="handle ui-slider-handle"></div>
-    </div>
-  </div>
-*/}));
-    $(g_missionControl_bpmControlEmenet).hide();
-    document.body.appendChild(g_missionControl_bpmControlEmenet);
-
-    g_missionControl_queryRowElement = dan.htmlToDom(dan.hereDoc(function () {/*!
-  <div id="queryRow">
-    <a id="go">
-      <svg width="80px" height="40px" >
-        <path d="M 0 0 L 65 0 L 80 20 L 65 40 L 0 40 L 15 20 z" fill="#ccc" />
-        <text x="50%" y="50%" text-anchor="middle" fill="#000" dy="0.3em" dx="1px">GO</text>
-      </svg>
-    </a>
-    <div id="selectedTags"></div>
-  </div>
-*/}));
-    $(g_missionControl_queryRowElement).hide();
-    document.body.appendChild(g_missionControl_queryRowElement);
-
+    // Create help dialog and add it to document
     g_missionControl_helpDialogElement = dan.htmlToDom(dan.hereDoc(function () {/*!
   <div class="popupDialog helpDialog">
     <p>You're about to enter Freesound space, a three-dimensional galaxy in which each star represents a sound on <a href="http://freesound.org">http://freesound.org</a>.</p>
@@ -108,6 +74,7 @@ function missionControl_construct()
     $(g_missionControl_helpDialogElement).hide();
     document.body.appendChild(g_missionControl_helpDialogElement);
 
+    // Create credits dialog and add it to document
     g_missionControl_creditsDialogElement = dan.htmlToDom(dan.hereDoc(function () {/*!
   <div class="popupDialog creditsDialog">
     <p>View a slide presentation with background and detail on the technologies used: <a href="SIC 2017 audioCommons version3.pdf">(PDF)</a></p>
@@ -121,31 +88,88 @@ function missionControl_construct()
     $(g_missionControl_creditsDialogElement).hide();
     document.body.appendChild(g_missionControl_creditsDialogElement);
 
-    // + Dialogs {{{
-
-    var viewportDimmer = new ViewportDimmer();
-
-    $(".helpButton").bind("click", function (i_event) {
-        viewportDimmer.dim();
-
-        var openerButtonClientRect = i_event.target.getBoundingClientRect();
-        popUpElement($(".helpDialog")[0], openerButtonClientRect.right + 10, openerButtonClientRect.top);
-    });
-
     $(".creditsButton").bind("click", function (i_event) {
         var openerButtonClientRect = i_event.target.getBoundingClientRect();
         popUpElement($(".creditsDialog")[0], openerButtonClientRect.right + 10, openerButtonClientRect.top);
     });
 
-    function closeDialogs(i_event)
-    {
-        viewportDimmer.undim();
-        $(".popupDialog").css("visibility", "hidden");
-    }
-    $(".closeButton").bind("click", closeDialogs);
-    viewportDimmer.bindClick(closeDialogs);
+    $(".closeButton").bind("click", missionControl_closeDialogs);
+}
 
-    // + }}}
+function missionControl_closeDialogs()
+{
+    g_missionControl_viewportDimmer.undim();
+    $(".popupDialog").css("visibility", "hidden");
+}
+
+// + }}}
+
+function missionControl_construct()
+{
+    //
+    g_missionControl_backgroundImage = dan.htmlToDom(dan.hereDoc(function () {/*!
+  <div id="backgroundImage">
+  </div>
+*/}));
+    $(g_missionControl_backgroundImage).hide();
+    document.body.appendChild(g_missionControl_backgroundImage);
+
+    //
+    g_missionControl_introElement = dan.htmlToDom(dan.hereDoc(function () {/*!
+  <div id="intro">
+    <h1 id="greeting">Hi explorer!</h1>
+    <div id="question">How would you like your trip?</div>
+    <button class="helpButton">HELP</button>
+  </div>
+*/}));
+    $(g_missionControl_introElement).hide();
+    document.body.appendChild(g_missionControl_introElement);
+
+    $(".helpButton").bind("click", function (i_event) {
+        g_missionControl_viewportDimmer.dim();
+
+        var openerButtonClientRect = i_event.target.getBoundingClientRect();
+        popUpElement($(".helpDialog")[0], openerButtonClientRect.right + 10, openerButtonClientRect.top);
+    });
+
+    //
+    g_missionControl_tagCloudElement = dan.htmlToDom(dan.hereDoc(function () {/*!
+  <div id="tagCloud">
+  </div>
+*/}));
+    //$(g_missionControl_tagCloudElement).hide();
+    document.body.appendChild(g_missionControl_tagCloudElement);
+
+    //
+    g_missionControl_bpmControlElement = dan.htmlToDom(dan.hereDoc(function () {/*!
+  <div id="bpmControl">
+    <div class="heading">BPM</div>
+    <div class="slider">
+      <div class="visibleGroove"></div>
+      <div class="handle ui-slider-handle"></div>
+    </div>
+  </div>
+*/}));
+    $(g_missionControl_bpmControlElement).hide();
+    document.body.appendChild(g_missionControl_bpmControlElement);
+
+    //
+    g_missionControl_queryRowElement = dan.htmlToDom(dan.hereDoc(function () {/*!
+  <div id="queryRow">
+    <a id="go">
+      <svg width="80px" height="40px" >
+        <path d="M 0 0 L 65 0 L 80 20 L 65 40 L 0 40 L 15 20 z" fill="#ccc" />
+        <text x="50%" y="50%" text-anchor="middle" fill="#000" dy="0.3em" dx="1px">GO</text>
+      </svg>
+    </a>
+    <div id="selectedTags"></div>
+  </div>
+*/}));
+    $(g_missionControl_queryRowElement).hide();
+    document.body.appendChild(g_missionControl_queryRowElement);
+
+    //
+    missionControl_constructDialogs();
 
     //
     var bpmSliderValue = 120;
@@ -201,8 +225,10 @@ function missionControl_construct()
         g_spaceParam_wantedTags = wantedTags;
         g_spaceParam_unwantedTags = unwantedTags;
         g_spaceParam_bpm = bpmSliderValue;
-        missionControl_hide();
         space_show();
+        space_render();
+        //missionControl_hide("warp").then(enterSpaceWhenAssetsReady);
+        missionControl_hide("warp");
         enterSpaceWhenAssetsReady();
     });
 
@@ -409,7 +435,7 @@ function missionControl_construct()
         height: "100%",
         radius: "70%",
         radiusMin: 75,
-        bgDraw: true,
+        bgDraw: false,
         bgColor: "transparent",
         opacityOver: 1.00,
         opacityOut: 0.8,
@@ -442,62 +468,141 @@ function missionControl_construct()
 
 var g_missionControl_visible = false;
 
-function missionControl_show()
+function missionControl_show(i_transition)
 {
+    // Apply default arguments
+    if (i_transition === null || i_transition === undefined)
+        i_transition = "none";
+
+    //
     dan.disableUserSelection(document.body);
     dan.disableContextMenu(document.body);
 
-    document.body.style.backgroundImage = "url('fondo.jpg')";
-    document.body.style.backgroundPositionX = "1px";
-
+    //document.body.style.backgroundImage = "url('fondo.jpg')";
+    g_missionControl_backgroundImage.style.backgroundPositionX = "1px";
     $(document).bind("mousemove", function (i_event) {
-        document.body.style.backgroundPositionX = (-i_event.pageX / 64).toString() + "px";
-        document.body.style.backgroundPositionY = (-i_event.pageY / 64).toString() + "px";
+        g_missionControl_backgroundImage.style.backgroundPositionX = (-i_event.pageX / 64).toString() + "px";
+        g_missionControl_backgroundImage.style.backgroundPositionY = (-i_event.pageY / 64).toString() + "px";
     });
+    /*
+    document.body.style.backgroundImage = "url('nasa-mission-control-room-restoration.jpg')";
+    document.body.style.backgroundPosition = "bottom";
+    document.body.style.backgroundSize = "cover";
+    */
 
-    $(g_missionControl_introElement).show();
+    //
+    if (i_transition == "none")
+    {
+        g_missionControl_backgroundImage.style.display = "block";
+        g_missionControl_backgroundImage.style.opacity = "";
 
-    $(g_missionControl_tagCloudElement).show();
-    g_svg3DTagCloud.startRunning();
+        g_missionControl_introElement.style.display = "block";
+        g_missionControl_introElement.style.opacity = "";
 
-    $(g_missionControl_bpmControlEmenet).show();
+        g_missionControl_tagCloudElement.style.display = "block";
+        g_svg3DTagCloud.startRunning();
+        g_svg3DTagCloud.show();
 
-    $(g_missionControl_queryRowElement).show();
+        g_missionControl_bpmControlElement.style.display = "block";
+        g_missionControl_bpmControlElement.style.opacity = "";
 
-    $(g_missionControl_helpDialogElement).show();
+        g_missionControl_queryRowElement.style.display = "block";
+        g_missionControl_queryRowElement.style.opacity = "";
+    }
+    else if (i_transition == "warp")
+    {
+        g_missionControl_backgroundImage.style.display = "block";
+        g_missionControl_introElement.style.display = "block";
+        g_missionControl_bpmControlElement.style.display = "block";
+        g_missionControl_queryRowElement.style.display = "block";
+        g_missionControl_tagCloudElement.style.display = "block";
 
-    $(g_missionControl_creditsDialogElement).show();
+        dan.movement.animate(0.3, function (i_progress) {
+            g_missionControl_backgroundImage.style.opacity = i_progress;
+            g_missionControl_introElement.style.opacity = i_progress;
+            g_missionControl_bpmControlElement.style.opacity = i_progress;
+            g_missionControl_queryRowElement.style.opacity = i_progress;
+        });
 
+        g_svg3DTagCloud.startRunning();
+        g_svg3DTagCloud.show("fov");
+    }
+
+    //
     g_scrollingLog.setHeight(14);
     g_scrollingLog.setOpacity(0.4);
 
     g_missionControl_visible = true;
 }
 
-function missionControl_hide()
+function missionControl_hide(i_transition)
 {
-    document.body.style.backgroundImage = "none";
+    // Apply default arguments
+    if (i_transition === null || i_transition === undefined)
+        i_transition = "none";
 
-    $(g_missionControl_introElement).hide();
+    //
+    missionControl_closeDialogs();
 
-    g_svg3DTagCloud.stopRunning();
-    $(g_missionControl_tagCloudElement).hide();
+    //
+    if (i_transition == "none")
+    {
+        g_missionControl_backgroundImage.style.display = "none";
 
-    $(g_missionControl_bpmControlEmenet).hide();
+        g_missionControl_introElement.style.display = "none";
 
-    $(g_missionControl_queryRowElement).hide();
+        g_svg3DTagCloud.stopRunning();
+        g_missionControl_tagCloudElement.style.display = "none";
+        g_svg3DTagCloud.hide();
 
-    $(g_missionControl_helpDialogElement).hide();
+        g_missionControl_bpmControlElement.style.display = "none";
 
-    $(g_missionControl_creditsDialogElement).hide();
+        g_missionControl_queryRowElement.style.display = "none";
 
-    g_missionControl_visible = false;
+        g_missionControl_visible = false;
+
+        return Promise.resolve();
+    }
+    else if (i_transition == "warp")
+    {
+        var textFade = new Promise(function (i_resolve) {
+            dan.movement.animate(0.3, function (i_progress) {
+                g_missionControl_backgroundImage.style.opacity = 1 - i_progress;
+                g_missionControl_introElement.style.opacity = 1 - i_progress;
+                g_missionControl_bpmControlElement.style.opacity = 1 - i_progress;
+                g_missionControl_queryRowElement.style.opacity = 1 - i_progress;
+
+                if (i_progress == 1)
+                {
+                    i_resolve();
+                }
+            });
+        });
+
+        var tagFade = g_svg3DTagCloud.hide("fov");
+
+        return Promise.all([textFade, tagFade]).then(function () {
+            console.log("done all");
+            g_missionControl_backgroundImage.style.display = "none";
+            g_missionControl_introElement.style.display = "none";
+            g_missionControl_bpmControlElement.style.display = "none";
+            g_missionControl_queryRowElement.style.display = "none";
+
+            g_svg3DTagCloud.stopRunning();
+            g_missionControl_tagCloudElement.style.display = "none";
+
+            g_missionControl_visible = false;
+        });
+    }
+
+    //$(g_missionControl_helpDialogElement).hide();
+    //$(g_missionControl_creditsDialogElement).hide();
 }
 
-function missionControl_toggle()
+function missionControl_toggle(i_transition)
 {
     if (g_missionControl_visible)
-        missionControl_hide();
+        missionControl_hide(i_transition);
     else
-        missionControl_show();
+        missionControl_show(i_transition);
 }
