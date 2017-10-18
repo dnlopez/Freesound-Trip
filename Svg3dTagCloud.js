@@ -131,9 +131,6 @@ function Svg3dTagCloud(i_container, i_params)
         svgElement = document.createElementNS(svgNamespaceUri, 'svg');
         i_container.appendChild(svgElement);
 
-        //
-        svgElement.addEventListener('mousemove', svgElement_onMouseMove);
-
         // If want to clear the background, create a covering child rect with a fill colour to do this
         if (settings.bgDraw)
         {
@@ -147,18 +144,35 @@ function Svg3dTagCloud(i_container, i_params)
 
         //---
 
-        addEntries();
+        createEntries();
         reInit();
         animloop();
 
         //---
 
+        self.addEventListeners();
+    };
+
+    this.addEventListeners = function ()
+    {
+        svgElement.addEventListener('mousemove', svgElement_onMouseMove);
+
         window.addEventListener('resize', window_onResize);
+    };
+
+    this.removeEventListeners = function ()
+    {
+        svgElement.removeEventListener('mousemove', svgElement_onMouseMove);
+
+        window.removeEventListener('resize', window_onResize);
     };
 
     var fov;
 
     var speed = { x: 0, y: 0 };
+
+    entries = [];
+    this.entriesRef = entries;
 
     function reInit()
     {
@@ -181,6 +195,13 @@ function Svg3dTagCloud(i_container, i_params)
             svgWidth = windowWidth;
         if (svgHeight >= windowHeight)
             svgHeight = windowHeight;
+
+        // Hack for when the viewport is resized while the tag cloud is not visible
+        //if (svgWidth == 0 || svgHeight == 0)
+        //{
+        //    svgWidth = windowWidth;
+        //    svgHeight = windowHeight;
+        //}
 
         //---
 
@@ -220,6 +241,7 @@ function Svg3dTagCloud(i_container, i_params)
 
         //---
 
+        resetEntryPositions();
         setEntryPositions(radius);
 
         // Hack which avoids the SVG element obscuring whatever elements are beneath it
@@ -228,8 +250,6 @@ function Svg3dTagCloud(i_container, i_params)
     };
 
     //---
-
-    var entries = [];
 
     function setEntryPositions(i_radius)
     {
@@ -332,7 +352,7 @@ function Svg3dTagCloud(i_container, i_params)
     };
 
     /*
-    function addEntries()
+    function createEntries()
     {
         // For each entry (using 1-based indexes)
         for (var entryCount = settings.entries.length + 1, entryNo = 1; entryNo < entryCount; ++entryNo)
@@ -348,13 +368,24 @@ function Svg3dTagCloud(i_container, i_params)
         }
     };
     */
-    function addEntries()
+    function createEntries()
+    {
+        // For each entry
+        for (var entryCount = settings.entries.length, entryNo = 0; entryNo < entryCount; ++entryNo)
+        {
+            entries.push(createEntry(entryNo, settings.entries[entryNo], 0, 0, 0));
+        }
+    };
+
+    function resetEntryPositions()
     {
         // Spiral from front to back, anti-clockwise
 
         // For each entry
-        for (var entryCount = settings.entries.length, entryNo = 0; entryNo < entryCount; ++entryNo)
+        for (var entryCount = entries.length, entryNo = 0; entryNo < entryCount; ++entryNo)
         {
+            var entry = entries[entryNo];
+
             // 'z' ranges from [-1 .. 1)
             var z = entryNo / entryCount * 2 - 1;
 
@@ -367,7 +398,7 @@ function Svg3dTagCloud(i_container, i_params)
             var x = Math.cos(theta) * Math.sin(phi);
             var y = Math.sin(theta) * Math.sin(phi);
 
-            entries.push(createEntry(entryNo, settings.entries[entryNo], x, y, z));
+            entry.vectorPosition = { x: x, y: y, z: z };
         }
     };
 
@@ -561,10 +592,15 @@ function Svg3dTagCloud(i_container, i_params)
         if (i_transition == "none")
         {
             svgElement.style.display = "none";
+
+            this.removeEventListeners();
+
             return Promise.resolve();
         }
         else if (i_transition == "scale")
         {
+            this.removeEventListeners();
+
             return new Promise(function (i_resolve) {
 
                 function onAnimationFrame()
@@ -589,6 +625,8 @@ function Svg3dTagCloud(i_container, i_params)
         }
         else if (i_transition == "fov")
         {
+            this.removeEventListeners();
+
             return new Promise(function (i_resolve) {
 
                 function onAnimationFrame()
@@ -625,6 +663,10 @@ function Svg3dTagCloud(i_container, i_params)
             fov = settings.fov;
             svgElement.style.opacity = 1;
             svgElement.style.display = "block";
+
+            this.addEventListeners();
+            reInit();
+
             return Promise.resolve();
         }
         else if (i_transition == "scale")
@@ -633,6 +675,9 @@ function Svg3dTagCloud(i_container, i_params)
             fov = settings.fov;
             svgElement.style.opacity = 0;
             svgElement.style.display = "block";
+
+            this.addEventListeners();
+            reInit();
 
             return new Promise(function (i_resolve) {
 
@@ -660,6 +705,9 @@ function Svg3dTagCloud(i_container, i_params)
             fov = 1;
             svgElement.style.opacity = 0;
             svgElement.style.display = "block";
+
+            this.addEventListeners();
+            reInit();
 
             return new Promise(function (i_resolve) {
 
