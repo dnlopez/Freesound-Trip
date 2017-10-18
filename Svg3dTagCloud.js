@@ -79,8 +79,8 @@ function Svg3dTagCloud(i_container, i_params)
 
     // + }}}
 
-    var radius;
     var diameter;
+    var radius;
 
     var mouseReact = true;
 
@@ -156,6 +156,8 @@ function Svg3dTagCloud(i_container, i_params)
         window.addEventListener('resize', window_onResize);
     };
 
+    var fov;
+
     var speed = { x: 0, y: 0 };
 
     function reInit()
@@ -183,6 +185,8 @@ function Svg3dTagCloud(i_container, i_params)
         //---
 
         center2D = { x: svgWidth / 2, y: svgHeight / 2 };
+
+        fov = settings.fov;
 
         speed.x = settings.speed / center2D.x;
         speed.y = settings.speed / center2D.y;
@@ -347,16 +351,17 @@ function Svg3dTagCloud(i_container, i_params)
         // For each entry
         for (var entryCount = settings.entries.length, entryNo = 0; entryNo < entryCount; ++entryNo)
         {
-            // Argument to Math.acos() ranges from [-1 .. 1)
+            // 'z' ranges from [-1 .. 1)
+            var z = entryNo / entryCount * 2 - 1;
+
             // 'phi' ranges from [PI .. 0)
-            var phi = Math.acos(-1 + (2 * entryNo) / entryCount);
+            var phi = Math.acos(z);
             //var phi = Math.PI - (entryNo / entryCount * Math.PI);
 
             var theta = Math.sqrt((entryCount + 1) * Math.PI) * phi;
 
             var x = Math.cos(theta) * Math.sin(phi);
             var y = Math.sin(theta) * Math.sin(phi);
-            var z = Math.cos(phi);
 
             entries.push(createEntry(entryNo, settings.entries[entryNo], x, y, z));
         }
@@ -396,58 +401,75 @@ function Svg3dTagCloud(i_container, i_params)
 
     var k_piDividedBy180 = Math.PI / 180;
 
-    function render()
+    function rotateEntries(i_rotationX, i_rotationY)
+    // Params:
+    //  i_rotationX:
+    //   (float number)
+    //   Angle by which to rotate cloud around X axis, in degrees
+    //  i_rotationY:
+    //   Angle by which to rotate cloud around Y axis, in degrees
     {
-        // Get angles to rotate by in degrees
-        var rotation_x = -(mousePos.y - center2D.y) * speed.y;
-        var rotation_y = (mousePos.x - center2D.x) * speed.x;
-
-        // If no rotation is needed then bail to give the CPU a rest
-        if (rotation_x == 0 && rotation_y == 0)
-            return;
-
         // Convert degrees to radians
-        rotation_x *= k_piDividedBy180;
-        rotation_y *= k_piDividedBy180;
+        i_rotationX *= k_piDividedBy180;
+        i_rotationY *= k_piDividedBy180;
 
         //
-        var sin_rotation_x = Math.sin(rotation_x);
-        var cos_rotation_x = Math.cos(rotation_x);
-        var sin_rotation_y = Math.sin(rotation_y);
-        var cos_rotation_y = Math.cos(rotation_y);
+        var sin_rotation_x = Math.sin(i_rotationX);
+        var cos_rotation_x = Math.cos(i_rotationX);
+        var sin_rotation_y = Math.sin(i_rotationY);
+        var cos_rotation_y = Math.cos(i_rotationY);
 
         //
         for (var entryCount = entries.length, entryNo = 0; entryNo < entryCount; ++entryNo)
         {
             var entry = entries[entryNo];
 
-            //
-            if (mouseReact)
-            {
-                // Rotate around Y axis [right-handed rotation]
-                var posX = entry.vectorPosition.x;
-                var posZ = entry.vectorPosition.z;
-                entry.vectorPosition.x = posX*cos_rotation_y + posZ*sin_rotation_y;
-                entry.vectorPosition.z = posZ*cos_rotation_y - posX*sin_rotation_y;
+            // Rotate around Y axis [right-handed rotation]
+            var posX = entry.vectorPosition.x;
+            var posZ = entry.vectorPosition.z;
+            entry.vectorPosition.x = posX*cos_rotation_y + posZ*sin_rotation_y;
+            entry.vectorPosition.z = posZ*cos_rotation_y - posX*sin_rotation_y;
 
-                // Rotate around X axis [right-handed rotation]
-                var posY = entry.vectorPosition.y;
-                var posZ = entry.vectorPosition.z;
-                entry.vectorPosition.y = posY*cos_rotation_x - posZ*sin_rotation_x;
-                entry.vectorPosition.z = posZ*cos_rotation_x + posY*sin_rotation_x;
-            }
+            // Rotate around X axis [right-handed rotation]
+            var posY = entry.vectorPosition.y;
+            var posZ = entry.vectorPosition.z;
+            entry.vectorPosition.y = posY*cos_rotation_x - posZ*sin_rotation_x;
+            entry.vectorPosition.z = posZ*cos_rotation_x + posY*sin_rotation_x;
+        }
+
+        // Sort in order of descending Z
+        // (far to near)
+        //entries = entries.sort(function (a, b) {
+        //    return (b.vectorPosition.z - a.vectorPosition.z);
+        //});
+    }
+
+    function projectEntries()
+    {
+        for (var entryCount = entries.length, entryNo = 0; entryNo < entryCount; ++entryNo)
+        {
+            var entry = entries[entryNo];
 
             // Project
-            var scale = settings.fov / (settings.fov + entry.vectorPosition.z);
+            var scale = fov / (fov + entry.vectorPosition.z);
             entry.vector2D.x = entry.vectorPosition.x * scale + center2D.x;
             entry.vector2D.y = entry.vectorPosition.y * scale + center2D.y;
 
             //
             entry.element.setAttribute('x', entry.vector2D.x);
             entry.element.setAttribute('y', entry.vector2D.y);
+        }
+    }
+
+    function setEntryOpacities()
+    {
+        for (var entryCount = entries.length, entryNo = 0; entryNo < entryCount; ++entryNo)
+        {
+            var entry = entries[entryNo];
 
             //
             var opacity;
+
             if (mouseReact)
             {
                 opacity = (radius - entry.vectorPosition.z) / diameter;
@@ -467,13 +489,7 @@ function Svg3dTagCloud(i_container, i_params)
 
             entry.element.setAttribute('opacity', opacity);
         }
-
-        // Sort in order of descending Z
-        // (far to near)
-        //entries = entries.sort(function (a, b) {
-        //    return (b.vectorPosition.z - a.vectorPosition.z);
-        //});
-    };
+    }
 
     // + }}}
 
@@ -508,10 +524,160 @@ function Svg3dTagCloud(i_container, i_params)
     {
         if (running)
         {
-            render();
+            //
+            if (mouseReact)
+            {
+                // Get angles to rotate cloud by in degrees
+                var rotation_x = -(mousePos.y - center2D.y) * speed.y;
+                var rotation_y = (mousePos.x - center2D.x) * speed.x;
+
+                // If rotation is needed, rotateEntries (else don't, to give the CPU a rest)
+                if (rotation_x != 0 || rotation_y != 0)
+                    rotateEntries(rotation_x, rotation_y);
+            }
+
+            projectEntries();
+            setEntryOpacities();
+
             requestAnimFrame(animloop);
         }
     };
+
+    // + }}}
+
+    // + Transitions {{{
+
+    this.hide = function (i_transition)
+    {
+        // Apply default arguments
+        if (i_transition === null || i_transition === undefined)
+            i_transition = "none";
+
+        //
+        if (i_transition == "none")
+        {
+            svgElement.style.display = "none";
+            return Promise.resolve();
+        }
+        else if (i_transition == "scale")
+        {
+            return new Promise(function (i_resolve) {
+
+                function onAnimationFrame()
+                {
+                    if (radius > 0)
+                    {
+                        radius -= 5;
+
+                        setEntryPositions(radius);
+                        svgElement.style.opacity = radius / (diameter / 2);
+                        requestAnimFrame(onAnimationFrame);
+                    }
+                    else
+                    {
+                        svgElement.style.display = "none";
+                        i_resolve();
+                    }
+                }
+                onAnimationFrame();
+
+            });
+        }
+        else if (i_transition == "fov")
+        {
+            return new Promise(function (i_resolve) {
+
+                function onAnimationFrame()
+                {
+                    if (fov > 1)
+                    {
+                        fov -= 15;
+
+                        svgElement.style.opacity = 1.0 - ((fov - settings.fov) / -settings.fov);
+                        requestAnimFrame(onAnimationFrame);
+                    }
+                    else
+                    {
+                        svgElement.style.display = "none";
+                        i_resolve();
+                    }
+                }
+                onAnimationFrame();
+
+            });
+        }
+    }
+
+    this.show = function (i_transition)
+    {
+        // Apply default arguments
+        if (i_transition === null || i_transition === undefined)
+            i_transition = "none";
+
+        //
+        if (i_transition == "none")
+        {
+            radius = diameter / 2;
+            fov = settings.fov;
+            svgElement.style.opacity = 1;
+            svgElement.style.display = "block";
+            return Promise.resolve();
+        }
+        else if (i_transition == "scale")
+        {
+            radius = 0;
+            fov = settings.fov;
+            svgElement.style.opacity = 0;
+            svgElement.style.display = "block";
+
+            return new Promise(function (i_resolve) {
+
+                function onAnimationFrame()
+                {
+                    if (radius < diameter / 2)
+                    {
+                        radius += 5;
+
+                        setEntryPositions(radius);
+                        svgElement.style.opacity = radius / (diameter / 2);
+                        requestAnimFrame(onAnimationFrame);
+                    }
+                    else
+                    {
+                        i_resolve();
+                    }
+                }
+                onAnimationFrame();
+
+            });
+        }
+        else if (i_transition == "fov")
+        {
+            fov = 1;
+            svgElement.style.opacity = 0;
+            svgElement.style.display = "block";
+
+            return new Promise(function (i_resolve) {
+
+                function onAnimationFrame()
+                {
+                    if (fov < 800)
+                    {
+                        fov += 15;
+
+                        svgElement.style.opacity = 1.0 - ((fov - settings.fov) / -settings.fov);
+                        requestAnimFrame(onAnimationFrame);
+                    }
+                    else
+                    {
+                        i_resolve();
+                    }
+                }
+                onAnimationFrame();
+
+            });
+        }
+    }
 
     // + }}}
 
