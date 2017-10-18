@@ -640,17 +640,18 @@ function space_document_onKeyDown(event)
             g_scrollingLog.addText("Sequencer stopped.");
         break;
 
-    case 49: // 0
-    case 50: // 1
-    case 51: // 2
-    case 52: // 3
-    case 53: // 4
-    case 54: // 5
-    case 55: // 6
-    case 56: // 7
-    case 57: // 8
-    case 58: // 9
-        g_controls.translationalSpeed = 150 + (event.keyCode - 53) * 20;
+    case 48: // 0
+    case 49: // 1
+    case 50: // 2
+    case 51: // 3
+    case 52: // 4
+    case 53: // 5
+    case 54: // 6
+    case 55: // 7
+    case 56: // 8
+    case 57: // 9
+        // key 5 -> speed 150
+        g_controls.translationalSpeed = 150 * Math.pow(2, (event.keyCode - 53));
         //g_scrollingLog.addText("Set movement speed to " + g_controls.translationalSpeed.toString()  + ".");
         break;
     }
@@ -784,7 +785,7 @@ function space_construct()
 
     //g_controls = new THREE.PointerLockControls(g_camera);
     g_controls = new THREE_FlyControls(g_camera, g_space_viewportDiv);
-    g_controls.translationalSpeed = 1000;
+    g_controls.translationalSpeed = 150;
     g_controls.domElement = g_space_viewportDiv;
     g_controls.rotationalSpeed = Math.PI / 4;
     g_controls.mouse_mustHoldButtonToLook = true;
