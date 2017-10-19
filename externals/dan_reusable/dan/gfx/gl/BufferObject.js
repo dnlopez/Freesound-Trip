@@ -92,6 +92,7 @@ dan.gfx.gl.BufferObject.prototype.write = function (i_offset, i_data)
 // Params:
 //  i_offset:
 //   (integer number)
+//   Position in buffer at which to start writing, in bytes
 //  i_data:
 //   Either (ArrayBuffer)
 //   or (ArrayBufferView)

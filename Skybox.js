@@ -121,6 +121,11 @@ void main()
 }
 
 Skybox.prototype.draw = function (i_viewMatrix, i_projectionMatrix)
+// Params:
+//  i_viewMatrix:
+//   (dan.math.Matrix4)
+//  i_projectionMatrix:
+//   (dan.math.Matrix4)
 {
     var gl = this.gl;
 
