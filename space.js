@@ -27,6 +27,9 @@
 // #require <dan/text/FontDetector.js>
 // #require <dan/text/CanvasFontFace.js>
 // #require <dan/text/GlTextureFontFace.js>
+// #require <dan/gfx/gl/TextureCubeMap.js>
+// #require <dan/gfx/gl/render.js>
+// #require <dan/mesh/IndexedMesh.js>
 
 // This program
 // #require "mission_control.js"
@@ -39,6 +42,7 @@
 // #require "FlyControls.js"
 // #require "numeric_helpers.js"
 // #require "three_helpers.js"
+// #require "Skybox.js"
 
 
 // + Configuration {{{
@@ -748,30 +752,6 @@ function space_construct()
     // Add fog
     //g_scene.fog = new THREE.Fog(0xffffff, 0, 750);
 
-    // Load a skybox and apply it to the scene as background
-    //var cubeTextureLoader = new THREE.CubeTextureLoader();
-    //cubeTextureLoader.setPath('textures/cube/skybox/');
-    //var cubeTexture = cubeTextureLoader.load([
-    //    'px.jpg', 'nx.jpg',
-    //    'py.jpg', 'ny.jpg',
-    //    'pz.jpg', 'nz.jpg',
-    //]);
-    var cubeTextureLoader = new THREE.CubeTextureLoader();
-    cubeTextureLoader.setPath('textures/cube/MilkyWay/');
-    var cubeTexture = cubeTextureLoader.load([
-        'dark-s_px.jpg', 'dark-s_nx.jpg',
-        'dark-s_py.jpg', 'dark-s_ny.jpg',
-        'dark-s_pz.jpg', 'dark-s_nz.jpg',
-    ]);
-    //var cubeTextureLoader = new THREE.CubeTextureLoader();
-    //cubeTextureLoader.setPath('textures/cube/diagnostic_skybox/');
-    //var cubeTexture = cubeTextureLoader.load([
-    //    'px.png', 'nx.png',
-    //    'py.png', 'ny.png',
-    //    'pz.png', 'nz.png',
-    //]);
-    g_scene.background = cubeTexture;
-
     //
     var light = new THREE.HemisphereLight(0xeeeeff, 0x777788, 0.75);
     light.position.set(0.5, 1, 0.75);
@@ -1066,7 +1046,47 @@ function space_construct_onFontsLoaded()
         // Load asset "sound_index"
         loadWithLog(g_space_assetLoader, g_space_assetLoader.loadText, k_soundSource_indexUrl, "sound_index");
 
+    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadImage, "textures/cube/MilkyWay/dark-s_px.jpg", "milkyway_positive_x");
+    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadImage, "textures/cube/MilkyWay/dark-s_nx.jpg", "milkyway_negative_x");
+    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadImage, "textures/cube/MilkyWay/dark-s_py.jpg", "milkyway_positive_y");
+    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadImage, "textures/cube/MilkyWay/dark-s_ny.jpg", "milkyway_negative_y");
+    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadImage, "textures/cube/MilkyWay/dark-s_pz.jpg", "milkyway_positive_z");
+    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadImage, "textures/cube/MilkyWay/dark-s_nz.jpg", "milkyway_negative_z");
+
+    /*
+    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadImage, "textures/cube/skybox/px.jpg", "milkyway_positive_x");
+    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadImage, "textures/cube/skybox/nx.jpg", "milkyway_negative_x");
+    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadImage, "textures/cube/skybox/py.jpg", "milkyway_positive_y");
+    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadImage, "textures/cube/skybox/ny.jpg", "milkyway_negative_y");
+    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadImage, "textures/cube/skybox/pz.jpg", "milkyway_positive_z");
+    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadImage, "textures/cube/skybox/nz.jpg", "milkyway_negative_z");
+    */
+
+    /*
+    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadImage, "textures/cube/diagnostic_skybox/px.png", "milkyway_positive_x");
+    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadImage, "textures/cube/diagnostic_skybox/nx.png", "milkyway_negative_x");
+    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadImage, "textures/cube/diagnostic_skybox/py.png", "milkyway_positive_y");
+    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadImage, "textures/cube/diagnostic_skybox/ny.png", "milkyway_negative_y");
+    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadImage, "textures/cube/diagnostic_skybox/pz.png", "milkyway_positive_z");
+    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadImage, "textures/cube/diagnostic_skybox/nz.png", "milkyway_negative_z");
+    */
+
     g_space_assetLoader.all().then(function () {
+
+        // + Load cubemap texture for skybox and create skybox {{{
+
+        var danSkyboxTexture = dan.gfx.gl.TextureCubeMap.fromImages(GL.ctx.RGBA,
+                                                                    GL.ctx.RGBA, GL.ctx.UNSIGNED_BYTE, [g_space_assetLoader.loaded["milkyway_positive_x"],
+                                                                                                        g_space_assetLoader.loaded["milkyway_negative_x"],
+                                                                                                        g_space_assetLoader.loaded["milkyway_positive_y"],
+                                                                                                        g_space_assetLoader.loaded["milkyway_negative_y"],
+                                                                                                        g_space_assetLoader.loaded["milkyway_positive_z"],
+                                                                                                        g_space_assetLoader.loaded["milkyway_negative_z"]]);
+
+        g_skybox = new Skybox(danSkyboxTexture);
+
+        // + }}}
+
         // + Create custom shader for star sprites {{{
 
         // Set texture parameters
@@ -1842,6 +1862,12 @@ function space_render()
 {
     // Show current position
     //g_scrollingLog.addText(threeVector3ToString(new THREE.Vector3().setFromMatrixPosition(g_camera.matrix)));
+
+    // Draw the skybox without affecting the depth buffer
+    GL.pushDepth({ testEnabled: false, writingEnabled: false });
+    g_skybox.draw(dan.math.Matrix4.fromColumnMajorArray(g_camera.matrixWorldInverse.elements),
+                  dan.math.Matrix4.fromColumnMajorArray(g_camera.projectionMatrix.elements));
+    GL.popDepth();
 
     //
     g_renderer.autoClear = false;
