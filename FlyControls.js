@@ -86,6 +86,10 @@ var THREE_FlyControls = function (i_object, i_eventTarget)
 
     this.mousedown = function (i_event)
     {
+        if (i_event.button != 0)
+            return;
+
+
         if (this.eventTarget !== document)
         {
             this.eventTarget.focus();

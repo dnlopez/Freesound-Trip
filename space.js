@@ -1725,8 +1725,9 @@ function flyTowardsPoint(i_point)
     var k_stopAtDistance = 10;
 
     var cameraDirection = g_camera.getWorldDirection();
+    // Get camera to target direction and normalize it (keeping distance for later)
     var cameraToTarget = i_point.clone().sub(g_camera.position);
-    cameraToTarget_length = cameraToTarget.length();
+    var cameraToTarget_length = cameraToTarget.length();
     cameraToTarget.divideScalar(cameraToTarget_length);
 
     // Rotate
