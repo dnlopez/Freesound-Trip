@@ -32,9 +32,9 @@ function main()
         g_scrollingLog.removeTimedOutEntries();
     }, 200);
 
-    missionControl_construct();
-    missionControl_show();
-    space_construct();
+    g_missionControl.construct();
+    g_missionControl.show();
+    g_space.construct();
 }
 
 main();

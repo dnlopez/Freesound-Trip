@@ -460,16 +460,18 @@ var canJump = false;
 
 var prevTime = performance.now();
 
-var g_mousePositionInViewport = [0, 0];
-var g_mousePositionInViewport_normalized = [0, 0];
-function space_body_onMouseMove(i_event)
+var g_space = {};
+
+g_space.mousePositionInViewport = [0, 0];
+g_space.mousePositionInViewport_normalized = [0, 0];
+g_space.body_onMouseMove = function (i_event)
 {
-    // Get mouse position relative to top-left of g_space_viewportDiv
-    var boundingClientRect = g_space_viewportDiv.getBoundingClientRect();
-    g_mousePositionInViewport = [i_event.clientX - boundingClientRect.left, i_event.clientY - boundingClientRect.top];
-    g_mousePositionInViewport_normalized = [g_mousePositionInViewport[0] / boundingClientRect.width * 2 - 1,
-                                            g_mousePositionInViewport[1] / boundingClientRect.height * 2 - 1];
-}
+    // Get mouse position relative to top-left of this.viewportDiv
+    var boundingClientRect = this.viewportDiv.getBoundingClientRect();
+    this.mousePositionInViewport = [i_event.clientX - boundingClientRect.left, i_event.clientY - boundingClientRect.top];
+    this.mousePositionInViewport_normalized = [this.mousePositionInViewport[0] / boundingClientRect.width * 2 - 1,
+                                               this.mousePositionInViewport[1] / boundingClientRect.height * 2 - 1];
+};
 
 var g_sequencer;
 
@@ -511,7 +513,7 @@ function getSpaceParamsFromQueryString()
     }
 }
 
-function space_viewportDiv_onMouseDown(i_event)
+g_space.viewportDiv_onMouseDown = function (i_event)
 {
     if (g_showSequence)
     {
@@ -522,7 +524,7 @@ function space_viewportDiv_onMouseDown(i_event)
         // If pressed the right mouse button
         if (i_event.button == 2)
         {
-            var pointedAtSoundSites = getSoundSitesAtViewportPosition(new THREE.Vector2(g_mousePositionInViewport_normalized[0], -g_mousePositionInViewport_normalized[1]));
+            var pointedAtSoundSites = getSoundSitesAtViewportPosition(new THREE.Vector2(this.mousePositionInViewport_normalized[0], -this.mousePositionInViewport_normalized[1]));
             if (pointedAtSoundSites.length > 0)
             {
                 var webUrl = g_parsed_sound_index[pointedAtSoundSites[0].soundId]["web-url"];
@@ -535,9 +537,9 @@ function space_viewportDiv_onMouseDown(i_event)
             }
         }
     }
-}
+};
 
-function space_document_onKeyDown(event)
+g_space.document_onKeyDown = function (event)
 {
     //console.log(event.keyCode);
 
@@ -617,20 +619,20 @@ function space_document_onKeyDown(event)
             true);
 
     case 77: // m
-        missionControl_toggle();
+        g_missionControl.toggle();
         break;
 
     case 78: // n
-        space_toggle();
+        this.toggle();
         break;
 
     case 27: // Escape
-        if (!g_missionControl_visible)
+        if (!g_missionControl.visible)
         {
-            missionControl_show();
-            space_hide();
-            space_uninstallEventHandlers();
-            space_exit();
+            g_missionControl.show();
+            this.hide();
+            this.uninstallEventHandlers();
+            this.exit();
             g_sequencer.stop();
             //g_scrollingLog.addText("Sequencer stopped.");
         }
@@ -659,9 +661,9 @@ function space_document_onKeyDown(event)
         //g_scrollingLog.addText("Set movement speed to " + g_controls.translationalSpeed.toString()  + ".");
         break;
     }
-}
+};
 
-function space_document_onKeyUp(event)
+g_space.document_onKeyUp = function (event)
 {
     switch (event.keyCode)
     {
@@ -685,39 +687,39 @@ function space_document_onKeyUp(event)
         moveRight = false;
         break;
     }
-}
+};
 
-function space_installEventHandlers()
+g_space.installEventHandlers = function ()
 {
     // Mouse actions on main viewport
-    document.body.addEventListener("mousemove", space_body_onMouseMove);
-    g_space_viewportDiv.addEventListener("mousedown", space_viewportDiv_onMouseDown);
+    document.body.addEventListener("mousemove", this.body_onMouseMove.bind(this));
+    this.viewportDiv.addEventListener("mousedown", this.viewportDiv_onMouseDown.bind(this));
 
     //
-    document.addEventListener("keydown", space_document_onKeyDown, false);
-    document.addEventListener("keyup", space_document_onKeyUp, false);
-}
+    document.addEventListener("keydown", this.document_onKeyDown.bind(this), false);
+    document.addEventListener("keyup", this.document_onKeyUp.bind(this), false);
+};
 
-function space_uninstallEventHandlers()
+g_space.uninstallEventHandlers = function ()
 {
     // Mouse actions on main viewport
-    document.body.removeEventListener("mousemove", space_body_onMouseMove);
-    g_space_viewportDiv.removeEventListener("mousedown", space_viewportDiv_onMouseDown);
+    document.body.removeEventListener("mousemove", this.body_onMouseMove.bind(this));
+    this.viewportDiv.removeEventListener("mousedown", this.viewportDiv_onMouseDown.bind(this));
 
     //
-    document.removeEventListener("keydown", space_document_onKeyDown, false);
-    document.removeEventListener("keyup", space_document_onKeyUp, false);
-}
+    document.removeEventListener("keydown", this.document_onKeyDown.bind(this), false);
+    document.removeEventListener("keyup", this.document_onKeyUp.bind(this), false);
+};
 
-// + space_construct() {{{
+// + g_space.construct() {{{
 
-function space_construct()
+g_space.construct = function ()
 {
     g_sequencer = new Sequencer();
 
     // Create div to contain the space viewport
-    g_space_viewportDiv = document.createElement("div");
-    document.body.appendChild(g_space_viewportDiv);
+    this.viewportDiv = document.createElement("div");
+    document.body.appendChild(this.viewportDiv);
 
     // Create canvas element
     var canvas = document.createElement("canvas");
@@ -736,7 +738,7 @@ function space_construct()
     g_renderer.setClearColor(0xffffff);
     g_renderer.setPixelRatio(window.devicePixelRatio);
     //g_renderer.setSize(window.innerWidth, window.innerHeight);
-    g_space_viewportDiv.appendChild(g_renderer.domElement);
+    this.viewportDiv.appendChild(g_renderer.domElement);
 
     //
     GL = new dan.gfx.gl.Context(g_renderer.context);
@@ -761,12 +763,12 @@ function space_construct()
     infoTextDiv.setAttribute("id", "infoText");
     document.body.appendChild(infoTextDiv);
 
-    space_constructDialogs();
+    this.constructDialogs();
 
     //g_controls = new THREE.PointerLockControls(g_camera);
-    g_controls = new THREE_FlyControls(g_camera, g_space_viewportDiv);
+    g_controls = new THREE_FlyControls(g_camera, this.viewportDiv);
     g_controls.translationalSpeed = 150;
-    g_controls.domElement = g_space_viewportDiv;
+    g_controls.domElement = this.viewportDiv;
     g_controls.rotationalSpeed = Math.PI / 4;
     g_controls.mouse_mustHoldButtonToLook = true;
     //g_scene.add(g_controls.getObject());
@@ -787,21 +789,19 @@ function space_construct()
     }
 
     //
-    space_construct_continue();
-}
+    this.construct_continue();
+};
 
 // + Dialogs {{{
 
-var g_space_viewportDimmer;
-
-function space_constructDialogs()
+g_space.constructDialogs = function ()
 {
     //
-    g_space_viewportDimmer = new ViewportDimmer();
-    g_space_viewportDimmer.bindClick(space_closeDialogs);
+    this.viewportDimmer = new ViewportDimmer();
+    this.viewportDimmer.bindClick(this.closeDialogs.bind(this));
 
     // Create controls dialog and add it to document
-    g_space_controlsDialogElement = dan.htmlToDom(dan.hereDoc(function () {/*!
+    this.controlsDialogElement = dan.htmlToDom(dan.hereDoc(function () {/*!
 <div class="popupDialog controlsDialog">
   <div class="column">
     <h2>Move</h2>
@@ -841,34 +841,34 @@ function space_constructDialogs()
   </p>
 </div>
 */}));
-    //$(g_space_controlsDialogElement).hide();
-    document.body.appendChild(g_space_controlsDialogElement);
+    //$(this.controlsDialogElement).hide();
+    document.body.appendChild(this.controlsDialogElement);
 
     // Create button to open controls dialog and add it to document
-    g_space_controlsButton = $('<div class="controlsButton">CONTROLS</div>')[0];
-    g_space_controlsButton.style.position = "fixed";
-    g_space_controlsButton.style.top = "16px";
-    g_space_controlsButton.style.left = "16px";
-    $(g_space_controlsButton).hide();
-    document.body.appendChild(g_space_controlsButton);
+    this.controlsButton = $('<div class="controlsButton">CONTROLS</div>')[0];
+    this.controlsButton.style.position = "fixed";
+    this.controlsButton.style.top = "16px";
+    this.controlsButton.style.left = "16px";
+    $(this.controlsButton).hide();
+    document.body.appendChild(this.controlsButton);
 
     //
-    $(".closeButton").bind("click", space_closeDialogs);
+    $(".closeButton").bind("click", this.closeDialogs.bind(this));
 
     // When button clicked, open dialog
     $(".controlsButton").bind("click", function (i_event) {
-        g_space_viewportDimmer.dim();
+        this.viewportDimmer.dim();
 
         var openerButtonClientRect = i_event.target.getBoundingClientRect();
         popUpElement($(".controlsDialog")[0], openerButtonClientRect.right + 10, openerButtonClientRect.top);
-    });
-}
+    }.bind(this));
+};
 
-function space_closeDialogs()
+g_space.closeDialogs = function ()
 {
-    g_space_viewportDimmer.undim();
+    this.viewportDimmer.undim();
     $(".controlsDialog").css("visibility", "hidden");
-}
+};
 
 // + }}}
 
@@ -938,7 +938,7 @@ function buildTreeOfSoundSites()
     // + }}}
 }
 
-function space_onWindowResize()
+g_space.onWindowResize = function ()
 {
     g_camera.aspect = window.innerWidth / window.innerHeight;
     g_camera.updateProjectionMatrix();
@@ -947,19 +947,18 @@ function space_onWindowResize()
 
     g_danCanvas.setProjectionMatrix(dan.math.Matrix4.orthoMatrix(0, window.innerWidth, window.innerHeight, 0, -1, 1));
     GL.setViewport(0, 0, window.innerWidth, window.innerHeight);
-}
+};
 
-function space_construct_continue()
+g_space.construct_continue = function ()
 {
     //
     g_scrollingLog.addText("Loading fonts...");
-    dan.text.loadFont("fonts/DroidSansMono-Regular.ttf", "DroidSansMono").then(space_construct_onFontsLoaded);
-}
+    dan.text.loadFont("fonts/DroidSansMono-Regular.ttf", "DroidSansMono").then(this.construct_onFontsLoaded.bind(this));
+};
 
-var g_space_assetLoader;
-var g_space_assetsLoaded = false;
+g_space.assetsLoaded = false;
 
-function space_construct_onFontsLoaded()
+g_space.construct_onFontsLoaded = function ()
 {
     //
     var droidSansMono14CanvasFont = dan.text.CanvasFontFace.fromSystemFont("Droid Sans Mono", "normal", "normal", 14, [[32, 126], 176]);
@@ -970,15 +969,15 @@ function space_construct_onFontsLoaded()
     g_droidSansMono72TextureFont = dan.text.GlTextureFontFace.fromCanvasFont(droidSansMono72CanvasFont);
 
     //
-    window.addEventListener("resize", space_onWindowResize, false);
-    space_onWindowResize();
+    window.addEventListener("resize", this.onWindowResize.bind(this), false);
+    this.onWindowResize();
 
     //
     /*
     loadResultsOfFreesoundSearchIntoSoundSites("dogs", function () {
         buildTreeOfSoundSites();
 
-        space_startMainLoop();
+        this.startMainLoop();
     });
     */
 
@@ -1013,75 +1012,75 @@ function space_construct_onFontsLoaded()
         });
     }
 
-    g_space_assetLoader = new dan.loaders.AssetLoader();
+    this.assetLoader = new dan.loaders.AssetLoader();
 
     g_scrollingLog.addText("Loading data and graphics...");
 
-    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadTexture, "sprites/shapes.png", "shapes");
+    loadWithLog(this.assetLoader, this.assetLoader.loadTexture, "sprites/shapes.png", "shapes");
 
     // Load asset "points"
     if (dan.getParameterValueFromQueryString("datasource") == "dynamic")
     {
-        loadWithLog(g_space_assetLoader, g_space_assetLoader.loadText, "http://54.215.134.50:5000/tsne?tags=" + g_tagsStr, "points");
-        //loadWithLog(g_space_assetLoader, g_space_assetLoader.loadText, "http://ec2-54-215-134-50.us-west-1.compute.amazonaws.com:5000/tsne?tags=" + g_tagsStr, "points");
+        loadWithLog(this.assetLoader, this.assetLoader.loadText, "http://54.215.134.50:5000/tsne?tags=" + g_tagsStr, "points");
+        //loadWithLog(this.assetLoader, this.assetLoader.loadText, "http://ec2-54-215-134-50.us-west-1.compute.amazonaws.com:5000/tsne?tags=" + g_tagsStr, "points");
         g_soundsAlreadyFiltered = true;
     }
     else if (dan.getParameterValueFromQueryString("datasource") == "test_splash")
     {
-        loadWithLog(g_space_assetLoader, g_space_assetLoader.loadText, "metadata/tsne_splash.json", "points");
+        loadWithLog(this.assetLoader, this.assetLoader.loadText, "metadata/tsne_splash.json", "points");
         g_soundsAlreadyFiltered = true;
     }
     else
     {
-        loadWithLog(g_space_assetLoader, g_space_assetLoader.loadText, "metadata/27k_collection.json", "points");
+        loadWithLog(this.assetLoader, this.assetLoader.loadText, "metadata/27k_collection.json", "points");
         g_soundsAlreadyFiltered = false;
     }
 
-    //loadWithLog(g_space_assetLoader, g_space_assetLoader.loadText, "metadata/tag_summary.json", "tag_summary");
-    //loadWithLog(g_space_assetLoader, g_space_assetLoader.loadText, "metadata/tags_to_ids.json", "tags_to_ids");
+    //loadWithLog(this.assetLoader, this.assetLoader.loadText, "metadata/tag_summary.json", "tag_summary");
+    //loadWithLog(this.assetLoader, this.assetLoader.loadText, "metadata/tags_to_ids.json", "tags_to_ids");
     // Load asset "freesound_tags_indexed"
-    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadText, "metadata/freesound_tags_indexed.json", "freesound_tags_indexed");
+    loadWithLog(this.assetLoader, this.assetLoader.loadText, "metadata/freesound_tags_indexed.json", "freesound_tags_indexed");
 
     if (k_soundSource == "index")
         // Load asset "sound_index"
-        loadWithLog(g_space_assetLoader, g_space_assetLoader.loadText, k_soundSource_indexUrl, "sound_index");
+        loadWithLog(this.assetLoader, this.assetLoader.loadText, k_soundSource_indexUrl, "sound_index");
 
-    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadImage, "textures/cube/MilkyWay/dark-s_px.jpg", "milkyway_positive_x");
-    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadImage, "textures/cube/MilkyWay/dark-s_nx.jpg", "milkyway_negative_x");
-    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadImage, "textures/cube/MilkyWay/dark-s_py.jpg", "milkyway_positive_y");
-    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadImage, "textures/cube/MilkyWay/dark-s_ny.jpg", "milkyway_negative_y");
-    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadImage, "textures/cube/MilkyWay/dark-s_pz.jpg", "milkyway_positive_z");
-    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadImage, "textures/cube/MilkyWay/dark-s_nz.jpg", "milkyway_negative_z");
+    loadWithLog(this.assetLoader, this.assetLoader.loadImage, "textures/cube/MilkyWay/dark-s_px.jpg", "milkyway_positive_x");
+    loadWithLog(this.assetLoader, this.assetLoader.loadImage, "textures/cube/MilkyWay/dark-s_nx.jpg", "milkyway_negative_x");
+    loadWithLog(this.assetLoader, this.assetLoader.loadImage, "textures/cube/MilkyWay/dark-s_py.jpg", "milkyway_positive_y");
+    loadWithLog(this.assetLoader, this.assetLoader.loadImage, "textures/cube/MilkyWay/dark-s_ny.jpg", "milkyway_negative_y");
+    loadWithLog(this.assetLoader, this.assetLoader.loadImage, "textures/cube/MilkyWay/dark-s_pz.jpg", "milkyway_positive_z");
+    loadWithLog(this.assetLoader, this.assetLoader.loadImage, "textures/cube/MilkyWay/dark-s_nz.jpg", "milkyway_negative_z");
 
     /*
-    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadImage, "textures/cube/skybox/px.jpg", "milkyway_positive_x");
-    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadImage, "textures/cube/skybox/nx.jpg", "milkyway_negative_x");
-    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadImage, "textures/cube/skybox/py.jpg", "milkyway_positive_y");
-    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadImage, "textures/cube/skybox/ny.jpg", "milkyway_negative_y");
-    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadImage, "textures/cube/skybox/pz.jpg", "milkyway_positive_z");
-    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadImage, "textures/cube/skybox/nz.jpg", "milkyway_negative_z");
+    loadWithLog(this.assetLoader, this.assetLoader.loadImage, "textures/cube/skybox/px.jpg", "milkyway_positive_x");
+    loadWithLog(this.assetLoader, this.assetLoader.loadImage, "textures/cube/skybox/nx.jpg", "milkyway_negative_x");
+    loadWithLog(this.assetLoader, this.assetLoader.loadImage, "textures/cube/skybox/py.jpg", "milkyway_positive_y");
+    loadWithLog(this.assetLoader, this.assetLoader.loadImage, "textures/cube/skybox/ny.jpg", "milkyway_negative_y");
+    loadWithLog(this.assetLoader, this.assetLoader.loadImage, "textures/cube/skybox/pz.jpg", "milkyway_positive_z");
+    loadWithLog(this.assetLoader, this.assetLoader.loadImage, "textures/cube/skybox/nz.jpg", "milkyway_negative_z");
     */
 
     /*
-    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadImage, "textures/cube/diagnostic_skybox/px.png", "milkyway_positive_x");
-    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadImage, "textures/cube/diagnostic_skybox/nx.png", "milkyway_negative_x");
-    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadImage, "textures/cube/diagnostic_skybox/py.png", "milkyway_positive_y");
-    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadImage, "textures/cube/diagnostic_skybox/ny.png", "milkyway_negative_y");
-    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadImage, "textures/cube/diagnostic_skybox/pz.png", "milkyway_positive_z");
-    loadWithLog(g_space_assetLoader, g_space_assetLoader.loadImage, "textures/cube/diagnostic_skybox/nz.png", "milkyway_negative_z");
+    loadWithLog(this.assetLoader, this.assetLoader.loadImage, "textures/cube/diagnostic_skybox/px.png", "milkyway_positive_x");
+    loadWithLog(this.assetLoader, this.assetLoader.loadImage, "textures/cube/diagnostic_skybox/nx.png", "milkyway_negative_x");
+    loadWithLog(this.assetLoader, this.assetLoader.loadImage, "textures/cube/diagnostic_skybox/py.png", "milkyway_positive_y");
+    loadWithLog(this.assetLoader, this.assetLoader.loadImage, "textures/cube/diagnostic_skybox/ny.png", "milkyway_negative_y");
+    loadWithLog(this.assetLoader, this.assetLoader.loadImage, "textures/cube/diagnostic_skybox/pz.png", "milkyway_positive_z");
+    loadWithLog(this.assetLoader, this.assetLoader.loadImage, "textures/cube/diagnostic_skybox/nz.png", "milkyway_negative_z");
     */
 
-    g_space_assetLoader.all().then(function () {
+    this.assetLoader.all().then(function () {
 
         // + Load cubemap texture for skybox and create skybox {{{
 
         var danSkyboxTexture = dan.gfx.gl.TextureCubeMap.fromImages(GL.ctx.RGBA,
-                                                                    GL.ctx.RGBA, GL.ctx.UNSIGNED_BYTE, [g_space_assetLoader.loaded["milkyway_positive_x"],
-                                                                                                        g_space_assetLoader.loaded["milkyway_negative_x"],
-                                                                                                        g_space_assetLoader.loaded["milkyway_positive_y"],
-                                                                                                        g_space_assetLoader.loaded["milkyway_negative_y"],
-                                                                                                        g_space_assetLoader.loaded["milkyway_positive_z"],
-                                                                                                        g_space_assetLoader.loaded["milkyway_negative_z"]]);
+                                                                    GL.ctx.RGBA, GL.ctx.UNSIGNED_BYTE, [this.assetLoader.loaded["milkyway_positive_x"],
+                                                                                                        this.assetLoader.loaded["milkyway_negative_x"],
+                                                                                                        this.assetLoader.loaded["milkyway_positive_y"],
+                                                                                                        this.assetLoader.loaded["milkyway_negative_y"],
+                                                                                                        this.assetLoader.loaded["milkyway_positive_z"],
+                                                                                                        this.assetLoader.loaded["milkyway_negative_z"]]);
 
         g_skybox = new Skybox(danSkyboxTexture);
 
@@ -1090,7 +1089,7 @@ function space_construct_onFontsLoaded()
         // + Create custom shader for star sprites {{{
 
         // Set texture parameters
-        var imagePreviewTexture = g_space_assetLoader.loaded["shapes"];
+        var imagePreviewTexture = this.assetLoader.loaded["shapes"];
         imagePreviewTexture.minFilter = THREE.LinearMipMapLinearFilter;
         imagePreviewTexture.magFilter = THREE.LinearFilter;
 
@@ -1200,66 +1199,67 @@ void main()
 
         // + }}}
 
-        g_space_assetsLoaded = true;
-    });
+        this.assetsLoaded = true;
+
+    }.bind(this));
 
     // + }}}
-}
+};
 
 // + }}}
 
 function enterSpaceWhenAssetsReady()
 {
     console.log("enterSpaceWhenAssetsReady");
-    if (!g_space_assetsLoaded)
+    if (!g_space.assetsLoaded)
     {
-        g_space_assetLoader.all().then(function () {
-            space_installEventHandlers();
-            space_enter();
+        g_space.assetLoader.all().then(function () {
+            g_space.installEventHandlers();
+            g_space.enter();
         });
     }
     else
     {
-        space_installEventHandlers();
-        space_enter();
+        g_space.installEventHandlers();
+        g_space.enter();
     }
 }
 
-var g_space_visible = false;
+g_space.visible = false;
 
-function space_show()
+g_space.show = function ()
 {
-    $(g_space_viewportDiv).show();
-    $(g_space_controlsButton).show();
+    $(this.viewportDiv).show();
+    $(this.controlsButton).show();
 
     g_scrollingLog.setHeight(null);
     g_scrollingLog.setOpacity(1);
 
-    g_space_visible = true;
-}
+    this.visible = true;
+};
 
-function space_hide()
+g_space.hide = function ()
 {
-    $(g_space_viewportDiv).hide();
-    $(g_space_controlsButton).hide();
-    space_closeDialogs();
+    $(this.viewportDiv).hide();
+    $(this.controlsButton).hide();
+    this.closeDialogs();
 
-    g_space_visible = false;
-}
+    this.visible = false;
+};
 
-function space_toggle()
+g_space.toggle = function ()
 {
-    if (g_space_visible)
-        space_hide();
+    if (this.visible)
+        this.hide();
     else
-        space_show();
-}
+        this.show();
+};
 
 var g_parsed_points = null;
 var g_parsed_freesound_tags_indexed = null;
 var g_parsed_sound_index = null;
 
-function space_enter()
+g_space.enter = function ()
 // Params:
 //  g_spaceParam_wantedTags:
 //   (array of string)
@@ -1279,11 +1279,11 @@ function space_enter()
     // If not done already, convert loaded JSON texts to objects
     // (this may cause jank)
     if (g_parsed_points === null)
-        g_parsed_points = JSON.parse(g_space_assetLoader.loaded["points"]);
+        g_parsed_points = JSON.parse(this.assetLoader.loaded["points"]);
     if (g_parsed_freesound_tags_indexed === null)
-        g_parsed_freesound_tags_indexed = JSON.parse(g_space_assetLoader.loaded["freesound_tags_indexed"]);
+        g_parsed_freesound_tags_indexed = JSON.parse(this.assetLoader.loaded["freesound_tags_indexed"]);
     if (g_parsed_sound_index === null)
-        g_parsed_sound_index = JSON.parse(g_space_assetLoader.loaded["sound_index"]);
+        g_parsed_sound_index = JSON.parse(this.assetLoader.loaded["sound_index"]);
 
     // + Count total data points in loaded JSON {{{
 
@@ -1663,16 +1663,16 @@ function space_enter()
 
     //g_scrollingLog.addText("... ready!");
     g_scrollingLog.resetEntryTimeouts();
-    space_startMainLoop();
-}
+    this.startMainLoop();
+};
 
-function space_exit()
+g_space.exit = function ()
 {
     g_scene.remove(g_starSprites_scenePoints);
     g_scene.remove(g_starGlows_scenePoints);
-}
+};
 
-function space_startMainLoop()
+g_space.startMainLoop = function ()
 {
     g_sequencer.start();
 
@@ -1684,8 +1684,9 @@ function space_startMainLoop()
     }
 
     // Trigger first frame
-    space_mainLoop();
-}
+    this.mainLoop = this.mainLoop.bind(this)
+    this.mainLoop();
+};
 
 function getSoundSitesAtViewportPosition(i_position)
 // Params:
@@ -1755,9 +1756,9 @@ function flyTowardsPoint(i_point)
 
 var g_showSoundSiteIdsOnMouseover = false;
 
-function space_mainLoop()
+g_space.mainLoop = function ()
 {
-    requestAnimationFrame(space_mainLoop);
+    requestAnimationFrame(g_space.mainLoop);
 
     //
     var time = performance.now();
@@ -1853,13 +1854,13 @@ function space_mainLoop()
     */
 
     //
-    space_render();
+    this.render();
 
     //
     g_scrollingLog.removeTimedOutEntries();
-}
+};
 
-function space_render()
+g_space.render = function ()
 {
     // Show current position
     //g_scrollingLog.addText(threeVector3ToString(new THREE.Vector3().setFromMatrixPosition(g_camera.matrix)));
@@ -1882,7 +1883,7 @@ function space_render()
 
     if (g_showSoundSiteIdsOnMouseover)
     {
-        var pointedAtSoundSites = getSoundSitesAtViewportPosition(new THREE.Vector2(g_mousePositionInViewport_normalized[0], -g_mousePositionInViewport_normalized[1]));
+        var pointedAtSoundSites = getSoundSitesAtViewportPosition(new THREE.Vector2(this.mousePositionInViewport_normalized[0], -this.mousePositionInViewport_normalized[1]));
 
         for (var pointedAtSoundSiteCount = pointedAtSoundSites.length, pointedAtSoundSiteNo = 0; pointedAtSoundSiteNo < pointedAtSoundSiteCount; ++pointedAtSoundSiteNo)
         {
@@ -1892,7 +1893,7 @@ function space_render()
             var positionInClipSpace = positionInViewSpace.clone().applyMatrix4(g_camera.projectionMatrix);
             //g_scrollingLog.addText("pointing at: " + pointedAtSoundSite.soundId + ", " + Vector3_toString(p) + ", " + Vector3_toString(positionInClipSpace));
 
-            var boundingClientRect = g_space_viewportDiv.getBoundingClientRect();
+            var boundingClientRect = this.viewportDiv.getBoundingClientRect();
             var positionInViewport = new dan.math.Vector2.fromXY((positionInClipSpace.x + 1) / 2 * boundingClientRect.width,
                                                                  (-positionInClipSpace.y + 1) / 2 * boundingClientRect.height);
             //positionInViewport[0] -= 12;
@@ -1935,4 +1936,4 @@ function space_render()
     }
 
     g_danCanvas.flush();
-}
+};

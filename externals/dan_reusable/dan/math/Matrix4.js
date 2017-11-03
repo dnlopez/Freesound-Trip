@@ -932,7 +932,11 @@ dan.math.Matrix4.prototype.setFromEuler = function (i_euler)
 
 dan.math.Matrix4.prototype.setFromQuaternion = function (i_quaternion)
 // Completely overwrite this matrix to make it a rotation matrix.
-// that carries out the same rotation.
+// that carries out the same rotation as a quaternion.
+//
+// [Code copied from Three.js
+//  TODO find derivation
+//  TODO better comments]
 //
 // Params:
 //  i_quaternion:

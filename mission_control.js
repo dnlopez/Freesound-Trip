@@ -46,18 +46,20 @@ var g_spaceParam_unwantedTags;
 var g_spaceParam_bpm;
 // (number)
 
+
+var g_missionControl = {};
+
+
 // + Dialogs {{{
 
-var g_missionControl_viewportDimmer;
-
-function missionControl_constructDialogs()
+g_missionControl.constructDialogs = function ()
 {
     //
-    g_missionControl_viewportDimmer = new ViewportDimmer();
-    g_missionControl_viewportDimmer.bindClick(missionControl_closeDialogs);
+    this.viewportDimmer = new ViewportDimmer();
+    this.viewportDimmer.bindClick(this.closeDialogs.bind(this));
 
     // Create help dialog and add it to document
-    g_missionControl_helpDialogElement = dan.htmlToDom(dan.hereDoc(function () {/*!
+    this.helpDialogElement = dan.htmlToDom(dan.hereDoc(function () {/*!
   <div class="popupDialog helpDialog">
     <p>You're about to enter Freesound space, a three-dimensional galaxy in which each star represents a sound on <a href="http://freesound.org">http://freesound.org</a>.</p>
 
@@ -71,11 +73,11 @@ function missionControl_constructDialogs()
     </p>
   </div>
 */}));
-    //$(g_missionControl_helpDialogElement).hide();
-    document.body.appendChild(g_missionControl_helpDialogElement);
+    //$(this.helpDialogElement).hide();
+    document.body.appendChild(this.helpDialogElement);
 
     // Create credits dialog and add it to document
-    g_missionControl_creditsDialogElement = dan.htmlToDom(dan.hereDoc(function () {/*!
+    this.creditsDialogElement = dan.htmlToDom(dan.hereDoc(function () {/*!
   <div class="popupDialog creditsDialog">
     <p>View a slide presentation with background and detail on the technologies used: <a href="SIC 2017 audioCommons version3.pdf">(PDF)</a></p>
     <p>Created by the Audio Commons team of the Sónar Innovation Challenge 2017: <a href="https://emiliomm.com/">Emilio Molina</a>, <a href="http://monicarikic.com/">Mónica Rikić</a>, <a href="http://cortexel.us/">CJ Carr</a>, <a href="https://www.linkedin.com/in/lefteris-stamellos-966981115/">Lefteris Stamellos</a> and <a href="https://twitter.com/squiiidward">Daniel Lopez</a>.</p>
@@ -85,63 +87,63 @@ function missionControl_constructDialogs()
     </p>
   </div>
 */}));
-    //$(g_missionControl_creditsDialogElement).hide();
-    document.body.appendChild(g_missionControl_creditsDialogElement);
+    //$(this.creditsDialogElement).hide();
+    document.body.appendChild(this.creditsDialogElement);
 
     $(".creditsButton").bind("click", function (i_event) {
         var openerButtonClientRect = i_event.target.getBoundingClientRect();
         popUpElement($(".creditsDialog")[0], openerButtonClientRect.right + 10, openerButtonClientRect.top);
     });
 
-    $(".closeButton").bind("click", missionControl_closeDialogs);
-}
+    $(".closeButton").bind("click", this.closeDialogs.bind(this));
+};
 
-function missionControl_closeDialogs()
+g_missionControl.closeDialogs = function ()
 {
-    g_missionControl_viewportDimmer.undim();
+    this.viewportDimmer.undim();
     $(".popupDialog").css("visibility", "hidden");
-}
+};
 
 // + }}}
 
-function missionControl_construct()
+g_missionControl.construct = function ()
 {
     //
-    g_missionControl_backgroundImage = dan.htmlToDom(dan.hereDoc(function () {/*!
+    this.backgroundImage = dan.htmlToDom(dan.hereDoc(function () {/*!
   <div id="backgroundImage">
   </div>
 */}));
-    $(g_missionControl_backgroundImage).hide();
-    document.body.appendChild(g_missionControl_backgroundImage);
+    $(this.backgroundImage).hide();
+    document.body.appendChild(this.backgroundImage);
 
     //
-    g_missionControl_tagCloudElement = dan.htmlToDom(dan.hereDoc(function () {/*!
+    this.tagCloudElement = dan.htmlToDom(dan.hereDoc(function () {/*!
   <div id="tagCloud">
   </div>
 */}));
-    //$(g_missionControl_tagCloudElement).hide();
-    document.body.appendChild(g_missionControl_tagCloudElement);
+    //$(this.tagCloudElement).hide();
+    document.body.appendChild(this.tagCloudElement);
 
     //
-    g_missionControl_introElement = dan.htmlToDom(dan.hereDoc(function () {/*!
+    this.introElement = dan.htmlToDom(dan.hereDoc(function () {/*!
   <div id="intro">
     <h1 id="greeting">Hi explorer!</h1>
     <div id="question">How would you like your trip?</div>
     <button class="helpButton">HELP</button>
   </div>
 */}));
-    $(g_missionControl_introElement).hide();
-    document.body.appendChild(g_missionControl_introElement);
+    $(this.introElement).hide();
+    document.body.appendChild(this.introElement);
 
     $(".helpButton").bind("click", function (i_event) {
-        g_missionControl_viewportDimmer.dim();
+        this.viewportDimmer.dim();
 
         var openerButtonClientRect = i_event.target.getBoundingClientRect();
         popUpElement($(".helpDialog")[0], openerButtonClientRect.right + 10, openerButtonClientRect.top);
-    });
+    }.bind(this));
 
     //
-    g_missionControl_bpmControlElement = dan.htmlToDom(dan.hereDoc(function () {/*!
+    this.bpmControlElement = dan.htmlToDom(dan.hereDoc(function () {/*!
   <div id="bpmControl">
     <div class="heading">BPM</div>
     <div class="slider">
@@ -150,11 +152,11 @@ function missionControl_construct()
     </div>
   </div>
 */}));
-    $(g_missionControl_bpmControlElement).hide();
-    document.body.appendChild(g_missionControl_bpmControlElement);
+    $(this.bpmControlElement).hide();
+    document.body.appendChild(this.bpmControlElement);
 
     //
-    g_missionControl_queryRowElement = dan.htmlToDom(dan.hereDoc(function () {/*!
+    this.queryRowElement = dan.htmlToDom(dan.hereDoc(function () {/*!
   <div id="queryRow">
     <a id="go">
       <svg width="80px" height="40px" >
@@ -165,11 +167,11 @@ function missionControl_construct()
     <div id="selectedTags"></div>
   </div>
 */}));
-    $(g_missionControl_queryRowElement).hide();
-    document.body.appendChild(g_missionControl_queryRowElement);
+    $(this.queryRowElement).hide();
+    document.body.appendChild(this.queryRowElement);
 
     //
-    missionControl_constructDialogs();
+    g_missionControl.constructDialogs();
 
     //
     var bpmSliderValue = 120;
@@ -225,12 +227,12 @@ function missionControl_construct()
         g_spaceParam_wantedTags = wantedTags;
         g_spaceParam_unwantedTags = unwantedTags;
         g_spaceParam_bpm = bpmSliderValue;
-        space_show();
-        space_render();
-        //missionControl_hide("warp").then(enterSpaceWhenAssetsReady);
-        missionControl_hide("warp");
+        g_space.show();
+        g_space.render();
+        //this.hide("warp").then(enterSpaceWhenAssetsReady);
+        this.hide("warp");
         enterSpaceWhenAssetsReady();
-    });
+    }.bind(this));
 
 
     // [subfamily is not used]
@@ -464,11 +466,11 @@ function missionControl_construct()
         console.log("chg: " + document.visibilityState);
     });
     */
-}
+};
 
-var g_missionControl_visible = false;
+g_missionControl.visible = false;
 
-function missionControl_show(i_transition)
+g_missionControl.show = function (i_transition)
 {
     // Apply default arguments
     if (i_transition === null || i_transition === undefined)
@@ -479,11 +481,11 @@ function missionControl_show(i_transition)
     dan.disableContextMenu(document.body);
 
     //document.body.style.backgroundImage = "url('fondo.jpg')";
-    g_missionControl_backgroundImage.style.backgroundPositionX = "1px";
+    this.backgroundImage.style.backgroundPositionX = "1px";
     $(document).bind("mousemove", function (i_event) {
-        g_missionControl_backgroundImage.style.backgroundPositionX = (-i_event.pageX / 64).toString() + "px";
-        g_missionControl_backgroundImage.style.backgroundPositionY = (-i_event.pageY / 64).toString() + "px";
-    });
+        this.backgroundImage.style.backgroundPositionX = (-i_event.pageX / 64).toString() + "px";
+        this.backgroundImage.style.backgroundPositionY = (-i_event.pageY / 64).toString() + "px";
+    }.bind(this));
     /*
     document.body.style.backgroundImage = "url('nasa-mission-control-room-restoration.jpg')";
     document.body.style.backgroundPosition = "bottom";
@@ -493,35 +495,35 @@ function missionControl_show(i_transition)
     //
     if (i_transition == "none")
     {
-        g_missionControl_backgroundImage.style.display = "block";
-        g_missionControl_backgroundImage.style.opacity = "";
+        this.backgroundImage.style.display = "block";
+        this.backgroundImage.style.opacity = "";
 
-        g_missionControl_introElement.style.display = "block";
-        g_missionControl_introElement.style.opacity = "";
+        this.introElement.style.display = "block";
+        this.introElement.style.opacity = "";
 
-        g_missionControl_tagCloudElement.style.display = "block";
+        this.tagCloudElement.style.display = "block";
         g_svg3DTagCloud.startRunning();
         g_svg3DTagCloud.show();
 
-        g_missionControl_bpmControlElement.style.display = "block";
-        g_missionControl_bpmControlElement.style.opacity = "";
+        this.bpmControlElement.style.display = "block";
+        this.bpmControlElement.style.opacity = "";
 
-        g_missionControl_queryRowElement.style.display = "block";
-        g_missionControl_queryRowElement.style.opacity = "";
+        this.queryRowElement.style.display = "block";
+        this.queryRowElement.style.opacity = "";
     }
     else if (i_transition == "warp")
     {
-        g_missionControl_backgroundImage.style.display = "block";
-        g_missionControl_introElement.style.display = "block";
-        g_missionControl_bpmControlElement.style.display = "block";
-        g_missionControl_queryRowElement.style.display = "block";
-        g_missionControl_tagCloudElement.style.display = "block";
+        this.backgroundImage.style.display = "block";
+        this.introElement.style.display = "block";
+        this.bpmControlElement.style.display = "block";
+        this.queryRowElement.style.display = "block";
+        this.tagCloudElement.style.display = "block";
 
         dan.movement.animate(0.3, function (i_progress) {
-            g_missionControl_backgroundImage.style.opacity = i_progress;
-            g_missionControl_introElement.style.opacity = i_progress;
-            g_missionControl_bpmControlElement.style.opacity = i_progress;
-            g_missionControl_queryRowElement.style.opacity = i_progress;
+            this.backgroundImage.style.opacity = i_progress;
+            this.introElement.style.opacity = i_progress;
+            this.bpmControlElement.style.opacity = i_progress;
+            this.queryRowElement.style.opacity = i_progress;
         });
 
         g_svg3DTagCloud.startRunning();
@@ -532,34 +534,34 @@ function missionControl_show(i_transition)
     g_scrollingLog.setHeight(14);
     g_scrollingLog.setOpacity(0.4);
 
-    g_missionControl_visible = true;
-}
+    this.visible = true;
+};
 
-function missionControl_hide(i_transition)
+g_missionControl.hide = function (i_transition)
 {
     // Apply default arguments
     if (i_transition === null || i_transition === undefined)
         i_transition = "none";
 
     //
-    missionControl_closeDialogs();
+    this.closeDialogs();
 
     //
     if (i_transition == "none")
     {
-        g_missionControl_backgroundImage.style.display = "none";
+        this.backgroundImage.style.display = "none";
 
-        g_missionControl_introElement.style.display = "none";
+        this.introElement.style.display = "none";
 
         g_svg3DTagCloud.stopRunning();
-        g_missionControl_tagCloudElement.style.display = "none";
+        this.tagCloudElement.style.display = "none";
         g_svg3DTagCloud.hide();
 
-        g_missionControl_bpmControlElement.style.display = "none";
+        this.bpmControlElement.style.display = "none";
 
-        g_missionControl_queryRowElement.style.display = "none";
+        this.queryRowElement.style.display = "none";
 
-        g_missionControl_visible = false;
+        this.visible = false;
 
         return Promise.resolve();
     }
@@ -567,42 +569,42 @@ function missionControl_hide(i_transition)
     {
         var textFade = new Promise(function (i_resolve) {
             dan.movement.animate(0.3, function (i_progress) {
-                g_missionControl_backgroundImage.style.opacity = 1 - i_progress;
-                g_missionControl_introElement.style.opacity = 1 - i_progress;
-                g_missionControl_bpmControlElement.style.opacity = 1 - i_progress;
-                g_missionControl_queryRowElement.style.opacity = 1 - i_progress;
+                this.backgroundImage.style.opacity = 1 - i_progress;
+                this.introElement.style.opacity = 1 - i_progress;
+                this.bpmControlElement.style.opacity = 1 - i_progress;
+                this.queryRowElement.style.opacity = 1 - i_progress;
 
                 if (i_progress == 1)
                 {
                     i_resolve();
                 }
-            });
-        });
+            }.bind(this));
+        }.bind(this));
 
         var tagFade = g_svg3DTagCloud.hide("fov");
 
         return Promise.all([textFade, tagFade]).then(function () {
             console.log("done all");
-            g_missionControl_backgroundImage.style.display = "none";
-            g_missionControl_introElement.style.display = "none";
-            g_missionControl_bpmControlElement.style.display = "none";
-            g_missionControl_queryRowElement.style.display = "none";
+            this.backgroundImage.style.display = "none";
+            this.introElement.style.display = "none";
+            this.bpmControlElement.style.display = "none";
+            this.queryRowElement.style.display = "none";
 
             g_svg3DTagCloud.stopRunning();
-            g_missionControl_tagCloudElement.style.display = "none";
+            this.tagCloudElement.style.display = "none";
 
-            g_missionControl_visible = false;
-        });
+            this.visible = false;
+        }.bind(this));
     }
 
-    //$(g_missionControl_helpDialogElement).hide();
-    //$(g_missionControl_creditsDialogElement).hide();
-}
+    //$(this.helpDialogElement).hide();
+    //$(this.creditsDialogElement).hide();
+};
 
-function missionControl_toggle(i_transition)
+g_missionControl.toggle = function (i_transition)
 {
-    if (g_missionControl_visible)
-        missionControl_hide(i_transition);
+    if (this.visible)
+        g_missionControl.hide(i_transition);
     else
-        missionControl_show(i_transition);
-}
+        g_missionControl.show(i_transition);
+};

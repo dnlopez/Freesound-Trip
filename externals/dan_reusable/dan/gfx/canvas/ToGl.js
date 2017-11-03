@@ -277,6 +277,8 @@ dan.gfx.canvas.ToGl.prototype.drawCompiledTextT = function (i_compiledText, i_ti
                         this.viewMatrixStack[this.viewMatrixStack.length - 1], this.projectionMatrixStack[this.projectionMatrixStack.length - 1], i_tint);
 };
 
+//[dan.gfx.canvas.ToGl.prototype.drawCompiledTextTST?...]
+
 // + }}}
 
 // + Draw from internally managed one-off batches {{{
@@ -544,7 +546,7 @@ dan.gfx.canvas.ToGl.prototype.drawTextTST = function (
 //  (dan.math.Vector2)
 //  The new pen position at the end of the text which was drawn.
 {
-    var penPosition = dan.math.Vector2.fromElements(0, 0);
+    var penPosition = dan.math.Vector2.fromElements(i_preTranslation[0], i_preTranslation[1]);
     for (var charNo = 0; charNo < i_text.length; ++charNo)
     {
         var glyph = i_glTextureFontFace.charmaps[0][i_text.charCodeAt(charNo)];
@@ -563,7 +565,7 @@ dan.gfx.canvas.ToGl.prototype.drawTextTST = function (
         else
             this.flush();
 
-        this.builtInSpriteBatch.addSpriteTST(srcSubTexture, i_colour, dan.math.Vector2.add(i_preTranslation, dan.math.Vector2.add(penPosition, glyph.bearing)), i_scale, i_postTranslation);
+        this.builtInSpriteBatch.addSpriteTST(srcSubTexture, i_colour, dan.math.Vector2.add(penPosition, glyph.bearing), i_scale, i_postTranslation);
         this.builtInSpriteBatch_srcTexture = srcSubTexture;
 
         penPosition.add(glyph.advance);
