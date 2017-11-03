@@ -471,7 +471,7 @@ g_space.body_onMouseMove = function (i_event)
     this.mousePositionInViewport = [i_event.clientX - boundingClientRect.left, i_event.clientY - boundingClientRect.top];
     this.mousePositionInViewport_normalized = [this.mousePositionInViewport[0] / boundingClientRect.width * 2 - 1,
                                                this.mousePositionInViewport[1] / boundingClientRect.height * 2 - 1];
-};
+}.bind(g_space);
 
 var g_sequencer;
 
@@ -537,7 +537,7 @@ g_space.viewportDiv_onMouseDown = function (i_event)
             }
         }
     }
-};
+}.bind(g_space);
 
 g_space.document_onKeyDown = function (event)
 {
@@ -661,7 +661,7 @@ g_space.document_onKeyDown = function (event)
         //g_scrollingLog.addText("Set movement speed to " + g_controls.translationalSpeed.toString()  + ".");
         break;
     }
-};
+}.bind(g_space);
 
 g_space.document_onKeyUp = function (event)
 {
@@ -687,28 +687,28 @@ g_space.document_onKeyUp = function (event)
         moveRight = false;
         break;
     }
-};
+}.bind(g_space);
 
 g_space.installEventHandlers = function ()
 {
     // Mouse actions on main viewport
-    document.body.addEventListener("mousemove", this.body_onMouseMove.bind(this));
-    this.viewportDiv.addEventListener("mousedown", this.viewportDiv_onMouseDown.bind(this));
+    document.body.addEventListener("mousemove", this.body_onMouseMove);
+    this.viewportDiv.addEventListener("mousedown", this.viewportDiv_onMouseDown);
 
     //
-    document.addEventListener("keydown", this.document_onKeyDown.bind(this), false);
-    document.addEventListener("keyup", this.document_onKeyUp.bind(this), false);
+    document.addEventListener("keydown", this.document_onKeyDown, false);
+    document.addEventListener("keyup", this.document_onKeyUp, false);
 };
 
 g_space.uninstallEventHandlers = function ()
 {
     // Mouse actions on main viewport
-    document.body.removeEventListener("mousemove", this.body_onMouseMove.bind(this));
-    this.viewportDiv.removeEventListener("mousedown", this.viewportDiv_onMouseDown.bind(this));
+    document.body.removeEventListener("mousemove", this.body_onMouseMove);
+    this.viewportDiv.removeEventListener("mousedown", this.viewportDiv_onMouseDown);
 
     //
-    document.removeEventListener("keydown", this.document_onKeyDown.bind(this), false);
-    document.removeEventListener("keyup", this.document_onKeyUp.bind(this), false);
+    document.removeEventListener("keydown", this.document_onKeyDown, false);
+    document.removeEventListener("keyup", this.document_onKeyUp, false);
 };
 
 // + g_space.construct() {{{
@@ -853,10 +853,10 @@ g_space.constructDialogs = function ()
     document.body.appendChild(this.controlsButton);
 
     //
-    $(".closeButton").bind("click", this.closeDialogs.bind(this));
+    $(".closeButton")[0].addEventListener("click", this.closeDialogs.bind(this));
 
     // When button clicked, open dialog
-    $(".controlsButton").bind("click", function (i_event) {
+    $(".controlsButton")[0].addEventListener("click", function (i_event) {
         this.viewportDimmer.dim();
 
         var openerButtonClientRect = i_event.target.getBoundingClientRect();

@@ -90,12 +90,12 @@ g_missionControl.constructDialogs = function ()
     //$(this.creditsDialogElement).hide();
     document.body.appendChild(this.creditsDialogElement);
 
-    $(".creditsButton").bind("click", function (i_event) {
+    $(".creditsButton")[0].addEventListener("click", function (i_event) {
         var openerButtonClientRect = i_event.target.getBoundingClientRect();
         popUpElement($(".creditsDialog")[0], openerButtonClientRect.right + 10, openerButtonClientRect.top);
     });
 
-    $(".closeButton").bind("click", this.closeDialogs.bind(this));
+    $(".closeButton")[0].addEventListener("click", this.closeDialogs.bind(this));
 };
 
 g_missionControl.closeDialogs = function ()
@@ -135,7 +135,7 @@ g_missionControl.construct = function ()
     $(this.introElement).hide();
     document.body.appendChild(this.introElement);
 
-    $(".helpButton").bind("click", function (i_event) {
+    $(".helpButton")[0].addEventListener("click", function (i_event) {
         this.viewportDimmer.dim();
 
         var openerButtonClientRect = i_event.target.getBoundingClientRect();
@@ -192,10 +192,10 @@ g_missionControl.construct = function ()
         }
     });
 
-    $("#go").bind("mouseover", function (i_event) {
+    $("#go")[0].addEventListener("mouseover", function (i_event) {
         $("#go").find("path")[0].setAttribute("fill", "#88f");
     });
-    $("#go").bind("mouseout", function (i_event) {
+    $("#go")[0].addEventListener("mouseout", function (i_event) {
         $("#go").find("path")[0].setAttribute("fill", "#fff");
     });
 
@@ -482,7 +482,7 @@ g_missionControl.show = function (i_transition)
 
     //document.body.style.backgroundImage = "url('fondo.jpg')";
     this.backgroundImage.style.backgroundPositionX = "1px";
-    $(document).bind("mousemove", function (i_event) {
+    $(document)[0].addEventListener("mousemove", function (i_event) {
         this.backgroundImage.style.backgroundPositionX = (-i_event.pageX / 64).toString() + "px";
         this.backgroundImage.style.backgroundPositionY = (-i_event.pageY / 64).toString() + "px";
     }.bind(this));
