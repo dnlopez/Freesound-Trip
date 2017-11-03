@@ -96,6 +96,7 @@ g_missionControl.constructDialogs = function ()
     });
 
     $(".closeButton")[0].addEventListener("click", this.closeDialogs.bind(this));
+    $(".closeButton")[1].addEventListener("click", this.closeDialogs.bind(this));
 };
 
 g_missionControl.closeDialogs = function ()
