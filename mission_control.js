@@ -228,7 +228,7 @@ g_missionControl.construct = function ()
         g_spaceParam_unwantedTags = unwantedTags;
         g_spaceParam_bpm = bpmSliderValue;
         g_space.show();
-        g_space.render();
+        //g_space.render();
         //this.hide("warp").then(enterSpaceWhenAssetsReady);
         this.hide("warp");
         enterSpaceWhenAssetsReady();

@@ -6,6 +6,35 @@ if (typeof(dan.loaders) === "undefined")
 
 // + Static {{{
 
+dan.loaders.loadDelay = function (i_loadTime)
+// Simulate a load that takes some period of time.
+// Nothing is actually loaded; this is just for debug purposes.
+//
+// Params:
+//  i_loadTime:
+//   (float number)
+//   Time in seconds to pretend to load for.
+//
+// Returns:
+//  (Promise)
+//  A promise to deliver the result of the load.
+//  When it resolves, handlers watching for that state have params:
+//   -
+//  Else if it fails (which should never happen), handlers watching for that state have params:
+//   -
+{
+    // Create promise and return it
+    return new Promise(function (i_resolve, i_reject) {
+
+        setTimeout(function () {
+            // When finished waiting,
+            // resolve the promise
+            i_resolve();
+        }, i_loadTime * 1000.0);
+
+    });
+};
+
 dan.loaders.loadImage = function (i_url)
 // Load an image into an HTMLImageElement.
 //

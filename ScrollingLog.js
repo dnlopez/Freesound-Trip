@@ -28,7 +28,7 @@ function ScrollingLog()
     this.rootDomElement.style.flexDirection = "column-reverse";
 
     // Default time in seconds for each log element to remain visible for
-    this.timeout = 3;
+    this.timeout = Infinity;
 
     //
     this.entries = [];

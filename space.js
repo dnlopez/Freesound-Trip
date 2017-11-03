@@ -1041,6 +1041,8 @@ g_space.construct_onFontsLoaded = function ()
     // Load asset "freesound_tags_indexed"
     loadWithLog(this.assetLoader, this.assetLoader.loadText, "metadata/freesound_tags_indexed.json", "freesound_tags_indexed");
 
+    //loadWithLog(this.assetLoader, this.assetLoader.loadDelay, 10, "delay");
+
     if (k_soundSource == "index")
         // Load asset "sound_index"
         loadWithLog(this.assetLoader, this.assetLoader.loadText, k_soundSource_indexUrl, "sound_index");
@@ -1213,13 +1215,16 @@ function enterSpaceWhenAssetsReady()
     console.log("enterSpaceWhenAssetsReady");
     if (!g_space.assetsLoaded)
     {
+        g_scrollingLog.addText("Please wait as loading completes...");
         g_space.assetLoader.all().then(function () {
+            g_scrollingLog.timeout = 3;
             g_space.installEventHandlers();
             g_space.enter();
         });
     }
     else
     {
+        g_scrollingLog.timeout = 3;
         g_space.installEventHandlers();
         g_space.enter();
     }

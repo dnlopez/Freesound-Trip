@@ -15,6 +15,8 @@ var g_scrollingLog;
 
 function main()
 {
+    document.body.style.backgroundColor = "black";
+
     g_scrollingLog = new ScrollingLog();
     document.body.appendChild(g_scrollingLog.getRootDomElement());
     /*

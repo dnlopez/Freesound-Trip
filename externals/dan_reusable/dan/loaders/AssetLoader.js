@@ -70,6 +70,98 @@ dan.loaders.AssetLoader.prototype.all = function ()
 };
 
 
+dan.loaders.AssetLoader.prototype.loadDelay = function (i_loadTime, i_key)
+// Simulate a load that takes some period of time.
+// Nothing is actually loaded; this is just for debug purposes.
+//
+// Params:
+//  i_loadTime:
+//   (float number)
+//   Time in seconds to pretend to load for.
+//  i_key:
+//   Either (string)
+//    Short name to use to refer to the asset by in future
+//   or (null or undefined)
+//    No particular short name (A unique name is auto-generated for internal purposes).
+//
+// Returns:
+//  (Promise)
+//  A promise to deliver the result of the load.
+//  When it resolves, handlers watching for that state have params:
+//   -
+
+// Returns:
+//  (Promise)
+//  A promise to deliver the result of the load.
+//  If it resolves, handlers watching for that state have params:
+//   i_result:
+//    (object)
+//    Object has properties:
+//     asset:
+//      (boolean)
+//      true
+//     loadTime:
+//      (float number)
+//      Time in seconds that pretended to load for.
+//     key:
+//      (string)
+//      The short name for the asset (whether originally passed in as the i_key argument
+//      or auto-generated).
+//  Else if it fails (which should never happen), handlers watching for that state have params:
+//   i_result:
+//    (object)
+//    Object has properties:
+//     errorDescription:
+//      (string)
+//      A description of the error.
+//     loadTime:
+//      (string)
+//      As for the fulfilled handler.
+//     key:
+//      (string)
+//      As for the fulfilled handler.
+{
+    // If the caller didn't choose a key then generate a unique one
+    if (!i_key)
+        i_key = this._generateUniqueKey();
+
+    // Call loadImage(),
+    // augment the resulting promise with our own cleanup behaviour,
+    // store augmented promise in this.loading
+    var self = this;
+    this.loading[i_key] = dan.loaders.loadDelay(i_loadTime).then(
+        function onResolved()
+        {
+            // Remove augmented promise from this.loading, put pretend asset (ie. true) in this.loaded
+            delete self.loading[i_key];
+            self.loaded[i_key] = true;
+
+            // Resolve augmented promise with this returned value
+            return {
+                key: i_key,
+                loadTime: i_loadTime,
+                asset: self.loaded[i_key]
+            };
+        },
+        function onRejected()
+        {
+            // Remove promise from this.loading, save error description in this.failed
+            delete self.loading[i_key];
+            self.failed[i_key] = "loadDelay() failed";
+
+            // Reject augmented promise with this thrown value
+            throw {
+                key: i_key,
+                loadTime: i_loadTime,
+                errorDescription: i_errorDescription
+            };
+        }
+    );
+
+    // Return the augmented promise
+    return this.loading[i_key];
+};
+
 dan.loaders.AssetLoader.prototype.loadImage = function (i_url, i_key)
 // Load an image into an HTMLImageElement.
 //
