@@ -73,7 +73,7 @@ dan.math.Vector3.fromVector3 = function (i_vector)
 
 // + + }}}
 
-dan.math.Vector3.prototype.clone = function (i_vector)
+dan.math.Vector3.prototype.clone = function ()
 // Returns:
 //  (dan.math.Vector3)
 {
@@ -740,6 +740,9 @@ dan.math.Vector3.prototype.transformByQuaternion = function (i_quaternion)
 // Returns:
 //  (dan.math.Vector3)
 {
+    // Copied from: three.js
+    // TODO: understand this
+
     var x = this.elements[0];
     var y = this.elements[1];
     var z = this.elements[2];
@@ -750,15 +753,15 @@ dan.math.Vector3.prototype.transformByQuaternion = function (i_quaternion)
     var qz = i_quaternion.z;
 
     // calculate quat * vector
-    var ix = qw * x + qy * z - qz * y;
-    var iy = qw * y + qz * x - qx * z;
-    var iz = qw * z + qx * y - qy * x;
-    var iw = -qx * x - qy * y - qz * z;
+    var ix = qw * x  +  qy * z  -  qz * y;
+    var iy = qw * y  +  qz * x  -  qx * z;
+    var iz = qw * z  +  qx * y  -  qy * x;
+    var iw = -qx * x  -  qy * y  -  qz * z;
 
     // calculate result * inverse quat
-    this.x = ix * qw + iw * -qx + iy * -qz - iz * -qy;
-    this.y = iy * qw + iw * -qy + iz * -qx - ix * -qz;
-    this.z = iz * qw + iw * -qz + ix * -qy - iy * -qx;
+    this.x = ix * qw  +  iw * -qx  +  iy * -qz  -  iz * -qy;
+    this.y = iy * qw  +  iw * -qy  +  iz * -qx  -  ix * -qz;
+    this.z = iz * qw  +  iw * -qz  +  ix * -qy  -  iy * -qx;
 
     return this;
 };

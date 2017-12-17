@@ -224,10 +224,9 @@ dan.math.Matrix3.tsrtMatrix = function (i_preTranslation, i_scale, i_rotation, i
 
 // + + }}}
 
-dan.math.Matrix3.prototype.clone = function (i_other)
+dan.math.Matrix3.prototype.clone = function ()
 // Params:
-//  i_other:
-//   (dan.math.Matrix3)
+//  -
 //
 // Returns:
 //  (dan.math.Matrix3)

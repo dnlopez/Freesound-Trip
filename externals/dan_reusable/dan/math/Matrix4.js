@@ -284,10 +284,9 @@ dan.math.Matrix4.orthoMatrix = function (i_left, i_right, i_bottom, i_top, i_nea
 
 // + + }}}
 
-dan.math.Matrix4.prototype.clone = function (i_other)
+dan.math.Matrix4.prototype.clone = function ()
 // Params:
-//  i_other:
-//   (dan.math.Matrix4)
+//  -
 //
 // Returns:
 //  (dan.math.Matrix4)
@@ -509,6 +508,29 @@ dan.math.Matrix4.prototype.getToRowMajorArray = function (o_array)
     o_array[15] = this.cols[3][3];
 };
 
+dan.math.Matrix4.prototype.toRowMajorArray = function ()
+// Returns:
+//  (array of float)
+{
+    return [
+        this.cols[0][0],
+        this.cols[1][0],
+        this.cols[2][0],
+        this.cols[3][0],
+        this.cols[0][1],
+        this.cols[1][1],
+        this.cols[2][1],
+        this.cols[3][1],
+        this.cols[0][2],
+        this.cols[1][2],
+        this.cols[2][2],
+        this.cols[3][2],
+        this.cols[0][3],
+        this.cols[1][3],
+        this.cols[2][3],
+        this.cols[3][3]];
+};
+
 dan.math.Matrix4.prototype.setFromColumnVectors = function (i_column0, i_column1, i_column2, i_column3)
 // Params:
 //  i_column0, i_column1, i_column2, i_column3:
@@ -619,7 +641,8 @@ dan.math.Matrix4.prototype.setToConstant = function (i_value)
 // Completely overwrite this matrix to make every cell the same number.
 //
 // Params:
-//  i_constant: (float)
+//  i_constant:
+//   (float)
 //
 // Returns:
 //  (dan.math.Matrix4)
@@ -649,7 +672,8 @@ dan.math.Matrix4.prototype.setToXRotation = function (i_angleInRadians)
 // that rotates about the positive X axis.
 //
 // Params:
-//  i_angleInRadians: (float)
+//  i_angleInRadians:
+//   (float)
 //
 // Returns:
 //  (dan.math.Matrix4)
@@ -670,7 +694,8 @@ dan.math.Matrix4.prototype.setToYRotation = function (i_angleInRadians)
 // that rotates about the positive Y axis.
 //
 // Params:
-//  i_angleInRadians: (float)
+//  i_angleInRadians:
+//   (float)
 //
 // Returns:
 //  (dan.math.Matrix4)
@@ -691,7 +716,8 @@ dan.math.Matrix4.prototype.setToZRotation = function (i_angleInRadians)
 // that rotates about the positive Z axis.
 //
 // Params:
-//  i_angleInRadians: (float)
+//  i_angleInRadians:
+//   (float)
 //
 // Returns:
 //  (dan.math.Matrix4)
@@ -712,8 +738,11 @@ dan.math.Matrix4.prototype.setToAxisAngleRotation = function (i_axis, i_angleInR
 // that rotates about an arbitrary axis.
 //
 // Params:
-//  i_axis: (dan.math.Vector3)
-//  i_angleInRadians: (float)
+//  i_axis:
+//   Either (dan.math.Vector3)
+//   or (array of 3 floats)
+//  i_angleInRadians:
+//   (float)
 //
 // Returns:
 //  (dan.math.Matrix4)
@@ -743,9 +772,9 @@ dan.math.Matrix4.prototype.setToAxisAngleRotation = function (i_axis, i_angleInR
     var oneMinusCosA = 1.0 - cosA;
 
     var normalizedAxis = dan.math.Vector3.normalize(i_axis);
-    var x = normalizedAxis.x;
-    var y = normalizedAxis.y;
-    var z = normalizedAxis.z;
+    var x = normalizedAxis[0];
+    var y = normalizedAxis[1];
+    var z = normalizedAxis[2];
     var xSq = x * x;
     var ySq = y * y;
     var zSq = z * z;
@@ -1001,9 +1030,12 @@ dan.math.Matrix4.prototype.setToTranslation = function (i_xOrVector3, i_y, i_z)
 //
 // Mode 2:
 //  Params:
-//   i_xOrVector3: (float)
-//   i_y: (float)
-//   i_z: (float)
+//   i_xOrVector3:
+//    (float)
+//   i_y:
+//    (float)
+//   i_z:
+//    (float)
 //
 // Returns:
 //  (dan.math.Matrix4)
@@ -1037,10 +1069,14 @@ dan.math.Matrix4.prototype.setToScale = function (i_xOrVector4, i_y, i_z, i_w)
 //
 // Mode 2:
 //  Params:
-//   i_xOrVector4: (float)
-//   i_y: (float)
-//   i_z: (float)
-//   i_w: (float)
+//   i_xOrVector4:
+//    (float)
+//   i_y:
+//    (float)
+//   i_z:
+//    (float)
+//   i_w:
+//    (float)
 //
 // Returns:
 //  (dan.math.Matrix4)
@@ -1333,7 +1369,7 @@ dan.math.Matrix4.prototype.mul = function (i_right)
     {
         for (var c = 0; c < 4; ++c)
         {
-            // This matrix's row dotted with i_right matrix's column
+            // 'this' matrix's row dotted with i_right matrix's column
             var total = 0;
             total += (left.cols[0][r] * i_right.cols[c][0]);
             total += (left.cols[1][r] * i_right.cols[c][1]);

@@ -74,7 +74,7 @@ dan.math.Vector2.fromVector2 = function (i_vector)
 
 // + + }}}
 
-dan.math.Vector2.prototype.clone = function (i_vector)
+dan.math.Vector2.prototype.clone = function ()
 // Returns:
 //  (dan.math.Vector2)
 {
