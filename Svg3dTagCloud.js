@@ -168,6 +168,9 @@ function Svg3dTagCloud(i_container, i_params)
     };
 
     var fov;
+    this.setFov = function (i_fov) {
+        fov = i_fov;
+    };
 
     var speed = { x: 0, y: 0 };
 
@@ -242,7 +245,7 @@ function Svg3dTagCloud(i_container, i_params)
         //---
 
         resetEntryPositions();
-        setEntryPositions(radius);
+        maintainEntryRadiuses(radius);
 
         // Hack which avoids the SVG element obscuring whatever elements are beneath it
         // (over the whole viewport even if the SVG element isn't filling the area)
@@ -251,54 +254,35 @@ function Svg3dTagCloud(i_container, i_params)
 
     //---
 
-    function setEntryPositions(i_radius)
+    // + Entries {{{
+
+    // + + Create {{{
+
+    /*
+    function createEntries()
     {
-        for (var entryCount = entries.length, entryNo = 0; entryNo < entryCount; ++entryNo)
+        // For each entry (using 1-based indexes)
+        for (var entryCount = settings.entries.length + 1, entryNo = 1; entryNo < entryCount; ++entryNo)
         {
-            setEntryPosition(entries[entryNo], i_radius);
+            var phi = Math.acos(-1 + (2 * entryNo - 1) / entryCount);
+            var theta = Math.sqrt(entryCount * Math.PI) * phi;
+
+            var x = Math.cos(theta) * Math.sin(phi);
+            var y = Math.sin(theta) * Math.sin(phi);
+            var z = Math.cos(phi);
+
+            entries.push(createEntry(entryNo - 1, settings.entries[entryNo - 1], x, y, z));
         }
     };
-
-    function setEntryPosition(i_entry, i_radius)
-    {
-        var dx = i_entry.vectorPosition.x - center3D.x;
-        var dy = i_entry.vectorPosition.y - center3D.y;
-        var dz = i_entry.vectorPosition.z - center3D.z;
-        var length = Math.sqrt(dx*dx + dy*dy + dz*dz);
-
-        i_entry.vectorPosition.x /= length;
-        i_entry.vectorPosition.y /= length;
-        i_entry.vectorPosition.z /= length;
-
-        i_entry.vectorPosition.x *= i_radius;
-        i_entry.vectorPosition.y *= i_radius;
-        i_entry.vectorPosition.z *= i_radius;
-    };
-    /*
-    function setEntryPosition(i_entry, i_radius)
-    {
-        i_entry.vectorPosition.x -= center3D.x;
-        i_entry.vectorPosition.y -= center3D.y;
-        i_entry.vectorPosition.z -= center3D.z;
-
-        var dx = i_entry.vectorPosition.x;
-        var dy = i_entry.vectorPosition.y;
-        var dz = i_entry.vectorPosition.z;
-        var length = Math.sqrt(dx*dx + dy*dy + dz*dz);
-
-        i_entry.vectorPosition.x /= length;
-        i_entry.vectorPosition.y /= length;
-        i_entry.vectorPosition.z /= length;
-
-        i_entry.vectorPosition.x *= i_radius;
-        i_entry.vectorPosition.y *= i_radius;
-        i_entry.vectorPosition.z *= i_radius;
-
-        i_entry.vectorPosition.x += center3D.x;
-        i_entry.vectorPosition.y += center3D.y;
-        i_entry.vectorPosition.z += center3D.z;
-    };
     */
+    function createEntries()
+    {
+        // For each entry
+        for (var entryCount = settings.entries.length, entryNo = 0; entryNo < entryCount; ++entryNo)
+        {
+            entries.push(createEntry(entryNo, settings.entries[entryNo], 0, 0, 0));
+        }
+    };
 
     function createEntry(i_index, i_entryObj, i_x, i_y, i_z)
     {
@@ -351,33 +335,12 @@ function Svg3dTagCloud(i_container, i_params)
         return entry;
     };
 
-    /*
-    function createEntries()
-    {
-        // For each entry (using 1-based indexes)
-        for (var entryCount = settings.entries.length + 1, entryNo = 1; entryNo < entryCount; ++entryNo)
-        {
-            var phi = Math.acos(-1 + (2 * entryNo - 1) / entryCount);
-            var theta = Math.sqrt(entryCount * Math.PI) * phi;
+    // + + }}}
 
-            var x = Math.cos(theta) * Math.sin(phi);
-            var y = Math.sin(theta) * Math.sin(phi);
-            var z = Math.cos(phi);
-
-            entries.push(createEntry(entryNo - 1, settings.entries[entryNo - 1], x, y, z));
-        }
-    };
-    */
-    function createEntries()
-    {
-        // For each entry
-        for (var entryCount = settings.entries.length, entryNo = 0; entryNo < entryCount; ++entryNo)
-        {
-            entries.push(createEntry(entryNo, settings.entries[entryNo], 0, 0, 0));
-        }
-    };
+    // + + Reset positions {{{
 
     function resetEntryPositions()
+    // Set all entry.vectorPosition, to normalized direction out from origin
     {
         // Spiral from front to back, anti-clockwise
 
@@ -401,6 +364,64 @@ function Svg3dTagCloud(i_container, i_params)
             entry.vectorPosition = { x: x, y: y, z: z };
         }
     };
+
+    // + + }}}
+
+    // + + Set positions {{{
+
+    function maintainEntryRadiuses(i_radius)
+    {
+        for (var entryCount = entries.length, entryNo = 0; entryNo < entryCount; ++entryNo)
+        {
+            maintainEntryRadius(entries[entryNo], i_radius);
+        }
+    };
+
+    function maintainEntryRadius(i_entry, i_radius)
+    // Set entry.vectorPosition, to a particular length from center3D
+    {
+        var dx = i_entry.vectorPosition.x - center3D.x;
+        var dy = i_entry.vectorPosition.y - center3D.y;
+        var dz = i_entry.vectorPosition.z - center3D.z;
+        var length = Math.sqrt(dx*dx + dy*dy + dz*dz);
+
+        i_entry.vectorPosition.x /= length;
+        i_entry.vectorPosition.y /= length;
+        i_entry.vectorPosition.z /= length;
+
+        i_entry.vectorPosition.x *= i_radius;
+        i_entry.vectorPosition.y *= i_radius;
+        i_entry.vectorPosition.z *= i_radius;
+    };
+    /*
+    function maintainEntryRadius(i_entry, i_radius)
+    {
+        i_entry.vectorPosition.x -= center3D.x;
+        i_entry.vectorPosition.y -= center3D.y;
+        i_entry.vectorPosition.z -= center3D.z;
+
+        var dx = i_entry.vectorPosition.x;
+        var dy = i_entry.vectorPosition.y;
+        var dz = i_entry.vectorPosition.z;
+        var length = Math.sqrt(dx*dx + dy*dy + dz*dz);
+
+        i_entry.vectorPosition.x /= length;
+        i_entry.vectorPosition.y /= length;
+        i_entry.vectorPosition.z /= length;
+
+        i_entry.vectorPosition.x *= i_radius;
+        i_entry.vectorPosition.y *= i_radius;
+        i_entry.vectorPosition.z *= i_radius;
+
+        i_entry.vectorPosition.x += center3D.x;
+        i_entry.vectorPosition.y += center3D.y;
+        i_entry.vectorPosition.z += center3D.z;
+    };
+    */
+
+    // + + }}}
+
+    // + }}}
 
     function getEntryByElement(i_element)
     {
@@ -437,6 +458,8 @@ function Svg3dTagCloud(i_container, i_params)
     var k_piDividedBy180 = Math.PI / 180;
 
     function rotateEntries(i_rotationX, i_rotationY)
+    // Rotate each entry.vectorPosition
+    //
     // Params:
     //  i_rotationX:
     //   (float number)
@@ -480,6 +503,7 @@ function Svg3dTagCloud(i_container, i_params)
     }
 
     function projectEntries()
+    // Sets each entry.vector2D
     {
         for (var entryCount = entries.length, entryNo = 0; entryNo < entryCount; ++entryNo)
         {
@@ -609,7 +633,7 @@ function Svg3dTagCloud(i_container, i_params)
                     {
                         radius -= 5;
 
-                        setEntryPositions(radius);
+                        maintainEntryRadiuses(radius);
                         svgElement.style.opacity = radius / (diameter / 2);
                         requestAnimFrame(onAnimationFrame);
                     }
@@ -687,7 +711,7 @@ function Svg3dTagCloud(i_container, i_params)
                     {
                         radius += 5;
 
-                        setEntryPositions(radius);
+                        maintainEntryRadiuses(radius);
                         svgElement.style.opacity = radius / (diameter / 2);
                         requestAnimFrame(onAnimationFrame);
                     }
